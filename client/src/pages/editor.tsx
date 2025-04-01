@@ -77,11 +77,8 @@ export default function Editor() {
     contentDepth: "detailed"
   });
 
-  // Fetch project if ID is provided
-  const projectQuery = useQuery<Project>({
-    queryKey: ['/api/projects', id],
-    enabled: !!id,
-  });
+  // No database, so no need to fetch projects
+  // We'll use local state and localStorage instead
 
   // Update token estimate when prompt changes
   useEffect(() => {
@@ -93,22 +90,27 @@ export default function Editor() {
     }
   }, [prompt]);
 
-  // Load project data
+  // Load project data from localStorage instead of database
   useEffect(() => {
-    if (projectQuery.data) {
-      const project = projectQuery.data;
-      setPrompt(project.prompt || '');
-      setSelectedCategory(project.category || 'general');
-      setHtml(project.html || null);
-      setCss(project.css || null);
-      setProjectId(project.id || null);
-      
-      // Load site structure if available
-      if (project.siteStructure) {
-        setSiteStructure(project.siteStructure);
+    const savedProject = localStorage.getItem('landingcraft_current_project');
+    if (savedProject) {
+      try {
+        const project = JSON.parse(savedProject);
+        setPrompt(project.prompt || '');
+        setSelectedCategory(project.category || 'general');
+        setHtml(project.html || null);
+        setCss(project.css || null);
+        setProjectId(project.id || null);
+        
+        // Load site structure if available
+        if (project.siteStructure) {
+          setSiteStructure(project.siteStructure);
+        }
+      } catch (e) {
+        console.error("Failed to parse saved project:", e);
       }
     }
-  }, [projectQuery.data]);
+  }, []);
 
   // Load API config from localStorage
   useEffect(() => {
@@ -135,49 +137,50 @@ export default function Editor() {
     }
   }, [apiConfig]);
 
-  // Mutations
-  const createProjectMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/projects", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      setProjectId(data.id);
+  // Instead of mutations to a database, we'll save to localStorage
+  const saveProject = (data: any) => {
+    try {
+      // Generate an ID if it doesn't exist
+      if (!data.id) {
+        data.id = Date.now();
+        setProjectId(data.id);
+      }
+      
+      // Save to localStorage
+      localStorage.setItem('landingcraft_current_project', JSON.stringify(data));
+      
+      // Save to projects list
+      const projectsStr = localStorage.getItem('landingcraft_projects');
+      let projects = projectsStr ? JSON.parse(projectsStr) : [];
+      
+      // Check if project exists in the list
+      const existingProjectIndex = projects.findIndex((p: any) => p.id === data.id);
+      if (existingProjectIndex >= 0) {
+        // Update existing project
+        projects[existingProjectIndex] = data;
+      } else {
+        // Add new project
+        projects.push(data);
+      }
+      
+      // Save updated projects list
+      localStorage.setItem('landingcraft_projects', JSON.stringify(projects));
+      
       toast({
         title: "Project Saved",
-        description: "Your project has been saved successfully",
+        description: "Your project has been saved locally",
       });
-    },
-    onError: (error) => {
+      
+      return data;
+    } catch (error) {
       toast({
         title: "Save Failed",
-        description: error instanceof Error ? error.message : "Failed to save project",
+        description: "Failed to save project locally",
         variant: "destructive",
       });
-    },
-  });
-
-  const updateProjectMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const res = await apiRequest("PATCH", `/api/projects/${id}`, data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      toast({
-        title: "Project Updated",
-        description: "Your project has been updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Update Failed",
-        description: error instanceof Error ? error.message : "Failed to update project",
-        variant: "destructive",
-      });
-    },
-  });
+      throw error;
+    }
+  };
 
   // Handle generation
   const handleGenerate = async () => {
@@ -213,6 +216,7 @@ export default function Editor() {
       
       // Save or update project
       const projectData = {
+        id: projectId || undefined,
         name: prompt.slice(0, 30) + "...",
         description: prompt,
         prompt,
@@ -221,13 +225,11 @@ export default function Editor() {
         html: result.html,
         css: result.css,
         siteStructure,
+        createdAt: new Date().toISOString()
       };
       
-      if (projectId) {
-        updateProjectMutation.mutate({ id: projectId, data: projectData });
-      } else {
-        createProjectMutation.mutate(projectData);
-      }
+      // Save project to localStorage
+      saveProject(projectData);
       
       toast({
         title: "DeepSite™ Generation Complete",
@@ -256,6 +258,7 @@ export default function Editor() {
     }
 
     const projectData = {
+      id: projectId || undefined,
       name: prompt.slice(0, 30) + "...",
       description: prompt,
       prompt,
@@ -264,13 +267,11 @@ export default function Editor() {
       html,
       css,
       siteStructure,
+      createdAt: new Date().toISOString()
     };
     
-    if (projectId) {
-      updateProjectMutation.mutate({ id: projectId, data: projectData });
-    } else {
-      createProjectMutation.mutate(projectData);
-    }
+    // Save to localStorage
+    saveProject(projectData);
   };
 
   // Handle new project
@@ -307,7 +308,7 @@ export default function Editor() {
         onSave={handleSave}
         onPublish={() => setPublishModalOpen(true)}
         onExport={() => setExportModalOpen(true)}
-        isSaving={createProjectMutation.isPending || updateProjectMutation.isPending}
+        isSaving={false}
       />
 
       <main className="flex-1 flex flex-col">

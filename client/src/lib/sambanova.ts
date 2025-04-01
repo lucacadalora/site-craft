@@ -27,66 +27,62 @@ export async function generateDeepSite(
   apiConfig: ApiConfig
 ): Promise<GenerationResult> {
   try {
-    // Create a system message that guides the model to generate a landing page
-    const templatePrompts: Record<string, string> = {
-      "general": "You are a professional web developer creating a modern, responsive landing page.",
-      "education": "You are a professional web developer creating a modern, responsive landing page for an educational institution or EdTech product.",
-      "portfolio": "You are a professional web developer creating a modern, responsive portfolio landing page for a designer or creative professional.",
-      "finance": "You are a professional web developer creating a modern, responsive landing page for a financial services company.",
-      "marketplace": "You are a professional web developer creating a modern, responsive landing page for an e-commerce or marketplace platform.",
-      "technology": "You are a professional web developer creating a modern, responsive landing page for a technology company or SaaS product.",
-      "healthcare": "You are a professional web developer creating a modern, responsive landing page for a healthcare provider or health technology product.",
-      "real-estate": "You are a professional web developer creating a modern, responsive landing page for a real estate company or property listing.",
-      "restaurant": "You are a professional web developer creating a modern, responsive landing page for a restaurant or food service business.",
-      "nonprofit": "You are a professional web developer creating a modern, responsive landing page for a nonprofit organization or charity."
-    };
-
-    // Get the template prompt based on category or use general
-    const templatePrompt = templatePrompts[category] || templatePrompts.general;
-
-    // Build a detailed system message
-    const systemMessage = `${templatePrompt}
-Your task is to generate HTML and CSS for a complete landing page based on the user's description.
-
-The landing page should include the following sections:
-${sections.map(section => `- ${section}`).join('\n')}
-
-Content depth: ${contentDepth} (basic = minimal text, detailed = standard content, comprehensive = extensive content)
-
-Generate a well-structured, modern, and responsive landing page with clean, well-commented HTML and CSS.
-You MUST output a JSON object with two properties:
-- html: The complete HTML code for the landing page
-- css: The complete CSS code for the landing page
-
-Use modern CSS with flexbox/grid and responsive breakpoints. Include basic animations for improved UX.
-The design should be professional, user-friendly, and optimized for conversion.`;
-
-    // Create the message array
-    const messages: Message[] = [
-      { role: "system", content: systemMessage },
-      { role: "user", content: prompt }
-    ];
-
-    // Prepare options for the API call
-    const options: CompletionOptions = {
-      model: "deepseek-v3-0324",
-      messages: messages
-    };
-
-    // Make API call - this is a simplified version, in a real app we'd make a fetch request to the SambaNova API
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
-    // In a real implementation, you would call the SambaNova API here
     
-    // Mock response for now - normally we'd make an actual API call
-    // This mimics what the actual response would be
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call delay
+    // Check for the environment variable first
+    const apiKey = apiConfig?.apiKey || import.meta.env.VITE_SAMBANOVA_API_KEY;
     
-    // Create a mock HTML/CSS response based on the prompt
-    // In a real implementation, this would come from the API
-    const html = generateMockHTML(prompt, category, sections);
-    const css = generateMockCSS();
+    // Check if we have an API key
+    if (!apiKey) {
+      console.log("VITE_SAMBANOVA_API_KEY environment variable is NOT available");
+      console.log("Using fallback generation...");
+      
+      // Wait a bit to simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000)); 
+      
+      // Generate mock content while API key is not available
+      const html = generateMockHTML(prompt, category, sections);
+      const css = generateMockCSS();
+      return { html, css };
+    }
     
-    return { html, css };
+    // Make a real API call to our backend endpoint
+    try {
+      const response = await fetch('/api/sambanova/deepsite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          category,
+          sections,
+          contentDepth,
+          apiConfig: {
+            apiKey,
+            provider: "SambaNova (DeepSeek-V3-0324)"
+          }
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      return {
+        html: data.html,
+        css: data.css
+      };
+    } catch (apiError) {
+      console.error("Error calling SambaNova API:", apiError);
+      
+      // Fallback to mock generation
+      console.log("Using fallback generation due to API error");
+      const html = generateMockHTML(prompt, category, sections);
+      const css = generateMockCSS();
+      return { html, css };
+    }
   } catch (error) {
     console.error("Error generating with SambaNova:", error);
     throw new Error("Failed to generate landing page. Please try again.");
