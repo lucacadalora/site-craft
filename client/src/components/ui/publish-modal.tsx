@@ -1,130 +1,89 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Check, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { publishLandingPage } from "@/lib/openai";
 
 interface PublishModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: number | null;
-  onSuccess: (url: string) => void;
+  onSuccess?: (url: string) => void;
 }
 
 export function PublishModal({ open, onOpenChange, projectId, onSuccess }: PublishModalProps) {
+  const [siteName, setSiteName] = useState("");
+  const [useCustomDomain, setUseCustomDomain] = useState(false);
+  const [customDomain, setCustomDomain] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const { toast } = useToast();
-  const [slug, setSlug] = React.useState('');
-  const [slugAvailable, setSlugAvailable] = React.useState<boolean | null>(null);
-  const [checkingSlug, setCheckingSlug] = React.useState(false);
 
-  // Check if the slug is available
-  const checkSlug = async () => {
-    if (!slug) return;
-    
-    setCheckingSlug(true);
-    
-    try {
-      // This would be a real API call in a production application
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // For demo purposes, we'll just pretend the slug is available
-      setSlugAvailable(true);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to check slug availability',
-        variant: 'destructive',
-      });
-      setSlugAvailable(false);
-    } finally {
-      setCheckingSlug(false);
-    }
-  };
-
-  // Submit the publish request
-  const publishMutation = useMutation({
-    mutationFn: async () => {
-      if (!projectId || !slug) {
-        throw new Error('Missing project ID or slug');
-      }
-      
-      const res = await apiRequest('POST', `/api/projects/${projectId}/publish`, { slug });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      const publishedUrl = `https://${slug}.landingcraft.com`;
-      onSuccess(publishedUrl);
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Publish Failed',
-        description: error instanceof Error ? error.message : 'Failed to publish landing page',
-        variant: 'destructive',
-      });
-    },
-  });
-  
-  // Reset state when the modal is opened
-  React.useEffect(() => {
-    if (open) {
-      setSlug('');
-      setSlugAvailable(null);
-    }
-  }, [open]);
-
-  // Handle slug change
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '')
-      .replace(/-+/g, '-');
-      
-    setSlug(value);
-    setSlugAvailable(null);
+  // Handle domain type change
+  const handleDomainTypeChange = (value: string) => {
+    setUseCustomDomain(value === "custom");
   };
 
   // Handle publish
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!projectId) {
       toast({
-        title: 'Error',
-        description: 'No project to publish',
-        variant: 'destructive',
+        title: "Error",
+        description: "No project selected for publishing",
+        variant: "destructive",
       });
       return;
     }
-    
-    if (!slug) {
+
+    if (!siteName) {
       toast({
-        title: 'Error',
-        description: 'Please enter a URL slug',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter a site name",
+        variant: "destructive",
       });
       return;
     }
-    
-    if (slugAvailable !== true) {
+
+    if (useCustomDomain && !customDomain) {
       toast({
-        title: 'Error',
-        description: 'Please check slug availability first',
-        variant: 'destructive',
+        title: "Error",
+        description: "Please enter a custom domain or select free subdomain",
+        variant: "destructive",
       });
       return;
     }
-    
-    publishMutation.mutate();
+
+    setIsPublishing(true);
+    try {
+      const result = await publishLandingPage(
+        projectId,
+        siteName,
+        useCustomDomain,
+        customDomain
+      );
+      
+      toast({
+        title: "Success",
+        description: "Your landing page has been published!",
+      });
+      
+      if (onSuccess) {
+        onSuccess(result.url);
+      }
+      
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Publishing failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -132,79 +91,78 @@ export function PublishModal({ open, onOpenChange, projectId, onSuccess }: Publi
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Publish Landing Page</DialogTitle>
-          <DialogDescription>
-            This will publish your landing page to a public URL.
-          </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="slug" className="text-right">
-              URL Slug
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="site-name" className="text-right">
+              Site Name
             </Label>
-            <div className="flex items-center gap-2">
+            <Input
+              id="site-name"
+              value={siteName}
+              onChange={(e) => setSiteName(e.target.value)}
+              placeholder="my-landing-page"
+              className="col-span-3"
+            />
+          </div>
+          
+          <div className="text-xs col-start-2 col-span-3 text-gray-500 -mt-3">
+            Your site will be available at landingcraft.io/sites/your-site-name
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="domain-type" className="text-right">
+              Domain
+            </Label>
+            <Select
+              onValueChange={handleDomainTypeChange}
+              defaultValue="free"
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select domain type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free subdomain (yourdomain.landingcraft.io)</SelectItem>
+                <SelectItem value="custom">Custom domain (requires Pro plan)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {useCustomDomain && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="custom-domain" className="text-right">
+                Custom Domain
+              </Label>
               <Input
-                id="slug"
-                value={slug}
-                onChange={handleSlugChange}
-                placeholder="my-landing-page"
-                className="flex-1"
-                disabled={publishMutation.isPending}
+                id="custom-domain"
+                value={customDomain}
+                onChange={(e) => setCustomDomain(e.target.value)}
+                placeholder="example.com"
+                className="col-span-3"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={checkSlug}
-                disabled={!slug || checkingSlug || publishMutation.isPending}
-              >
-                {checkingSlug ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking
-                  </>
-                ) : (
-                  'Check'
-                )}
-              </Button>
             </div>
-            {slugAvailable === true && (
-              <div className="text-sm text-green-600 flex items-center">
-                <Check className="mr-1 h-4 w-4" /> Slug is available
-              </div>
-            )}
-            {slugAvailable === false && (
-              <div className="text-sm text-red-600">
-                Slug is not available
-              </div>
-            )}
-            <p className="text-sm text-gray-500">
-              Your landing page will be published at: <span className="font-medium">{slug ? `https://${slug}.landingcraft.com` : 'https://your-slug.landingcraft.com'}</span>
-            </p>
+          )}
+          
+          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Token usage for publish</p>
+              <p className="text-xs text-gray-500">Estimated: 150 tokens</p>
+            </div>
+            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Within free tier</span>
           </div>
         </div>
         
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={publishMutation.isPending}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            onClick={handlePublish}
-            disabled={!slug || slugAvailable !== true || publishMutation.isPending}
+          <Button 
+            onClick={handlePublish} 
+            disabled={isPublishing || !projectId || !siteName || (useCustomDomain && !customDomain)}
+            className="bg-primary hover:bg-blue-600"
           >
-            {publishMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publishing...
-              </>
-            ) : (
-              'Publish'
-            )}
+            {isPublishing ? "Publishing..." : "Publish Now"}
           </Button>
         </DialogFooter>
       </DialogContent>

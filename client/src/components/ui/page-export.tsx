@@ -1,19 +1,11 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Download, Loader2 } from 'lucide-react';
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { exportLandingPage } from "@/lib/openai";
+import { Download } from "lucide-react";
 
 interface PageExportProps {
   open: boolean;
@@ -22,128 +14,107 @@ interface PageExportProps {
 }
 
 export function PageExport({ open, onOpenChange, projectId }: PageExportProps) {
+  const [format, setFormat] = useState<"html" | "pdf">("html");
+  const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
-  const [exportFormat, setExportFormat] = React.useState<'html-css' | 'zip' | 'github'>('html-css');
 
-  // Submit the export request
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      if (!projectId) {
-        throw new Error('Missing project ID');
-      }
-      
-      const res = await apiRequest('POST', `/api/projects/${projectId}/export`, { format: exportFormat });
-      return res.json();
-    },
-    onSuccess: (data) => {
+  const handleExport = async () => {
+    if (!projectId) {
       toast({
-        title: 'Export Complete',
-        description: 'Your landing page has been exported successfully.',
+        title: "Error",
+        description: "No project selected for export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const blob = await exportLandingPage(projectId, format);
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = `landingcraft-export.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export successful",
+        description: `Your landing page has been exported as ${format.toUpperCase()}`,
       });
       
-      // Trigger download
-      // In a real application, we would redirect to a download URL provided by the API
-      
-      // Simulate download after a short delay
-      setTimeout(() => {
-        const filename = data.filename || `landingpage-${projectId}.${exportFormat === 'zip' ? 'zip' : 'html'}`;
-        const link = document.createElement('a');
-        
-        // This is a mock URL - in a real app this would be a valid download URL
-        link.href = '#';
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        onOpenChange(false);
-      }, 1000);
-    },
-    onError: (error) => {
+      onOpenChange(false);
+    } catch (error) {
       toast({
-        title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Failed to export landing page',
-        variant: 'destructive',
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Export Landing Page</DialogTitle>
-          <DialogDescription>
-            Export your landing page to use it elsewhere.
-          </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <RadioGroup
-            value={exportFormat}
-            onValueChange={(value: 'html-css' | 'zip' | 'github') => setExportFormat(value)}
-            className="space-y-4"
-          >
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem value="html-css" id="format-html" />
-              <div className="space-y-1.5">
-                <Label htmlFor="format-html" className="font-semibold">
-                  Single HTML File
-                </Label>
-                <p className="text-sm text-gray-500">
-                  Export as a self-contained HTML file with CSS included.
-                </p>
-              </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="format" className="text-right">
+              Format
+            </Label>
+            <Select
+              value={format}
+              onValueChange={(value) => setFormat(value as "html" | "pdf")}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="html">HTML/CSS</SelectItem>
+                <SelectItem value="pdf">PDF Document</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-md border border-gray-200">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Export Information</p>
+              <p className="text-xs text-gray-500">
+                {format === "html" 
+                  ? "Download complete HTML, CSS and assets" 
+                  : "Download as PDF document for printing or sharing"}
+              </p>
             </div>
-            
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem value="zip" id="format-zip" />
-              <div className="space-y-1.5">
-                <Label htmlFor="format-zip" className="font-semibold">
-                  ZIP Archive
-                </Label>
-                <p className="text-sm text-gray-500">
-                  Export as a ZIP file containing separate HTML, CSS, and assets.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <RadioGroupItem value="github" id="format-github" />
-              <div className="space-y-1.5">
-                <Label htmlFor="format-github" className="font-semibold">
-                  GitHub Repository
-                </Label>
-                <p className="text-sm text-gray-500">
-                  Export directly to a new GitHub repository.
-                </p>
-              </div>
-            </div>
-          </RadioGroup>
+          </div>
         </div>
         
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={exportMutation.isPending}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            onClick={() => exportMutation.mutate()}
-            disabled={!projectId || exportMutation.isPending}
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting || !projectId}
+            className="flex items-center"
           >
-            {exportMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Exporting...
-              </>
+            {isExporting ? (
+              <>Exporting...</>
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Export
+                Export {format.toUpperCase()}
               </>
             )}
           </Button>

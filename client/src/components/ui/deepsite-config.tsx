@@ -1,12 +1,13 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SiteStructure } from "@shared/schema";
-import { Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Check, RefreshCw, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DeepSiteConfigProps {
   enabled: boolean;
@@ -17,147 +18,181 @@ interface DeepSiteConfigProps {
   onGenerate: () => void;
 }
 
+const AVAILABLE_SECTIONS = [
+  { id: "hero", name: "Hero Banner" },
+  { id: "features", name: "Features" },
+  { id: "testimonials", name: "Testimonials" },
+  { id: "about", name: "About Us" },
+  { id: "services", name: "Services" },
+  { id: "pricing", name: "Pricing" },
+  { id: "team", name: "Team" },
+  { id: "contact", name: "Contact" },
+  { id: "cta", name: "Call to Action" },
+  { id: "faq", name: "FAQ" },
+  { id: "portfolio", name: "Portfolio" },
+  { id: "blog", name: "Blog Previews" },
+  { id: "stats", name: "Statistics" },
+  { id: "partners", name: "Partners/Clients" },
+];
+
 export function DeepSiteConfig({
   enabled,
   onEnabledChange,
   siteStructure,
   onSiteStructureChange,
   isGenerating,
-  onGenerate,
+  onGenerate
 }: DeepSiteConfigProps) {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  
+  // Handle section toggle
+  const toggleSection = (sectionId: string) => {
+    if (siteStructure.sections.includes(sectionId)) {
+      // Remove the section
+      onSiteStructureChange({
+        ...siteStructure,
+        sections: siteStructure.sections.filter(s => s !== sectionId)
+      });
+    } else {
+      // Add the section
+      onSiteStructureChange({
+        ...siteStructure,
+        sections: [...siteStructure.sections, sectionId]
+      });
+    }
+  };
 
-  // All available sections
-  const allSections = [
-    { id: "hero", label: "Hero Section" },
-    { id: "features", label: "Features" },
-    { id: "testimonials", label: "Testimonials" },
-    { id: "about", label: "About Us" },
-    { id: "contact", label: "Contact" },
-    { id: "pricing", label: "Pricing" },
-    { id: "gallery", label: "Gallery" },
-    { id: "team", label: "Team" },
-    { id: "faq", label: "FAQ" },
-    { id: "blog", label: "Blog Highlights" }
-  ];
-
-  // Handler for section toggle
-  const handleSectionToggle = (section: string, checked: boolean) => {
-    const newSections = checked
-      ? [...siteStructure.sections, section]
-      : siteStructure.sections.filter(s => s !== section);
-    
+  // Handle content depth change
+  const handleDepthChange = (depth: string) => {
     onSiteStructureChange({
       ...siteStructure,
-      sections: newSections
+      contentDepth: depth as "basic" | "detailed" | "comprehensive"
     });
   };
 
-  // Handler for content depth change
-  const handleContentDepthChange = (depth: "basic" | "detailed" | "comprehensive") => {
-    onSiteStructureChange({
-      ...siteStructure,
-      contentDepth: depth
-    });
+  // Token usage estimates for different depth levels
+  const getTokenMultiplier = (depth: string) => {
+    switch (depth) {
+      case "basic": return "1x";
+      case "detailed": return "1.5x";
+      case "comprehensive": return "2x";
+      default: return "1x";
+    }
   };
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-        <CardTitle className="text-lg flex justify-between items-center">
-          <div className="flex items-center">
-            <Sparkles className="w-5 h-5 text-purple-500 mr-2" />
-            DeepSite™ Configuration
-          </div>
-          <span className="text-sm text-gray-500">{isExpanded ? "▲" : "▼"}</span>
-        </CardTitle>
-      </CardHeader>
+    <Card className="bg-white p-4 rounded-lg border border-gray-200 mt-4">
+      <CardTitle className="flex justify-between items-center text-lg font-semibold text-gray-800 mb-2">
+        <div className="flex items-center">
+          <span>DeepSite™ Generation</span>
+          <Badge className="ml-2 bg-gradient-to-r from-indigo-500 to-purple-500">PRO</Badge>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-normal text-gray-600">
+            {enabled ? "Enabled" : "Disabled"}
+          </span>
+          <Switch
+            checked={enabled}
+            onCheckedChange={onEnabledChange}
+          />
+        </div>
+      </CardTitle>
       
-      {isExpanded && (
-        <CardContent>
-          <div className="space-y-6">
-            {/* DeepSite toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="deepsite-toggle" className="font-medium">
-                  Enable DeepSite™ Generation
-                </Label>
-                <p className="text-sm text-gray-500">
-                  The next generation of AI-powered landing page creation
-                </p>
-              </div>
-              <Switch
-                id="deepsite-toggle"
-                checked={enabled}
-                onCheckedChange={onEnabledChange}
-                disabled={true} // Always enabled in this version
-              />
-            </div>
+      <CardContent className="p-0 pt-2">
+        {enabled ? (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              DeepSite™ generates comprehensive, multi-section landing pages with richer content
+              and more detailed information architecture.
+            </p>
             
-            {/* Content depth selection */}
-            <div className="space-y-3">
-              <Label className="font-medium">Content Depth</Label>
-              <RadioGroup
+            <div className="mb-4">
+              <Label className="block text-sm text-gray-700 mb-2">Content Depth</Label>
+              <Select
                 value={siteStructure.contentDepth}
-                onValueChange={handleContentDepthChange}
+                onValueChange={handleDepthChange}
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="basic" id="depth-basic" />
-                  <Label htmlFor="depth-basic">Basic</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="detailed" id="depth-detailed" />
-                  <Label htmlFor="depth-detailed">Detailed</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="comprehensive" id="depth-comprehensive" />
-                  <Label htmlFor="depth-comprehensive">Comprehensive</Label>
-                </div>
-              </RadioGroup>
-              <p className="text-xs text-gray-500">
-                Comprehensive generates more detailed content but uses more tokens.
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select content depth" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">
+                    Basic ({getTokenMultiplier("basic")} tokens)
+                  </SelectItem>
+                  <SelectItem value="detailed">
+                    Detailed ({getTokenMultiplier("detailed")} tokens)
+                  </SelectItem>
+                  <SelectItem value="comprehensive">
+                    Comprehensive ({getTokenMultiplier("comprehensive")} tokens)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">
+                Higher depth levels create more comprehensive content but use more tokens.
               </p>
             </div>
             
-            {/* Section selection */}
-            <div className="space-y-3">
-              <Label className="font-medium">Page Sections</Label>
+            <div>
+              <Label className="block text-sm text-gray-700 mb-2">
+                Page Sections ({siteStructure.sections.length} selected)
+              </Label>
               <div className="grid grid-cols-2 gap-2">
-                {allSections.map((section) => (
+                {AVAILABLE_SECTIONS.map((section) => (
                   <div key={section.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`section-${section.id}`}
                       checked={siteStructure.sections.includes(section.id)}
-                      onCheckedChange={(checked) =>
-                        handleSectionToggle(section.id, checked === true)
-                      }
+                      onCheckedChange={() => toggleSection(section.id)}
                     />
                     <Label
                       htmlFor={`section-${section.id}`}
                       className="text-sm cursor-pointer"
                     >
-                      {section.label}
+                      {section.name}
                     </Label>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">
-                Select the sections you want included in your landing page.
+              <p className="text-xs text-gray-500 mt-2">
+                Select the sections you want to include in your landing page.
               </p>
             </div>
             
-            <div>
+            <div className="mt-4">
               <Button
                 onClick={onGenerate}
                 disabled={isGenerating || siteStructure.sections.length === 0}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
               >
-                Generate Complete Landing Page
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Generating DeepSite...
+                  </>
+                ) : (
+                  <>
+                    <Check className="mr-2 h-4 w-4" />
+                    Generate DeepSite
+                  </>
+                )}
               </Button>
             </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-4">
+            <p className="text-center text-gray-500 mb-3">
+              Enable DeepSite™ to create more comprehensive, content-rich landing pages with
+              multiple sections and detailed information.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => onEnabledChange(true)}
+              className="border-indigo-400 text-indigo-600 hover:bg-indigo-50"
+            >
+              Enable DeepSite™
+            </Button>
           </div>
-        </CardContent>
-      )}
+        )}
+      </CardContent>
     </Card>
   );
 }
