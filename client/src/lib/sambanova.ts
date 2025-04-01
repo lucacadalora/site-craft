@@ -72,7 +72,7 @@ Make sure the content relates specifically to the user's request and includes re
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
     
     // Use the environment API key if none is provided in the config
-    const apiKey = apiConfig.apiKey || process.env.SAMBANOVA_API_KEY || '';
+    const apiKey = apiConfig.apiKey || import.meta.env.VITE_SAMBANOVA_API_KEY || '';
     
     try {
       // Make the actual API call to SambaNova

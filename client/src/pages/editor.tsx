@@ -67,7 +67,7 @@ export default function Editor() {
   // API config for SambaNova - using environment variable by default
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
     provider: "SambaNova (DeepSeek-V3-0324)",
-    apiKey: "",  // This will use the environment variable
+    apiKey: import.meta.env.VITE_SAMBANOVA_API_KEY || "",  // Use the environment variable directly
     saveToken: false,
   });
 
@@ -376,9 +376,13 @@ export default function Editor() {
                   </SelectContent>
                 </Select>
                 
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                   <Button
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    className={`w-full ${
+                      aiAccelerateEnabled 
+                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" 
+                        : "bg-gray-500 hover:bg-gray-600"
+                    }`}
                     onClick={handleGenerate}
                     disabled={isGenerating || !prompt}
                     title={aiAccelerateEnabled ? "" : "You need to enable AI Accelerate™ to generate a landing page"}
@@ -395,6 +399,11 @@ export default function Editor() {
                       </>
                     )}
                   </Button>
+                  {!aiAccelerateEnabled && (
+                    <p className="text-xs text-red-500 text-center">
+                      Please enable AI Accelerate™ to generate a landing page
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
