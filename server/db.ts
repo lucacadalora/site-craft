@@ -22,7 +22,7 @@ export const runMigrations = async () => {
     // Use SQL directly to create tables if migrate fails
     // This is a workaround for the journal file issue
     try {
-      await migrate(db, { migrationsFolder: './migrations' });
+      await migrate(db, { migrationsFolder: 'migrations' });
       console.log('Migrations completed successfully');
     } catch (migrateError) {
       console.error('Error with drizzle migrate:', migrateError);
