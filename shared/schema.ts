@@ -77,12 +77,22 @@ export const settingsSchema = z.object({
 
 export type Settings = z.infer<typeof settingsSchema>;
 
+// API configuration schema
+export const apiConfigSchema = z.object({
+  provider: z.string().default("OpenAI (GPT-4o)"),
+  apiKey: z.string().optional(),
+  saveToken: z.boolean().default(true),
+});
+
+export type ApiConfig = z.infer<typeof apiConfigSchema>;
+
 // Generation request schema
 export const generatePageSchema = z.object({
   prompt: z.string().min(10, "Please provide a more detailed description"),
   templateId: z.string(),
   category: z.string(),
   settings: settingsSchema,
+  apiConfig: apiConfigSchema.optional(),
 });
 
 export type GeneratePageRequest = z.infer<typeof generatePageSchema>;
@@ -104,12 +114,3 @@ export const publishSchema = z.object({
 });
 
 export type PublishRequest = z.infer<typeof publishSchema>;
-
-// API configuration schema
-export const apiConfigSchema = z.object({
-  provider: z.string().default("OpenAI (GPT-4o)"),
-  apiKey: z.string().min(1, "API key is required"),
-  saveToken: z.boolean().default(true),
-});
-
-export type ApiConfig = z.infer<typeof apiConfigSchema>;

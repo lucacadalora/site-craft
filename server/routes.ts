@@ -132,9 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the request body
       const { prompt, templateId, category, settings, apiConfig } = generatePageSchema.parse(req.body);
       
-      // Validate API config
-      apiConfigSchema.parse(apiConfig);
-      
       // Get the template
       const template = await storage.getTemplate(templateId);
       if (!template) {
@@ -144,12 +141,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate the landing page content using OpenAI
       let html, css;
       
-      if (apiConfig.provider.includes("OpenAI")) {
+      // Default to OpenAI provider
+      const provider = apiConfig && apiConfig.provider ? apiConfig.provider : "OpenAI (GPT-4o)";
+      
+      if (provider.includes("OpenAI")) {
         const generatedContent = await generateWithOpenAI(
           prompt,
           template,
           settings,
-          apiConfig.apiKey
+          apiConfig?.apiKey // Pass the provided key or undefined to use the environment variable
         );
         
         html = generatedContent.html;
@@ -174,7 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let isValid = false;
       if (provider.includes("OpenAI")) {
-        isValid = await validateOpenAIKey(apiKey);
+        // Use the provided key or the environment variable
+        isValid = await validateOpenAIKey(apiKey || undefined);
       } else {
         // Other providers would be handled here
         return res.status(400).json({ message: "Unsupported API provider" });

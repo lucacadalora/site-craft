@@ -6,10 +6,11 @@ export async function generateWithOpenAI(
   prompt: string,
   template: Template,
   settings: Settings,
-  apiKey: string
+  apiKey?: string
 ): Promise<{ html: string; css: string }> {
   try {
-    const openai = new OpenAI({ apiKey });
+    // Use the provided API key or fall back to the environment variable
+    const openai = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
 
     // Construct the prompt for the LLM
     // Using a structured prompt to get consistent output and save tokens
@@ -67,9 +68,10 @@ export async function generateWithOpenAI(
 }
 
 // Function to validate OpenAI API key
-export async function validateOpenAIKey(apiKey: string): Promise<boolean> {
+export async function validateOpenAIKey(apiKey?: string): Promise<boolean> {
   try {
-    const openai = new OpenAI({ apiKey });
+    // Use the provided API key or fall back to the environment variable
+    const openai = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
     
     // Make a minimal API call to test the key
     const response = await openai.chat.completions.create({

@@ -31,7 +31,7 @@ export async function generateLandingPage(
 
 // Function to validate API key
 export async function validateApiKey(
-  apiKey: string,
+  apiKey: string | undefined,
   provider: string
 ): Promise<boolean> {
   try {

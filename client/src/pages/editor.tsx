@@ -44,14 +44,32 @@ export default function Editor() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [projectId, setProjectId] = useState<number | null>(null);
+  // API config is now optional since we're using the environment variable
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
     provider: "OpenAI (GPT-4o)",
-    apiKey: "",
-    saveToken: true,
+    apiKey: "",  // This can be empty as we'll use the environment variable
+    saveToken: false,
   });
 
+  // Define project type for type safety
+  interface Project {
+    id: number;
+    name: string;
+    description?: string;
+    prompt: string;
+    templateId: string;
+    category: string;
+    html?: string | null;
+    css?: string | null;
+    settings?: any;
+    published?: boolean;
+    publishPath?: string;
+    userId?: number;
+    createdAt?: string;
+  }
+
   // Fetch project if ID is provided
-  const projectQuery = useQuery({
+  const projectQuery = useQuery<Project>({
     queryKey: ['/api/projects', id],
     enabled: !!id,
   });
@@ -60,16 +78,20 @@ export default function Editor() {
   useEffect(() => {
     if (projectQuery.data) {
       const project = projectQuery.data;
-      setPrompt(project.prompt);
-      setSelectedCategory(project.category);
-      setSelectedTemplate(project.templateId);
-      setSettings(project.settings || defaultSettings);
-      setHtml(project.html || null);
-      setCss(project.css || null);
-      setProjectId(project.id);
+      if (project) {
+        setPrompt(project.prompt || '');
+        setSelectedCategory(project.category || null);
+        setSelectedTemplate(project.templateId || null);
+        setSettings(project.settings || defaultSettings);
+        setHtml(project.html || null);
+        setCss(project.css || null);
+        setProjectId(project.id || null);
 
-      // Load templates for this category
-      fetchTemplatesByCategory(project.category).then(setTemplates);
+        // Load templates for this category if there is one
+        if (project.category) {
+          fetchTemplatesByCategory(project.category).then(setTemplates);
+        }
+      }
     }
   }, [projectQuery.data]);
 
@@ -181,14 +203,8 @@ export default function Editor() {
       return;
     }
 
-    if (!apiConfig.apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter your API key in the configuration section",
-        variant: "destructive",
-      });
-      return;
-    }
+    // API key is now optional because we use the environment variable
+    // This validation is no longer needed
 
     setIsGenerating(true);
     try {

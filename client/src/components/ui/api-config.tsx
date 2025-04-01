@@ -46,30 +46,24 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
 
   // Validate API key
   const handleValidateKey = async () => {
-    // Validate with Zod first
-    const result = apiConfigSchema.safeParse(apiConfig);
-    if (!result.success) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide a valid API key",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsValidating(true);
     try {
-      const isValid = await validateApiKey(apiConfig.apiKey, apiConfig.provider);
+      // If apiKey is empty, we'll validate the environment variable key
+      const isValid = await validateApiKey(apiConfig.apiKey || undefined, apiConfig.provider);
       
       if (isValid) {
         toast({
           title: "Success",
-          description: "API key is valid and working",
+          description: apiConfig.apiKey 
+            ? "Your API key is valid and working"
+            : "The system API key is valid and working",
         });
       } else {
         toast({
           title: "Invalid API Key",
-          description: "The provided API key could not be verified",
+          description: apiConfig.apiKey
+            ? "The provided API key could not be verified"
+            : "The system API key could not be verified",
           variant: "destructive",
         });
       }
@@ -111,14 +105,14 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
         
         <div>
           <Label htmlFor="api-key" className="block text-xs text-gray-500 mb-1">
-            API Key
+            API Key (Optional)
           </Label>
           <div className="flex">
             <Input
               id="api-key"
               type={showApiKey ? "text" : "password"}
               className="flex-1"
-              placeholder="Enter your API key"
+              placeholder="Using environment key - leave empty to use it"
               value={apiConfig.apiKey}
               onChange={handleApiKeyChange}
             />
@@ -132,7 +126,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
             </Button>
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            Your API key is stored securely and never shared.
+            Leave empty to use the system's API key. Your API key is stored securely and never shared.
           </p>
         </div>
         
@@ -152,7 +146,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
             size="sm"
             variant="outline"
             onClick={handleValidateKey}
-            disabled={isValidating || !apiConfig.apiKey}
+            disabled={isValidating}
           >
             {isValidating ? "Validating..." : "Validate Key"}
           </Button>
