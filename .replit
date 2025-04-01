@@ -49,3 +49,10 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server/db-push.ts"
+
+[nix.channel]
+packages = ["nodejs"]
+
+[deployment]
+run = ["sh", "-c", "node api-server.js"]
+deploymentTarget = "cloudrun"

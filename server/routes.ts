@@ -17,6 +17,16 @@ import path from "path";
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
   
+  // Health check route
+  app.get("/api/health", (req, res) => {
+    console.log("Health check endpoint accessed");
+    return res.status(200).json({ 
+      status: "healthy",
+      message: "Server is running correctly",
+      timestamp: new Date().toISOString()
+    });
+  });
+  
   // Templates routes
   app.get("/api/templates", async (req, res) => {
     try {

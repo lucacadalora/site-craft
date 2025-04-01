@@ -26,13 +26,15 @@ const defaultSettings: Settings = {
   layout: "Standard",
 };
 
+import { useApi } from "@/context/ApiContext";
+
 interface EditorProps {
   id?: string;
-  apiConfig: ApiConfig;
-  onApiConfigChange: (config: ApiConfig) => void;
 }
 
-export default function Editor({ id, apiConfig, onApiConfigChange }: EditorProps) {
+export default function Editor({ id }: EditorProps) {
+  // Get apiConfig and updateApiConfig from our context
+  const { apiConfig, updateApiConfig } = useApi();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -324,11 +326,11 @@ export default function Editor({ id, apiConfig, onApiConfigChange }: EditorProps
                 isGenerating={isGenerating}
               />
 
-              {/* API config panel - temporarily commenting out as we use env var */}
-              {/* <ApiConfigComponent
+              {/* API config panel */}
+              <ApiConfigComponent
                 apiConfig={apiConfig}
-                onApiConfigChange={onApiConfigChange}
-              /> */}
+                onApiConfigChange={updateApiConfig}
+              />
             </div>
             
             <PreviewPane
