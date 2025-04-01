@@ -69,12 +69,12 @@ The design should be professional, user-friendly, and optimized for conversion.`
 
     // Prepare options for the API call
     const options: CompletionOptions = {
-      model: "deepseek-v3-0324",
+      model: "deepseek-coder-v3-0324", // Updated correct model name
       messages: messages
     };
 
     // Make API call to SambaNova
-    console.log("Generating with SambaNova DeepSeek-V3-0324...");
+    console.log("Generating with SambaNova DeepSeek-Coder-V3-0324...");
     
     // Check if the environment variable is available (only log the first few characters for security)
     const envApiKey = import.meta.env.VITE_SAMBANOVA_API_KEY;

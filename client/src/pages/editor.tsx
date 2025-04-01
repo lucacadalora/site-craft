@@ -65,7 +65,7 @@ export default function Editor() {
   
   // API config for SambaNova - using environment variable by default
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
-    provider: "SambaNova (DeepSeek-V3-0324)",
+    provider: "SambaNova (DeepSeek-Coder-V3-0324)",
     apiKey: "",  // This will use the environment variable
     saveToken: false,
   });

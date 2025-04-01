@@ -79,7 +79,7 @@ export type Settings = z.infer<typeof settingsSchema>;
 
 // API configuration schema
 export const apiConfigSchema = z.object({
-  provider: z.string().default("SambaNova (DeepSeek-V3-0324)"),
+  provider: z.string().default("SambaNova (DeepSeek-Coder-V3-0324)"),
   apiKey: z.string().optional(),
   saveToken: z.boolean().default(true),
 });
