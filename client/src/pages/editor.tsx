@@ -12,7 +12,7 @@ import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
 import { ApiConfig, SiteStructure } from "@shared/schema";
 import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
-import { AIAccelerateConfig } from "@/components/ui/deepsite-config";
+import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RefreshCw, Zap } from "lucide-react";
@@ -67,14 +67,11 @@ export default function Editor() {
   // API config for SambaNova - using environment variable by default
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
     provider: "SambaNova (DeepSeek-V3-0324)",
-    apiKey: import.meta.env.VITE_SAMBANOVA_API_KEY || "",  // Use the environment variable directly
+    apiKey: "",  // This will use the environment variable
     saveToken: false,
   });
 
-  // AI Accelerate enabled state - on by default
-  const [aiAccelerateEnabled, setAiAccelerateEnabled] = useState<boolean>(true);
-
-  // AI Accelerate configuration
+  // DeepSite configuration
   const [siteStructure, setSiteStructure] = useState<SiteStructure>({
     sections: ["hero", "features", "testimonials", "about", "contact"],
     contentDepth: "detailed"
@@ -193,25 +190,15 @@ export default function Editor() {
       return;
     }
 
-    // Check if AI Accelerate is enabled
-    if (!aiAccelerateEnabled) {
-      toast({
-        title: "AI Accelerate™ Disabled",
-        description: "Please enable AI Accelerate™ to generate a landing page",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsGenerating(true);
     try {
       // Show toast indicating generation
       toast({
-        title: "AI Accelerate™ Generation",
+        title: "DeepSite™ Generation",
         description: "Creating a comprehensive landing page with multiple sections...",
       });
       
-      // Call the AI Accelerate API
+      // Call the DeepSite API
       const result = await generateDeepSite(
         prompt,
         selectedCategory,
@@ -243,7 +230,7 @@ export default function Editor() {
       }
       
       toast({
-        title: "AI Accelerate™ Generation Complete",
+        title: "DeepSite™ Generation Complete",
         description: "Your comprehensive landing page has been generated successfully",
       });
     } catch (error) {
@@ -320,18 +307,23 @@ export default function Editor() {
         onSave={handleSave}
         onPublish={() => setPublishModalOpen(true)}
         onExport={() => setExportModalOpen(true)}
-        onNewProject={handleNewProject}
         isSaving={createProjectMutation.isPending || updateProjectMutation.isPending}
       />
 
       <main className="flex-1 flex flex-col">
         <div className="container mx-auto py-4">
-          <div className="flex justify-end items-center mb-6">
-            {tokenUsage > 0 && (
-              <div className="text-sm text-gray-500">
-                Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
-              </div>
-            )}
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">LandingCraft</h1>
+            <div className="flex items-center">
+              <Button variant="outline" onClick={handleNewProject}>
+                New Project
+              </Button>
+              {tokenUsage > 0 && (
+                <div className="ml-4 text-sm text-gray-500">
+                  Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
@@ -376,16 +368,11 @@ export default function Editor() {
                   </SelectContent>
                 </Select>
                 
-                <div className="mt-4 space-y-2">
+                <div className="mt-4">
                   <Button
-                    className={`w-full ${
-                      aiAccelerateEnabled 
-                        ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" 
-                        : "bg-gray-500 hover:bg-gray-600"
-                    }`}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                     onClick={handleGenerate}
                     disabled={isGenerating || !prompt}
-                    title={aiAccelerateEnabled ? "" : "You need to enable AI Accelerate™ to generate a landing page"}
                   >
                     {isGenerating ? (
                       <>
@@ -399,11 +386,6 @@ export default function Editor() {
                       </>
                     )}
                   </Button>
-                  {!aiAccelerateEnabled && (
-                    <p className="text-xs text-red-500 text-center">
-                      Please enable AI Accelerate™ to generate a landing page
-                    </p>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -414,10 +396,10 @@ export default function Editor() {
               onApiConfigChange={setApiConfig}
             />
             
-            {/* AI Accelerate Configuration */}
-            <AIAccelerateConfig
-              enabled={aiAccelerateEnabled}
-              onEnabledChange={setAiAccelerateEnabled}
+            {/* DeepSite Configuration */}
+            <DeepSiteConfig
+              enabled={true}
+              onEnabledChange={() => {/* DeepSite is always enabled */}}
               siteStructure={siteStructure}
               onSiteStructureChange={setSiteStructure}
               isGenerating={isGenerating}

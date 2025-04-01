@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
-            <span className="font-bold text-white">Landing Craft by AI Accelerate</span> &copy; {new Date().getFullYear()}
+            <span className="font-bold text-white">LandingCraft</span> &copy; {new Date().getFullYear()}
           </div>
           <div className="flex items-center space-x-4">
             <a href="#" className="hover:text-white transition-colors">Terms</a>
@@ -14,7 +14,7 @@ export function Footer() {
             <a href="#" className="hover:text-white transition-colors">Contact</a>
           </div>
           <div className="mt-4 md:mt-0 text-sm">
-            Powered by <span className="font-semibold">AI Accelerate™ Technology</span>
+            Powered by <span className="font-semibold">SambaNova DeepSeek-V3-0324</span>
           </div>
         </div>
       </div>

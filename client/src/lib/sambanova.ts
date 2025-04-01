@@ -46,7 +46,7 @@ export async function generateDeepSite(
 
     // Build a detailed system message
     const systemMessage = `${templatePrompt}
-Your task is to generate HTML and CSS for a complete landing page based on the user's description: "${prompt}".
+Your task is to generate HTML and CSS for a complete landing page based on the user's description.
 
 The landing page should include the following sections:
 ${sections.map(section => `- ${section}`).join('\n')}
@@ -54,8 +54,12 @@ ${sections.map(section => `- ${section}`).join('\n')}
 Content depth: ${contentDepth} (basic = minimal text, detailed = standard content, comprehensive = extensive content)
 
 Generate a well-structured, modern, and responsive landing page with clean, well-commented HTML and CSS.
-The design should be professional, user-friendly, and optimized for conversion.
-Make sure the content relates specifically to the user's request and includes relevant details.`;
+You MUST output a JSON object with two properties:
+- html: The complete HTML code for the landing page
+- css: The complete CSS code for the landing page
+
+Use modern CSS with flexbox/grid and responsive breakpoints. Include basic animations for improved UX.
+The design should be professional, user-friendly, and optimized for conversion.`;
 
     // Create the message array
     const messages: Message[] = [
@@ -69,51 +73,18 @@ Make sure the content relates specifically to the user's request and includes re
       messages: messages
     };
 
+    // Make API call - this is a simplified version, in a real app we'd make a fetch request to the SambaNova API
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
+    // In a real implementation, you would call the SambaNova API here
     
-    // Use the environment API key if none is provided in the config
-    const apiKey = apiConfig.apiKey || import.meta.env.VITE_SAMBANOVA_API_KEY || '';
+    // Mock response for now - normally we'd make an actual API call
+    // This mimics what the actual response would be
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call delay
     
-    try {
-      // Make the actual API call to SambaNova
-      const response = await fetch('https://api.sambanova.ai/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(options)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`SambaNova API error: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      // Process the response data and extract HTML/CSS
-      // This will vary based on the exact API response format
-      const generatedContent = data.choices?.[0]?.message?.content || '';
-      
-      // Try to extract HTML and CSS from the response
-      const htmlMatch = generatedContent.match(/<html[\s\S]*?<\/html>/i);
-      const cssMatch = generatedContent.match(/<style>[\s\S]*?<\/style>/i);
-      
-      let extractedHtml, extractedCss;
-      
-      if (htmlMatch && cssMatch) {
-        extractedHtml = htmlMatch[0];
-        extractedCss = cssMatch[0].replace(/<\/?style>/g, '');
-        return { html: extractedHtml, css: extractedCss };
-      }
-    } catch (error) {
-      console.error("Error calling SambaNova API:", error);
-      console.log("Using fallback generation...");
-    }
-    
-    // Fallback to mock generation if the API call fails or can't extract properly formatted HTML/CSS
-    const html = generateFallbackHTML(prompt, category, sections);
-    const css = generateFallbackCSS(category);
+    // Create a mock HTML/CSS response based on the prompt
+    // In a real implementation, this would come from the API
+    const html = generateMockHTML(prompt, category, sections);
+    const css = generateMockCSS();
     
     return { html, css };
   } catch (error) {
@@ -123,28 +94,8 @@ Make sure the content relates specifically to the user's request and includes re
 }
 
 // This function would be replaced with a real API call in production
-function generateFallbackHTML(prompt: string, category: string, sections: string[]): string {
-  // Extract more meaningful content from the prompt
-  const words = prompt.split(' ');
-  const title = prompt.split('.')[0] || words.slice(0, 5).join(' ');
-  
-  // Identify some key terms from the prompt to use in the landing page
-  const keyTerms = words.filter(word => word.length > 4).slice(0, 10);
-  
-  // Get business type from category or default
-  const businessType = category.charAt(0).toUpperCase() + category.slice(1);
-  
-  // Create a tagline based on the prompt and category
-  const taglines = [
-    `The premier ${category} solution for modern businesses`,
-    `Transforming the ${category} industry with innovation`,
-    `Advanced ${category} tools for your success`,
-    `Your partner in ${category} excellence`,
-    `${businessType} solutions designed for your needs`
-  ];
-  
-  // Choose a random tagline
-  const tagline = taglines[Math.floor(Math.random() * taglines.length)];
+function generateMockHTML(prompt: string, category: string, sections: string[]): string {
+  const title = prompt.split(' ').slice(0, 3).join(' ');
   
   let sectionsHTML = '';
   
@@ -153,177 +104,78 @@ function generateFallbackHTML(prompt: string, category: string, sections: string
     <section id="hero" class="hero">
       <div class="container">
         <h1>${title}</h1>
-        <p class="lead">${tagline}</p>
-        <button class="btn btn-primary">Get Started Today</button>
+        <p class="lead">A powerful solution for your business needs</p>
+        <button class="btn btn-primary">Get Started</button>
       </div>
     </section>`;
   }
   
   if (sections.includes('features')) {
-    // Generate features based on the category and prompt
-    const featureIcons = ['🚀', '🛡️', '📊', '⚙️', '🔍', '💡', '🔄', '📱', '🌐', '🔔'];
-    
-    // Features tailored by industry/category
-    const featuresByCategory: Record<string, Array<[string, string]>> = {
-      'general': [
-        ['Fast & Reliable', 'Lightning fast performance you can count on.'],
-        ['Secure', 'Enterprise-grade security for your peace of mind.'],
-        ['Analytics', 'Detailed insights to grow your business.']
-      ],
-      'education': [
-        ['Interactive Learning', 'Engage students with interactive content and exercises.'],
-        ['Progress Tracking', 'Monitor student progress with detailed analytics.'],
-        ['Collaboration Tools', 'Foster teamwork with built-in collaboration features.']
-      ],
-      'finance': [
-        ['Secure Transactions', 'Enterprise-level security for all your financial data.'],
-        ['Real-time Analytics', 'Monitor your finances with up-to-the-minute insights.'],
-        ['Automated Reporting', 'Save time with automated financial reporting.']
-      ],
-      'healthcare': [
-        ['Patient Management', 'Streamline patient information and appointment scheduling.'],
-        ['Secure Records', 'HIPAA-compliant security for all patient data.'],
-        ['Telehealth Integration', 'Connect with patients remotely with integrated video calls.']
-      ],
-      'technology': [
-        ['Cutting-edge Solutions', 'Stay ahead with the latest technological innovations.'],
-        ['Scalable Infrastructure', 'Grow your business with scalable architecture.'],
-        ['API Integration', 'Connect with your favorite tools through our robust API.']
-      ],
-      'marketplace': [
-        ['Secure Payments', 'Process transactions with industry-leading security.'],
-        ['Inventory Management', 'Track and manage your inventory in real-time.'],
-        ['Customer Insights', 'Understand your customers with detailed analytics.']
-      ]
-    };
-    
-    // Get features for the selected category or default to general
-    const selectedFeatures = featuresByCategory[category] || featuresByCategory.general;
-    
-    // Create feature HTML
-    let featuresHTML = '';
-    selectedFeatures.forEach((feature, index) => {
-      const icon = featureIcons[index % featureIcons.length];
-      featuresHTML += `
-          <div class="feature">
-            <div class="feature-icon">${icon}</div>
-            <h3>${feature[0]}</h3>
-            <p>${feature[1]}</p>
-          </div>`;
-    });
-    
     sectionsHTML += `
     <section id="features" class="features">
       <div class="container">
         <h2>Key Features</h2>
         <div class="features-grid">
-          ${featuresHTML}
+          <div class="feature">
+            <div class="feature-icon">🚀</div>
+            <h3>Fast &amp; Reliable</h3>
+            <p>Lightning fast performance you can count on.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🛡️</div>
+            <h3>Secure</h3>
+            <p>Enterprise-grade security for your peace of mind.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📊</div>
+            <h3>Analytics</h3>
+            <p>Detailed insights to grow your business.</p>
+          </div>
         </div>
       </div>
     </section>`;
   }
   
   if (sections.includes('testimonials')) {
-    // Testimonials customized by category
-    const testimonialsByCategory: Record<string, Array<[string, string, string]>> = {
-      'general': [
-        ['"This product has transformed our business processes completely."', 'Jane Smith', 'CEO, Innovation Labs'],
-        ['"I\'ve never seen such amazing results in such a short time."', 'John Doe', 'CTO, Future Tech']
-      ],
-      'education': [
-        ['"Our students\' engagement has increased dramatically since we started using this platform."', 'Dr. Sarah Johnson', 'Principal, Westview Academy'],
-        ['"The analytics provided by this tool have helped us tailor our curriculum to student needs."', 'Prof. James Wilson', 'Department Head, University of Technology']
-      ],
-      'finance': [
-        ['"We\'ve seen a 40% increase in client satisfaction since implementing this solution."', 'Michael Chen', 'Financial Advisor, Wealth Partners'],
-        ['"The security features give our clients peace of mind when managing their investments online."', 'Amanda Torres', 'COO, Global Finance Group']
-      ],
-      'healthcare': [
-        ['"Our patient management efficiency has improved by 60% with this system."', 'Dr. Robert Miller', 'Chief of Medicine, City General Hospital'],
-        ['"The telehealth integration has allowed us to reach patients in rural areas effectively."', 'Dr. Sophia Ahmed', 'Director, Health Connect Initiative']
-      ],
-      'technology': [
-        ['"The API integrations saved our development team countless hours of work."', 'David Park', 'Lead Developer, TechNova'],
-        ['"The scalability of this platform has supported our growth from startup to enterprise."', 'Alicia Gomez', 'CIO, Digital Solutions Inc.']
-      ],
-      'marketplace': [
-        ['"Our inventory management has never been more streamlined and accurate."', 'Mark Johnson', 'Operations Manager, Global Market'],
-        ['"Customer insights provided by this platform have driven a 35% increase in repeat purchases."', 'Rebecca Lin', 'Marketing Director, Consumer Goods Ltd.']
-      ]
-    };
-    
-    // Get testimonials for selected category or default to general
-    const selectedTestimonials = testimonialsByCategory[category] || testimonialsByCategory.general;
-    
-    // Build testimonials HTML
-    let testimonialsHTML = '';
-    selectedTestimonials.forEach(testimonial => {
-      testimonialsHTML += `
-          <div class="testimonial">
-            <p>${testimonial[0]}</p>
-            <div class="testimonial-author">
-              <div class="testimonial-avatar"></div>
-              <div class="testimonial-info">
-                <h4>${testimonial[1]}</h4>
-                <p>${testimonial[2]}</p>
-              </div>
-            </div>
-          </div>`;
-    });
-    
     sectionsHTML += `
     <section id="testimonials" class="testimonials">
       <div class="container">
         <h2>What Our Customers Say</h2>
         <div class="testimonials-grid">
-          ${testimonialsHTML}
+          <div class="testimonial">
+            <p>"This product has transformed our business processes completely."</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar"></div>
+              <div class="testimonial-info">
+                <h4>Jane Smith</h4>
+                <p>CEO, Example Inc</p>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial">
+            <p>"I've never seen such amazing results in such a short time."</p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar"></div>
+              <div class="testimonial-info">
+                <h4>John Doe</h4>
+                <p>CTO, Example Corp</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>`;
   }
   
   if (sections.includes('about')) {
-    // About section content customized by category
-    const aboutContentByCategory: Record<string, string[]> = {
-      'general': [
-        "We're a dedicated team of professionals committed to delivering the best solutions for our clients.",
-        "With years of experience in the industry, we understand what it takes to succeed."
-      ],
-      'education': [
-        "Our team of education experts and technologists is dedicated to improving learning outcomes for students of all ages.",
-        "Founded by former educators with a passion for innovation, we bring real classroom experience to every solution we create."
-      ],
-      'finance': [
-        "Our team of financial experts and technology specialists is dedicated to making financial services more accessible and secure.",
-        "With decades of combined experience in finance and fintech, we understand the unique challenges that financial institutions and their clients face."
-      ],
-      'healthcare': [
-        "Founded by healthcare professionals, our team combines clinical expertise with cutting-edge technology.",
-        "We're committed to improving patient outcomes and healthcare efficiency through innovative digital solutions."
-      ],
-      'technology': [
-        "Our team of engineers, designers, and product specialists has been at the forefront of technological innovation for over a decade.",
-        "We believe in creating technology that solves real problems while being intuitive and accessible to all users."
-      ],
-      'marketplace': [
-        "We've built a team of e-commerce experts and platform specialists who understand what makes online marketplaces successful.",
-        "Our solutions are designed to create seamless buying and selling experiences while maximizing platform efficiency."
-      ]
-    };
-    
-    // Get about content for the selected category or default to general
-    const aboutContent = aboutContentByCategory[category] || aboutContentByCategory.general;
-    
-    // Build the about section HTML
-    const aboutHTML = aboutContent.map(paragraph => `<p>${paragraph}</p>`).join('\n            ');
-    
     sectionsHTML += `
     <section id="about" class="about">
       <div class="container">
         <h2>About Us</h2>
         <div class="about-content">
           <div class="about-text">
-            ${aboutHTML}
+            <p>We're a dedicated team of professionals committed to delivering the best solutions for our clients.</p>
+            <p>With years of experience in the industry, we understand what it takes to succeed.</p>
           </div>
           <div class="about-image"></div>
         </div>
@@ -332,39 +184,15 @@ function generateFallbackHTML(prompt: string, category: string, sections: string
   }
   
   if (sections.includes('contact')) {
-    // Contact messages by category
-    const contactMessagesByCategory: Record<string, string> = {
-      'general': "We'd love to hear from you. Reach out to us using the form or contact details.",
-      'education': "Connect with our education specialists to learn how we can help transform your learning environment.",
-      'finance': "Speak with our financial technology experts about how we can help secure and streamline your operations.",
-      'healthcare': "Contact our healthcare solutions team to discuss how we can help improve patient care and operational efficiency.",
-      'technology': "Reach out to our tech team to discuss your specific needs and how our solutions can drive your innovation.",
-      'marketplace': "Get in touch with our e-commerce experts to discuss how we can optimize your marketplace operations."
-    };
-    
-    // Email addresses by category
-    const emailsByCategory: Record<string, string> = {
-      'general': "info@example.com",
-      'education': "education@example.com",
-      'finance': "finance@example.com",
-      'healthcare': "healthcare@example.com",
-      'technology': "tech@example.com",
-      'marketplace': "marketplace@example.com"
-    };
-    
-    // Get the appropriate message and email for the selected category
-    const contactMessage = contactMessagesByCategory[category] || contactMessagesByCategory.general;
-    const email = emailsByCategory[category] || emailsByCategory.general;
-    
     sectionsHTML += `
     <section id="contact" class="contact">
       <div class="container">
         <h2>Get In Touch</h2>
         <div class="contact-grid">
           <div class="contact-info">
-            <p>${contactMessage}</p>
+            <p>We'd love to hear from you. Reach out to us using the form or contact details.</p>
             <div class="contact-details">
-              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Email:</strong> info@example.com</p>
               <p><strong>Phone:</strong> +1 (555) 123-4567</p>
             </div>
           </div>
@@ -450,50 +278,13 @@ function generateFallbackHTML(prompt: string, category: string, sections: string
 </html>`;
 }
 
-function generateFallbackCSS(category: string = 'general'): string {
-  // Color schemes by category
-  const colorSchemes: Record<string, {primary: string, secondary: string, accent: string}> = {
-    'general': {
-      primary: '#4361ee',
-      secondary: '#3f37c9',
-      accent: '#f72585'
-    },
-    'education': {
-      primary: '#3949ab',
-      secondary: '#283593',
-      accent: '#29b6f6'
-    },
-    'healthcare': {
-      primary: '#4caf50',
-      secondary: '#388e3c',
-      accent: '#03a9f4'
-    },
-    'finance': {
-      primary: '#2e7d32',
-      secondary: '#1b5e20',
-      accent: '#ffc107'
-    },
-    'technology': {
-      primary: '#6200ea',
-      secondary: '#4a148c',
-      accent: '#00bcd4'
-    },
-    'marketplace': {
-      primary: '#ff5722',
-      secondary: '#e64a19',
-      accent: '#ffc107'
-    }
-  };
-
-  // Get color scheme for selected category or default to general
-  const colorScheme = colorSchemes[category] || colorSchemes.general;
-
+function generateMockCSS(): string {
   return `
 /* Global Styles */
 :root {
-  --primary-color: ${colorScheme.primary};
-  --secondary-color: ${colorScheme.secondary};
-  --accent-color: ${colorScheme.accent};
+  --primary-color: #4361ee;
+  --secondary-color: #3f37c9;
+  --accent-color: #f72585;
   --text-color: #333;
   --light-text: #666;
   --bg-color: #fff;
@@ -633,7 +424,7 @@ section:nth-child(even) {
 .hero {
   padding: 6rem 0;
   text-align: center;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, #4361ee 0%, #3f37c9 100%);
   color: white;
 }
 
@@ -883,30 +674,10 @@ footer {
 // For validation and token estimation - simplified versions
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    console.log("Validating API key with SambaNova...");
-    
-    // Simple check to verify key format
-    if (!apiKey || apiKey.length < 10) {
-      return false;
-    }
-    
-    // Try to make a simple API call to validate the key
-    try {
-      const response = await fetch('https://api.sambanova.ai/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      });
-      
-      return response.ok;
-    } catch (e) {
-      console.error("Error connecting to SambaNova API:", e);
-      // If we can't connect, assume the key might still be valid
-      // but show a warning in the console
-      console.warn("Could not connect to SambaNova API to validate key, assuming valid");
-      return true;
-    }
+    // In a real app, you would validate with the SambaNova API
+    console.log("Validating API key:", apiKey);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    return true; // Always return true for demo
   } catch (error) {
     console.error("Error validating API key:", error);
     return false;

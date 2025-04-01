@@ -7,11 +7,10 @@ interface HeaderProps {
   onSave: () => void;
   onPublish: () => void;
   onExport: () => void;
-  onNewProject?: () => void;
   isSaving?: boolean;
 }
 
-export function Header({ onSave, onPublish, onExport, onNewProject, isSaving = false }: HeaderProps) {
+export function Header({ onSave, onPublish, onExport, isSaving = false }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4 py-3">
@@ -19,7 +18,7 @@ export function Header({ onSave, onPublish, onExport, onNewProject, isSaving = f
           <div className="flex items-center space-x-6">
             <Link href="/" className="flex items-center space-x-2">
               <span className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">
-                Landing Craft by AI Accelerate
+                LandingCraft
               </span>
             </Link>
             <nav className="hidden md:flex space-x-4">
@@ -58,15 +57,6 @@ export function Header({ onSave, onPublish, onExport, onNewProject, isSaving = f
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
-            {onNewProject && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onNewProject}
-              >
-                New Project
-              </Button>
-            )}
           </div>
         </div>
       </div>
