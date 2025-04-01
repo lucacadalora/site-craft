@@ -3,29 +3,49 @@ import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { Sidebar } from "@/components/ui/sidebar";
-import { EditorToolbar } from "@/components/ui/editor-toolbar";
 import { PreviewPane } from "@/components/ui/preview-pane";
-import { PromptInput } from "@/components/ui/prompt-input";
-import { TemplateSelector } from "@/components/ui/template-selector";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiConfigComponent } from "@/components/ui/api-config";
 import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
-import { Template, Settings, ApiConfig, settingsSchema, SiteStructure } from "@shared/schema";
-import { fetchTemplatesByCategory, getTemplateThumbnailUrl } from "@/lib/templates";
-import { generateLandingPage, generateDeepSite, validateApiKey } from "@/lib/sambanova";
+import { ApiConfig, SiteStructure } from "@shared/schema";
+import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
 import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { RefreshCw, Zap } from "lucide-react";
 
-// Default settings
-const defaultSettings: Settings = {
-  colors: {
-    primary: "#3b82f6",
-  },
-  font: "Inter",
-  layout: "Standard",
-};
+// Categories available for landing pages
+const CATEGORIES = [
+  { id: "general", name: "General" },
+  { id: "education", name: "Education/EdTech" },
+  { id: "portfolio", name: "Designer/Portfolio" }, 
+  { id: "finance", name: "Finance" },
+  { id: "marketplace", name: "Marketplace/E-commerce" },
+  { id: "technology", name: "Technology" },
+  { id: "healthcare", name: "Healthcare" },
+  { id: "real-estate", name: "Real Estate" },
+  { id: "restaurant", name: "Restaurant/Food" },
+  { id: "nonprofit", name: "Nonprofit/Charity" }
+];
+
+// Define project interface
+interface Project {
+  id: number;
+  name: string;
+  description?: string;
+  prompt: string;
+  category: string;
+  html?: string | null;
+  css?: string | null;
+  published?: boolean;
+  publishPath?: string;
+  userId?: number;
+  createdAt?: string;
+  siteStructure?: SiteStructure;
+}
 
 export default function Editor() {
   const { id } = useParams();
@@ -33,48 +53,29 @@ export default function Editor() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State
+  // Core state
   const [prompt, setPrompt] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [selectedCategory, setSelectedCategory] = useState<string>("general");
   const [html, setHtml] = useState<string | null>(null);
   const [css, setCss] = useState<string | null>(null);
-  const [tokenUsage, setTokenUsage] = useState(0);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [projectId, setProjectId] = useState<number | null>(null);
-  // API config is now optional since we're using the environment variable
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [tokenUsage, setTokenUsage] = useState(0);
+  
+  // API config for SambaNova - using environment variable by default
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
     provider: "SambaNova (DeepSeek-V3-0324)",
-    apiKey: "",  // This can be empty as we'll use the environment variable
+    apiKey: "",  // This will use the environment variable
     saveToken: false,
   });
 
-  // DeepSite state
-  const [deepSiteEnabled, setDeepSiteEnabled] = useState(false);
+  // DeepSite configuration
   const [siteStructure, setSiteStructure] = useState<SiteStructure>({
     sections: ["hero", "features", "testimonials", "about", "contact"],
     contentDepth: "detailed"
   });
-
-  // Define project type for type safety
-  interface Project {
-    id: number;
-    name: string;
-    description?: string;
-    prompt: string;
-    templateId: string;
-    category: string;
-    html?: string | null;
-    css?: string | null;
-    settings?: any;
-    published?: boolean;
-    publishPath?: string;
-    userId?: number;
-    createdAt?: string;
-  }
 
   // Fetch project if ID is provided
   const projectQuery = useQuery<Project>({
@@ -82,23 +83,29 @@ export default function Editor() {
     enabled: !!id,
   });
 
+  // Update token estimate when prompt changes
+  useEffect(() => {
+    if (prompt) {
+      const estimated = estimateTokenUsage(prompt);
+      setTokenUsage(estimated);
+    } else {
+      setTokenUsage(0);
+    }
+  }, [prompt]);
+
   // Load project data
   useEffect(() => {
     if (projectQuery.data) {
       const project = projectQuery.data;
-      if (project) {
-        setPrompt(project.prompt || '');
-        setSelectedCategory(project.category || null);
-        setSelectedTemplate(project.templateId || null);
-        setSettings(project.settings || defaultSettings);
-        setHtml(project.html || null);
-        setCss(project.css || null);
-        setProjectId(project.id || null);
-
-        // Load templates for this category if there is one
-        if (project.category) {
-          fetchTemplatesByCategory(project.category).then(setTemplates);
-        }
+      setPrompt(project.prompt || '');
+      setSelectedCategory(project.category || 'general');
+      setHtml(project.html || null);
+      setCss(project.css || null);
+      setProjectId(project.id || null);
+      
+      // Load site structure if available
+      if (project.siteStructure) {
+        setSiteStructure(project.siteStructure);
       }
     }
   }, [projectQuery.data]);
@@ -172,101 +179,48 @@ export default function Editor() {
     },
   });
 
-  // Handle category selection
-  const handleCategorySelect = async (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setSelectedTemplate(null);
-    
-    try {
-      const templates = await fetchTemplatesByCategory(categoryId);
-      setTemplates(templates);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load templates for this category",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Handle template selection
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    
-    // Estimate token usage - simplified calculation for DeepSeek model
-    if (prompt) {
-      // Simple token estimation - approximately 1 token per 4 characters
-      const estimatedTokens = Math.ceil(prompt.length / 4);
-      setTokenUsage(estimatedTokens);
-    }
-  };
-
   // Handle generation
-  const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
-    if (!prompt || !selectedTemplate || !selectedCategory) {
+    if (!prompt || !selectedCategory) {
       toast({
         title: "Missing Information",
-        description: "Please provide a description and select a template",
+        description: "Please provide a description and select a category",
         variant: "destructive",
       });
       return;
     }
 
-    // API key is now optional because we use the environment variable
-    // This validation is no longer needed
-
     setIsGenerating(true);
     try {
-      let result;
+      // Show toast indicating generation
+      toast({
+        title: "DeepSite™ Generation",
+        description: "Creating a comprehensive landing page with multiple sections...",
+      });
       
-      // Use DeepSite generation if enabled
-      if (deepSiteEnabled) {
-        // Show toast indicating deepsite generation
-        toast({
-          title: "DeepSite™ Generation",
-          description: "Creating a comprehensive landing page with multiple sections...",
-        });
-        
-        // Call the DeepSite API
-        result = await generateDeepSite(
-          prompt,
-          selectedCategory,
-          siteStructure.sections,
-          siteStructure.contentDepth,
-          apiConfig
-        );
-        
-        // DeepSite includes more data than a regular generation
-        setHtml(result.html);
-        setCss(result.css);
-        
-        // Here we could save the section data and metadata for further use
-        // For now we'll just use the HTML and CSS
-      } else {
-        // Regular generation
-        result = await generateLandingPage(
-          prompt,
-          selectedCategory,
-          apiConfig
-        );
-        
-        setHtml(result.html);
-        setCss(result.css);
-      }
+      // Call the DeepSite API
+      const result = await generateDeepSite(
+        prompt,
+        selectedCategory,
+        siteStructure.sections,
+        siteStructure.contentDepth,
+        apiConfig
+      );
+      
+      // Set HTML and CSS for preview
+      setHtml(result.html);
+      setCss(result.css);
       
       // Save or update project
       const projectData = {
         name: prompt.slice(0, 30) + "...",
         description: prompt,
         prompt,
-        templateId: selectedTemplate,
         category: selectedCategory,
-        settings,
+        templateId: "default", // Required by schema
         html: result.html,
         css: result.css,
-        // We could store additional DeepSite metadata here if needed
-        isDeepSite: deepSiteEnabled,
+        siteStructure,
       };
       
       if (projectId) {
@@ -276,10 +230,8 @@ export default function Editor() {
       }
       
       toast({
-        title: deepSiteEnabled ? "DeepSite™ Generation Complete" : "Generation Complete",
-        description: deepSiteEnabled 
-          ? "Your comprehensive landing page has been generated successfully" 
-          : "Your landing page has been generated successfully",
+        title: "DeepSite™ Generation Complete",
+        description: "Your comprehensive landing page has been generated successfully",
       });
     } catch (error) {
       toast({
@@ -294,10 +246,10 @@ export default function Editor() {
 
   // Handle save
   const handleSave = () => {
-    if (!selectedTemplate || !selectedCategory) {
+    if (!selectedCategory || !html || !css) {
       toast({
         title: "Missing Information",
-        description: "Please select a template and category before saving",
+        description: "Please generate a landing page before saving",
         variant: "destructive",
       });
       return;
@@ -307,11 +259,11 @@ export default function Editor() {
       name: prompt.slice(0, 30) + "...",
       description: prompt,
       prompt,
-      templateId: selectedTemplate,
       category: selectedCategory,
-      settings,
+      templateId: "default", // Required by schema
       html,
       css,
+      siteStructure,
     };
     
     if (projectId) {
@@ -324,27 +276,29 @@ export default function Editor() {
   // Handle new project
   const handleNewProject = () => {
     setPrompt("");
-    setSelectedCategory(null);
-    setSelectedTemplate(null);
+    setSelectedCategory("general");
     setHtml(null);
     setCss(null);
     setProjectId(null);
-    setSettings(defaultSettings);
-    setTemplates([]);
+    setSiteStructure({
+      sections: ["hero", "features", "testimonials", "about", "contact"],
+      contentDepth: "detailed"
+    });
     navigate("/editor");
   };
 
-  // Handle preview
-  const handlePreview = () => {
-    // This is handled by the PreviewPane component
-    // Just make sure we have something to preview
-    if (!html) {
+  // Handle preview refresh
+  const handlePreviewRefresh = () => {
+    if (!prompt || !selectedCategory) {
       toast({
-        title: "No Preview Available",
-        description: "Generate a landing page first to preview it",
+        title: "Missing Information",
+        description: "Please provide a description before generating",
         variant: "destructive",
       });
+      return;
     }
+    
+    handleGenerate();
   };
 
   return (
@@ -356,61 +310,110 @@ export default function Editor() {
         isSaving={createProjectMutation.isPending || updateProjectMutation.isPending}
       />
 
-      <main className="flex-1 flex flex-col md:flex-row">
-        <Sidebar
-          onNewProject={handleNewProject}
-          onCategorySelect={handleCategorySelect}
-          selectedCategory={selectedCategory}
-          settings={settings}
-          onSettingsChange={setSettings}
-        />
-
-        <div className="flex-1 flex flex-col">
-          <EditorToolbar
-            tokenUsage={tokenUsage}
-            totalTokens={1000}
-            onPreview={handlePreview}
-          />
-
-          <div className="flex-1 flex flex-col md:flex-row">
-            <div className="w-full md:w-1/2 p-4 bg-gray-50 overflow-auto">
-              <PromptInput
-                value={prompt}
-                onChange={setPrompt}
-                disabled={isGenerating}
-              />
-
-              <TemplateSelector
-                selectedCategory={selectedCategory}
-                templates={templates}
-                selectedTemplate={selectedTemplate}
-                onTemplateSelect={handleTemplateSelect}
-                onGenerate={handleGenerate}
-                isGenerating={isGenerating}
-              />
-
-              <ApiConfigComponent
-                apiConfig={apiConfig}
-                onApiConfigChange={setApiConfig}
-              />
-              
-              <DeepSiteConfig
-                enabled={deepSiteEnabled}
-                onEnabledChange={setDeepSiteEnabled}
-                siteStructure={siteStructure}
-                onSiteStructureChange={setSiteStructure}
-                isGenerating={isGenerating}
-                onGenerate={handleGenerate}
-              />
+      <main className="flex-1 flex flex-col">
+        <div className="container mx-auto py-4">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold">LandingCraft</h1>
+            <div className="flex items-center">
+              <Button variant="outline" onClick={handleNewProject}>
+                New Project
+              </Button>
+              {tokenUsage > 0 && (
+                <div className="ml-4 text-sm text-gray-500">
+                  Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex flex-col md:flex-row">
+          <div className="w-full md:w-1/2 p-4 bg-gray-50 overflow-auto">
+            {/* Prompt input */}
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-lg">Describe your landing page</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <textarea
+                  className="w-full h-32 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe the landing page you want to create..."
+                  disabled={isGenerating}
+                />
+              </CardContent>
+            </Card>
             
-            <PreviewPane
-              html={html}
-              css={css}
-              isLoading={isGenerating}
-              onRefresh={handleGenerate}
+            {/* Category selection */}
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="text-lg">Select a category</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <div className="mt-4">
+                  <Button
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                    onClick={handleGenerate}
+                    disabled={isGenerating || !prompt}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="mr-2 h-4 w-4" />
+                        Generate Landing Page
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* API Configuration */}
+            <ApiConfigComponent
+              apiConfig={apiConfig}
+              onApiConfigChange={setApiConfig}
+            />
+            
+            {/* DeepSite Configuration */}
+            <DeepSiteConfig
+              enabled={true}
+              onEnabledChange={() => {/* DeepSite is always enabled */}}
+              siteStructure={siteStructure}
+              onSiteStructureChange={setSiteStructure}
+              isGenerating={isGenerating}
+              onGenerate={handleGenerate}
             />
           </div>
+          
+          {/* Preview pane */}
+          <PreviewPane
+            html={html}
+            css={css}
+            isLoading={isGenerating}
+            onRefresh={handlePreviewRefresh}
+          />
         </div>
       </main>
 
