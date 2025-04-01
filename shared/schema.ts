@@ -86,6 +86,26 @@ export const apiConfigSchema = z.object({
 
 export type ApiConfig = z.infer<typeof apiConfigSchema>;
 
+// DeepSite structure schema
+export const siteStructureSchema = z.object({
+  sections: z.array(z.string()).default(["hero", "features", "testimonials", "about", "contact"]),
+  contentDepth: z.enum(["basic", "detailed", "comprehensive"]).default("detailed"),
+});
+
+export type SiteStructure = z.infer<typeof siteStructureSchema>;
+
+// DeepSite request schema
+export const deepSiteSchema = z.object({
+  prompt: z.string().min(10, "Please provide a more detailed description"),
+  templateId: z.string(),
+  category: z.string(),
+  settings: settingsSchema,
+  siteStructure: siteStructureSchema.optional(),
+  apiConfig: apiConfigSchema.optional(),
+});
+
+export type DeepSiteRequest = z.infer<typeof deepSiteSchema>;
+
 // Generation request schema
 export const generatePageSchema = z.object({
   prompt: z.string().min(10, "Please provide a more detailed description"),

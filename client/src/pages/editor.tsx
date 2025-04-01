@@ -11,9 +11,10 @@ import { TemplateSelector } from "@/components/ui/template-selector";
 import { ApiConfigComponent } from "@/components/ui/api-config";
 import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
-import { Template, Settings, ApiConfig, settingsSchema } from "@shared/schema";
+import { Template, Settings, ApiConfig, settingsSchema, SiteStructure } from "@shared/schema";
 import { fetchTemplatesByCategory, getTemplateThumbnailUrl } from "@/lib/templates";
-import { generateLandingPage, estimateTokenUsage } from "@/lib/openai";
+import { generateLandingPage, estimateTokenUsage, generateDeepSite } from "@/lib/openai";
+import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -49,6 +50,13 @@ export default function Editor() {
     provider: "OpenAI (GPT-4o)",
     apiKey: "",  // This can be empty as we'll use the environment variable
     saveToken: false,
+  });
+
+  // DeepSite state
+  const [deepSiteEnabled, setDeepSiteEnabled] = useState(false);
+  const [siteStructure, setSiteStructure] = useState<SiteStructure>({
+    sections: ["hero", "features", "testimonials", "about", "contact"],
+    contentDepth: "detailed"
   });
 
   // Define project type for type safety
@@ -208,16 +216,45 @@ export default function Editor() {
 
     setIsGenerating(true);
     try {
-      const result = await generateLandingPage(
-        prompt,
-        selectedTemplate,
-        selectedCategory,
-        settings,
-        apiConfig
-      );
+      let result;
       
-      setHtml(result.html);
-      setCss(result.css);
+      // Use DeepSite generation if enabled
+      if (deepSiteEnabled) {
+        // Show toast indicating deepsite generation
+        toast({
+          title: "DeepSite™ Generation",
+          description: "Creating a comprehensive landing page with multiple sections...",
+        });
+        
+        // Call the DeepSite API
+        result = await generateDeepSite(
+          prompt,
+          selectedTemplate,
+          selectedCategory,
+          settings,
+          siteStructure,
+          apiConfig
+        );
+        
+        // DeepSite includes more data than a regular generation
+        setHtml(result.html);
+        setCss(result.css);
+        
+        // Here we could save the section data and metadata for further use
+        // For now we'll just use the HTML and CSS
+      } else {
+        // Regular generation
+        result = await generateLandingPage(
+          prompt,
+          selectedTemplate,
+          selectedCategory,
+          settings,
+          apiConfig
+        );
+        
+        setHtml(result.html);
+        setCss(result.css);
+      }
       
       // Save or update project
       const projectData = {
@@ -229,6 +266,8 @@ export default function Editor() {
         settings,
         html: result.html,
         css: result.css,
+        // We could store additional DeepSite metadata here if needed
+        isDeepSite: deepSiteEnabled,
       };
       
       if (projectId) {
@@ -238,8 +277,10 @@ export default function Editor() {
       }
       
       toast({
-        title: "Generation Complete",
-        description: "Your landing page has been generated successfully",
+        title: deepSiteEnabled ? "DeepSite™ Generation Complete" : "Generation Complete",
+        description: deepSiteEnabled 
+          ? "Your comprehensive landing page has been generated successfully" 
+          : "Your landing page has been generated successfully",
       });
     } catch (error) {
       toast({
@@ -352,6 +393,15 @@ export default function Editor() {
               <ApiConfigComponent
                 apiConfig={apiConfig}
                 onApiConfigChange={setApiConfig}
+              />
+              
+              <DeepSiteConfig
+                enabled={deepSiteEnabled}
+                onEnabledChange={setDeepSiteEnabled}
+                siteStructure={siteStructure}
+                onSiteStructureChange={setSiteStructure}
+                isGenerating={isGenerating}
+                onGenerate={handleGenerate}
               />
             </div>
             

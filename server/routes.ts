@@ -9,7 +9,7 @@ import {
   apiConfigSchema
 } from "@shared/schema";
 import { generateHtml } from "./lib/html-generator";
-import { generateWithOpenAI, validateOpenAIKey } from "./lib/openai";
+import { generateWithOpenAI, validateOpenAIKey, generateDeepSite } from "./lib/openai";
 import fs from "fs";
 import path from "path";
 
@@ -300,6 +300,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting landing page:", error);
       return res.status(500).json({ message: "Failed to export landing page" });
+    }
+  });
+  
+  // DeepSite generation route - for more comprehensive landing pages
+  app.post("/api/deepsite", async (req, res) => {
+    try {
+      // Extract request data
+      const { prompt, templateId, category, settings, apiConfig, siteStructure } = req.body;
+      
+      // Validate essential fields
+      if (!prompt || !templateId || !category) {
+        return res.status(400).json({ 
+          message: "Missing required fields. Please provide prompt, templateId, and category." 
+        });
+      }
+      
+      // Get the template
+      const template = await storage.getTemplate(templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      
+      // Default to OpenAI provider
+      const provider = apiConfig && apiConfig.provider ? apiConfig.provider : "OpenAI (GPT-4o)";
+      
+      // Check if we support the requested provider
+      if (!provider.includes("OpenAI")) {
+        return res.status(400).json({ message: "Unsupported API provider for DeepSite generation" });
+      }
+      
+      // Generate the deep site content using OpenAI
+      const generatedContent = await generateDeepSite(
+        prompt,
+        template,
+        settings,
+        siteStructure || {
+          sections: ["hero", "features", "testimonials", "about", "contact"],
+          contentDepth: "detailed"
+        },
+        apiConfig?.apiKey // Pass the provided key or undefined to use the environment variable
+      );
+      
+      // Return the generated content
+      return res.json(generatedContent);
+    } catch (error) {
+      console.error("Error generating DeepSite:", error);
+      return res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate DeepSite" 
+      });
     }
   });
 

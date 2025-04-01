@@ -1,4 +1,4 @@
-import { ApiConfig } from "@shared/schema";
+import { ApiConfig, SiteStructure } from "@shared/schema";
 import { apiRequest } from "./queryClient";
 
 // Function to generate landing page HTML and CSS
@@ -114,6 +114,48 @@ export async function exportLandingPage(
     return await response.blob();
   } catch (error) {
     console.error("Error exporting landing page:", error);
+    throw error;
+  }
+}
+
+// Function to generate a more comprehensive DeepSite
+export async function generateDeepSite(
+  prompt: string,
+  templateId: string,
+  category: string,
+  settings: any,
+  siteStructure?: SiteStructure,
+  apiConfig?: ApiConfig
+): Promise<{ 
+  html: string; 
+  css: string; 
+  sections: { id: string; title: string; content: string }[];
+  metadata: {
+    title: string;
+    description: string;
+    keywords: string[];
+  }
+}> {
+  try {
+    const response = await apiRequest("POST", "/api/deepsite", {
+      prompt,
+      templateId,
+      category,
+      settings,
+      siteStructure: siteStructure || {
+        sections: ["hero", "features", "testimonials", "about", "contact"],
+        contentDepth: "detailed"
+      },
+      apiConfig
+    });
+
+    if (!response.ok) {
+      throw new Error(`DeepSite generation failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error generating DeepSite:", error);
     throw error;
   }
 }
