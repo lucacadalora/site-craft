@@ -7,10 +7,11 @@ interface HeaderProps {
   onSave: () => void;
   onPublish: () => void;
   onExport: () => void;
+  onNewProject?: () => void;
   isSaving?: boolean;
 }
 
-export function Header({ onSave, onPublish, onExport, isSaving = false }: HeaderProps) {
+export function Header({ onSave, onPublish, onExport, onNewProject, isSaving = false }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4 py-3">
@@ -57,6 +58,15 @@ export function Header({ onSave, onPublish, onExport, isSaving = false }: Header
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
+            {onNewProject && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={onNewProject}
+              >
+                New Project
+              </Button>
+            )}
           </div>
         </div>
       </div>

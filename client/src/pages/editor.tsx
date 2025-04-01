@@ -307,23 +307,18 @@ export default function Editor() {
         onSave={handleSave}
         onPublish={() => setPublishModalOpen(true)}
         onExport={() => setExportModalOpen(true)}
+        onNewProject={handleNewProject}
         isSaving={createProjectMutation.isPending || updateProjectMutation.isPending}
       />
 
       <main className="flex-1 flex flex-col">
         <div className="container mx-auto py-4">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Landing Craft by AI Accelerate</h1>
-            <div className="flex items-center">
-              <Button variant="outline" onClick={handleNewProject}>
-                New Project
-              </Button>
-              {tokenUsage > 0 && (
-                <div className="ml-4 text-sm text-gray-500">
-                  Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
-                </div>
-              )}
-            </div>
+          <div className="flex justify-end items-center mb-6">
+            {tokenUsage > 0 && (
+              <div className="text-sm text-gray-500">
+                Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
+              </div>
+            )}
           </div>
         </div>
         
