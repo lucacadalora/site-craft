@@ -13,7 +13,7 @@ import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
 import { Template, Settings, ApiConfig, settingsSchema, SiteStructure } from "@shared/schema";
 import { fetchTemplatesByCategory, getTemplateThumbnailUrl } from "@/lib/templates";
-import { generateLandingPage, estimateTokenUsage, generateDeepSite } from "@/lib/openai";
+import { generateLandingPage, generateDeepSite, validateApiKey } from "@/lib/sambanova";
 import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,7 +47,7 @@ export default function Editor() {
   const [projectId, setProjectId] = useState<number | null>(null);
   // API config is now optional since we're using the environment variable
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
-    provider: "OpenAI (GPT-4o)",
+    provider: "SambaNova (DeepSeek-V3-0324)",
     apiKey: "",  // This can be empty as we'll use the environment variable
     saveToken: false,
   });
@@ -193,9 +193,11 @@ export default function Editor() {
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
     
-    // Estimate token usage
+    // Estimate token usage - simplified calculation for DeepSeek model
     if (prompt) {
-      estimateTokenUsage(prompt, templateId).then(setTokenUsage);
+      // Simple token estimation - approximately 1 token per 4 characters
+      const estimatedTokens = Math.ceil(prompt.length / 4);
+      setTokenUsage(estimatedTokens);
     }
   };
 
@@ -229,10 +231,9 @@ export default function Editor() {
         // Call the DeepSite API
         result = await generateDeepSite(
           prompt,
-          selectedTemplate,
           selectedCategory,
-          settings,
-          siteStructure,
+          siteStructure.sections,
+          siteStructure.contentDepth,
           apiConfig
         );
         
@@ -246,9 +247,7 @@ export default function Editor() {
         // Regular generation
         result = await generateLandingPage(
           prompt,
-          selectedTemplate,
           selectedCategory,
-          settings,
           apiConfig
         );
         
