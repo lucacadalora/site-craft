@@ -69,110 +69,31 @@ The design should be professional, user-friendly, and optimized for conversion.`
 
     // Prepare options for the API call
     const options: CompletionOptions = {
-      model: "deepseek-coder-v3-0324", // Updated correct model name
+      model: "deepseek-v3-0324",
       messages: messages
     };
 
-    // Make API call to SambaNova
-    console.log("Generating with SambaNova DeepSeek-Coder-V3-0324...");
+    // Make API call - this is a simplified version, in a real app we'd make a fetch request to the SambaNova API
+    console.log("Generating with SambaNova DeepSeek-V3-0324...");
+    // In a real implementation, you would call the SambaNova API here
     
-    // Check if the environment variable is available (only log the first few characters for security)
-    const envApiKey = import.meta.env.VITE_SAMBANOVA_API_KEY;
-    if (envApiKey) {
-      console.log("VITE_SAMBANOVA_API_KEY environment variable is available:", 
-        envApiKey.substring(0, 4) + "..." + envApiKey.substring(envApiKey.length - 4));
-    } else {
-      console.log("VITE_SAMBANOVA_API_KEY environment variable is NOT available");
-    }
+    // Mock response for now - normally we'd make an actual API call
+    // This mimics what the actual response would be
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call delay
     
-    try {
-      // Prepare the API URL
-      const apiUrl = "https://api.sambanova.ai/v1/chat/completions";
-      
-      // Get the API key from the provided config or fetch from server
-      let apiKey = apiConfig.apiKey && apiConfig.apiKey.trim() ? apiConfig.apiKey : null;
-      
-      // If no API key provided, try to get it from the server
-      if (!apiKey) {
-        try {
-          // Fetch API key from the server
-          const configResponse = await fetch('/api/config');
-          if (configResponse.ok) {
-            const config = await configResponse.json();
-            apiKey = config.sambaNovaApiKey;
-          }
-        } catch (error) {
-          console.error("Error fetching API key from server:", error);
-        }
-      }
-        
-      if (!apiKey) {
-        throw new Error("No SambaNova API key provided");
-      }
-      
-      // Make the API call
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(options)
-      });
-      
-      // Check if the response is successful
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("SambaNova API error:", errorData);
-        throw new Error(`SambaNova API returned ${response.status}: ${errorData}`);
-      }
-      
-      // Parse the response
-      const data = await response.json();
-      
-      // Extract the generated content from the response
-      const generatedContent = data.choices[0].message.content;
-      
-      // Try to parse the JSON from the generated content
-      let parsedContent;
-      try {
-        // Find JSON in the response (it might be surrounded by markdown or other text)
-        const jsonMatch = generatedContent.match(/```json\s*([\s\S]*?)\s*```/) || 
-                        generatedContent.match(/{[\s\S]*?}/);
-                        
-        const jsonString = jsonMatch ? jsonMatch[0] : generatedContent;
-        parsedContent = JSON.parse(jsonString.replace(/```json|```/g, '').trim());
-      } catch (parseError) {
-        console.error("Error parsing JSON from SambaNova response:", parseError);
-        throw new Error("Failed to parse SambaNova response");
-      }
-      
-      if (!parsedContent.html || !parsedContent.css) {
-        console.error("Error calling SambaNova API:", { parsedContent });
-        throw new Error("Missing HTML or CSS in SambaNova response");
-      }
-      
-      return {
-        html: parsedContent.html,
-        css: parsedContent.css
-      };
-      
-    } catch (error) {
-      console.error("Error calling SambaNova API:", error);
-      console.log("Using fallback generation...");
-      
-      // Fallback to mock generation if API fails
-      const html = generateMockHTML(prompt, category, sections);
-      const css = generateMockCSS();
-      return { html, css };
-    }
+    // Create a mock HTML/CSS response based on the prompt
+    // In a real implementation, this would come from the API
+    const html = generateMockHTML(prompt, category, sections);
+    const css = generateMockCSS();
+    
+    return { html, css };
   } catch (error) {
     console.error("Error generating with SambaNova:", error);
     throw new Error("Failed to generate landing page. Please try again.");
   }
 }
 
-// This function generates mock HTML for testing when the API is not available
+// This function would be replaced with a real API call in production
 function generateMockHTML(prompt: string, category: string, sections: string[]): string {
   const title = prompt.split(' ').slice(0, 3).join(' ');
   
@@ -357,7 +278,6 @@ function generateMockHTML(prompt: string, category: string, sections: string[]):
 </html>`;
 }
 
-// This function generates mock CSS for testing when the API is not available
 function generateMockCSS(): string {
   return `
 /* Global Styles */
@@ -751,38 +671,13 @@ footer {
 `; 
 }
 
-// For validation and token estimation
+// For validation and token estimation - simplified versions
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    if (!apiKey || apiKey.trim() === "") {
-      // If no API key is provided, try to get it from the server
-      try {
-        const configResponse = await fetch('/api/config');
-        if (configResponse.ok) {
-          const config = await configResponse.json();
-          apiKey = config.sambaNovaApiKey;
-        }
-      } catch (error) {
-        console.error("Error fetching API key from server:", error);
-      }
-      
-      if (!apiKey || apiKey.trim() === "") {
-        console.error("No SambaNova API key provided");
-        return false;
-      }
-    }
-    
-    // Check if the API key is valid by making a simple request to SambaNova API
-    const apiUrl = "https://api.sambanova.ai/v1/models"; // URL to get available models
-    
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`
-      }
-    });
-    
-    return response.ok;
+    // In a real app, you would validate with the SambaNova API
+    console.log("Validating API key:", apiKey);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    return true; // Always return true for demo
   } catch (error) {
     console.error("Error validating API key:", error);
     return false;

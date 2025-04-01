@@ -16,13 +16,6 @@ import path from "path";
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
   
-  // Environment variables route - expose API keys
-  app.get("/api/config", (req, res) => {
-    res.json({
-      sambaNovaApiKey: process.env.SAMBANOVA_API_KEY || "",
-    });
-  });
-  
   // Templates routes
   app.get("/api/templates", async (req, res) => {
     try {
