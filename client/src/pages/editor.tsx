@@ -26,8 +26,13 @@ const defaultSettings: Settings = {
   layout: "Standard",
 };
 
-export default function Editor() {
-  const { id } = useParams();
+interface EditorProps {
+  id?: string;
+  apiConfig: ApiConfig;
+  onApiConfigChange: (config: ApiConfig) => void;
+}
+
+export default function Editor({ id, apiConfig, onApiConfigChange }: EditorProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -44,13 +49,6 @@ export default function Editor() {
   const [publishModalOpen, setPublishModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [projectId, setProjectId] = useState<number | null>(null);
-  // API config is now optional since we're using the environment variable
-  const [apiConfig, setApiConfig] = useState<ApiConfig>({
-    provider: "OpenAI (GPT-4o)",
-    apiKey: "",  // This can be empty as we'll use the environment variable
-    saveToken: false,
-  });
-
   // Define project type for type safety
   interface Project {
     id: number;
@@ -95,30 +93,7 @@ export default function Editor() {
     }
   }, [projectQuery.data]);
 
-  // Load API config from localStorage
-  useEffect(() => {
-    const savedConfig = localStorage.getItem('landingcraft_api_config');
-    if (savedConfig) {
-      try {
-        const parsed = JSON.parse(savedConfig);
-        setApiConfig(prevConfig => ({
-          ...prevConfig,
-          ...parsed,
-        }));
-      } catch (e) {
-        console.error("Failed to parse saved API config:", e);
-      }
-    }
-  }, []);
-
-  // Save API config to localStorage when it changes
-  useEffect(() => {
-    if (apiConfig.saveToken) {
-      localStorage.setItem('landingcraft_api_config', JSON.stringify(apiConfig));
-    } else {
-      localStorage.removeItem('landingcraft_api_config');
-    }
-  }, [apiConfig]);
+  // No need to load API config from localStorage as it's passed through props
 
   // Mutations
   const createProjectMutation = useMutation({
@@ -349,10 +324,11 @@ export default function Editor() {
                 isGenerating={isGenerating}
               />
 
-              <ApiConfigComponent
+              {/* API config panel - temporarily commenting out as we use env var */}
+              {/* <ApiConfigComponent
                 apiConfig={apiConfig}
-                onApiConfigChange={setApiConfig}
-              />
+                onApiConfigChange={onApiConfigChange}
+              /> */}
             </div>
             
             <PreviewPane

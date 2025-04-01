@@ -15,12 +15,16 @@ const defaultApiConfig: ApiConfig = {
   saveToken: true
 };
 
-function Router() {
+function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (config: ApiConfig) => void }) {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/editor" component={Editor} />
-      <Route path="/editor/:id" component={Editor} />
+      <Route path="/editor">
+        {() => <Editor apiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
+      </Route>
+      <Route path="/editor/:id">
+        {(params) => <Editor id={params.id} apiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -57,7 +61,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col">
-        <Router />
+        <Router apiConfig={apiConfig} updateApiConfig={updateApiConfig} />
         <Toaster />
       </div>
     </QueryClientProvider>
