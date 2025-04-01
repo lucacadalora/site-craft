@@ -89,10 +89,22 @@ The design should be professional, user-friendly, and optimized for conversion.`
       // Prepare the API URL
       const apiUrl = "https://api.sambanova.ai/v1/chat/completions";
       
-      // Get the API key from the provided config
-      const apiKey = apiConfig.apiKey && apiConfig.apiKey.trim() 
-        ? apiConfig.apiKey 
-        : import.meta.env.VITE_SAMBANOVA_API_KEY;
+      // Get the API key from the provided config or fetch from server
+      let apiKey = apiConfig.apiKey && apiConfig.apiKey.trim() ? apiConfig.apiKey : null;
+      
+      // If no API key provided, try to get it from the server
+      if (!apiKey) {
+        try {
+          // Fetch API key from the server
+          const configResponse = await fetch('/api/config');
+          if (configResponse.ok) {
+            const config = await configResponse.json();
+            apiKey = config.sambaNovaApiKey;
+          }
+        } catch (error) {
+          console.error("Error fetching API key from server:", error);
+        }
+      }
         
       if (!apiKey) {
         throw new Error("No SambaNova API key provided");
@@ -742,11 +754,19 @@ footer {
 // For validation and token estimation
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    if (!apiKey) {
-      // If no API key is provided, check if there's one in the environment
-      apiKey = import.meta.env.VITE_SAMBANOVA_API_KEY;
+    if (!apiKey || apiKey.trim() === "") {
+      // If no API key is provided, try to get it from the server
+      try {
+        const configResponse = await fetch('/api/config');
+        if (configResponse.ok) {
+          const config = await configResponse.json();
+          apiKey = config.sambaNovaApiKey;
+        }
+      } catch (error) {
+        console.error("Error fetching API key from server:", error);
+      }
       
-      if (!apiKey) {
+      if (!apiKey || apiKey.trim() === "") {
         console.error("No SambaNova API key provided");
         return false;
       }
