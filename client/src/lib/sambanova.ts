@@ -46,20 +46,26 @@ export async function generateDeepSite(
 
     // Build a detailed system message
     const systemMessage = `${templatePrompt}
-Your task is to generate HTML and CSS for a complete landing page based on the user's description.
+ONLY USE HTML, CSS AND JAVASCRIPT (if needed). Create an original, fully-customized landing page based exactly on this user description: "${prompt}".
 
 The landing page should include the following sections:
 ${sections.map(section => `- ${section}`).join('\n')}
 
 Content depth: ${contentDepth} (basic = minimal text, detailed = standard content, comprehensive = extensive content)
 
-Generate a well-structured, modern, and responsive landing page with clean, well-commented HTML and CSS.
-You MUST output a JSON object with two properties:
+Generate a well-structured, modern, and responsive landing page with clean HTML and CSS. The design must be:
+1. Fully UNIQUE to this specific request
+2. Match exactly the user's description in terms of content, purpose, style, and branding
+3. Be visually appropriate for the intended industry and target audience
+
+Your response must be a valid JSON object with these two properties:
 - html: The complete HTML code for the landing page
 - css: The complete CSS code for the landing page
 
 Use modern CSS with flexbox/grid and responsive breakpoints. Include basic animations for improved UX.
-The design should be professional, user-friendly, and optimized for conversion.`;
+The design should be professional, visually appealing, and optimized for conversion.
+
+IMPORTANT: Do NOT use placeholder content. Create real, authentic content that matches the user's description.`;
 
     // Create the message array
     const messages: Message[] = [
@@ -67,26 +73,71 @@ The design should be professional, user-friendly, and optimized for conversion.`
       { role: "user", content: prompt }
     ];
 
-    // Prepare options for the API call
-    const options: CompletionOptions = {
-      model: "deepseek-v3-0324",
-      messages: messages
+    // API endpoint and headers for SambaNova DeepSeek
+    const apiEndpoint = 'https://api.sambanova.ai/api/v1/chat/completions';
+    const headers = {
+      'Authorization': `Bearer ${apiConfig.sambanovaApiKey || process.env.SAMBANOVA_API_KEY}`,
+      'Content-Type': 'application/json'
     };
 
-    // Make API call - this is a simplified version, in a real app we'd make a fetch request to the SambaNova API
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
-    // In a real implementation, you would call the SambaNova API here
     
-    // Mock response for now - normally we'd make an actual API call
-    // This mimics what the actual response would be
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call delay
+    // Make the actual API call to SambaNova
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        model: "deepseek-v3-0324",
+        temperature: 0.7, // Add some variability
+        max_tokens: 8000, // Allow for a substantial response
+        messages: messages
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`SambaNova API error: ${errorData.error || response.statusText}`);
+    }
+
+    const data = await response.json();
     
-    // Create a mock HTML/CSS response based on the prompt
-    // In a real implementation, this would come from the API
-    const html = generateMockHTML(prompt, category, sections);
-    const css = generateMockCSS();
-    
-    return { html, css };
+    // Parse the model response as JSON
+    try {
+      const jsonResponse = JSON.parse(data.choices[0].message.content);
+      
+      // Validate that we have both HTML and CSS properties
+      if (!jsonResponse.html || !jsonResponse.css) {
+        throw new Error("Invalid response format from API");
+      }
+      
+      return {
+        html: jsonResponse.html,
+        css: jsonResponse.css
+      };
+    } catch (parseError) {
+      console.error("Error parsing JSON from API response:", parseError);
+      
+      // Fallback: try to extract HTML and CSS from non-JSON response
+      const content = data.choices[0].message.content;
+      
+      // Look for HTML between tags
+      const htmlMatch = content.match(/<html[\s\S]*<\/html>/i);
+      let html = htmlMatch ? htmlMatch[0] : null;
+      
+      // Look for CSS between style tags
+      const cssMatch = content.match(/<style[\s\S]*<\/style>/i);
+      let css = cssMatch ? cssMatch[0].replace(/<\/?style>/g, '') : null;
+      
+      if (html && css) {
+        return { html, css };
+      } else {
+        // If we can't extract valid HTML/CSS, use fallback generator
+        console.warn("Using fallback generator due to invalid API response format");
+        const html = generateFallbackHTML(prompt, category, sections);
+        const css = generateFallbackCSS();
+        return { html, css };
+      }
+    }
   } catch (error) {
     console.error("Error generating with SambaNova:", error);
     throw new Error("Failed to generate landing page. Please try again.");
@@ -94,7 +145,7 @@ The design should be professional, user-friendly, and optimized for conversion.`
 }
 
 // This function would be replaced with a real API call in production
-function generateMockHTML(prompt: string, category: string, sections: string[]): string {
+function generateFallbackHTML(prompt: string, category: string, sections: string[]): string {
   const title = prompt.split(' ').slice(0, 3).join(' ');
   
   let sectionsHTML = '';
@@ -278,7 +329,7 @@ function generateMockHTML(prompt: string, category: string, sections: string[]):
 </html>`;
 }
 
-function generateMockCSS(): string {
+function generateFallbackCSS(): string {
   return `
 /* Global Styles */
 :root {

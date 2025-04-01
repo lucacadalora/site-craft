@@ -21,7 +21,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onApiConfigChange({
       ...apiConfig,
-      apiKey: e.target.value
+      sambanovaApiKey: e.target.value
     });
   };
 
@@ -36,7 +36,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
   // Validate API key
   const validateApiKey = async () => {
     // If API key is empty, we'll use the environment variable
-    if (!apiConfig.apiKey || !apiConfig.apiKey.trim()) {
+    if (!apiConfig.sambanovaApiKey || !apiConfig.sambanovaApiKey.trim()) {
       toast({
         title: "Using Environment Variable",
         description: "You haven't provided an API key, so we'll use the one from the environment variables.",
@@ -84,7 +84,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
                   id="api-key"
                   type="password"
                   placeholder="Enter your API key here"
-                  value={apiConfig.apiKey}
+                  value={apiConfig.sambanovaApiKey || ''}
                   onChange={handleApiKeyChange}
                   className="flex-1"
                 />

@@ -10,8 +10,9 @@ import { ApiConfig } from "@shared/schema";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
-  provider: "OpenAI (GPT-4o)",
+  provider: "SambaNova (DeepSeek-V3-0324)",
   apiKey: "",
+  sambanovaApiKey: "",
   saveToken: true
 };
 
