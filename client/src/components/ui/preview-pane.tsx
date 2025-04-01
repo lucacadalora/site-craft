@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { RefreshCw, Template } from "lucide-react";
+import { RefreshCw, FileCode } from "lucide-react";
 
 interface PreviewPaneProps {
   html: string | null;
@@ -53,7 +53,7 @@ export function PreviewPane({ html, css, isLoading, onRefresh }: PreviewPaneProp
         {/* Placeholder for empty state */}
         {!html && !isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 p-4">
-            <Template className="h-12 w-12 mb-2" />
+            <FileCode className="h-12 w-12 mb-2" />
             <p className="text-sm text-center max-w-xs">
               Generate your landing page to see a preview here. The preview updates in real-time as you make changes.
             </p>
