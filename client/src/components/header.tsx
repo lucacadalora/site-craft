@@ -18,7 +18,7 @@ export function Header({ onSave, onPublish, onExport, isSaving = false }: Header
           <div className="flex items-center space-x-6">
             <Link href="/" className="flex items-center space-x-2">
               <span className="font-bold text-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">
-                LandingCraft
+                Landing Craft by AI Accelerate
               </span>
             </Link>
             <nav className="hidden md:flex space-x-4">

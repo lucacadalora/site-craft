@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { SiteStructure } from "@shared/schema";
 import { Sparkles } from "lucide-react";
 
-interface DeepSiteConfigProps {
+interface AIAccelerateConfigProps {
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
   siteStructure: SiteStructure;
@@ -17,14 +17,14 @@ interface DeepSiteConfigProps {
   onGenerate: () => void;
 }
 
-export function DeepSiteConfig({
+export function AIAccelerateConfig({
   enabled,
   onEnabledChange,
   siteStructure,
   onSiteStructureChange,
   isGenerating,
   onGenerate,
-}: DeepSiteConfigProps) {
+}: AIAccelerateConfigProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   // All available sections
@@ -67,7 +67,7 @@ export function DeepSiteConfig({
         <CardTitle className="text-lg flex justify-between items-center">
           <div className="flex items-center">
             <Sparkles className="w-5 h-5 text-purple-500 mr-2" />
-            DeepSite™ Configuration
+            AI Accelerate™ Configuration
           </div>
           <span className="text-sm text-gray-500">{isExpanded ? "▲" : "▼"}</span>
         </CardTitle>
@@ -76,18 +76,18 @@ export function DeepSiteConfig({
       {isExpanded && (
         <CardContent>
           <div className="space-y-6">
-            {/* DeepSite toggle */}
+            {/* AI Accelerate toggle */}
             <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="deepsite-toggle" className="font-medium">
-                  Enable DeepSite™ Generation
+                <Label htmlFor="ai-accelerate-toggle" className="font-medium">
+                  Enable AI Accelerate™ Generation
                 </Label>
                 <p className="text-sm text-gray-500">
                   The next generation of AI-powered landing page creation
                 </p>
               </div>
               <Switch
-                id="deepsite-toggle"
+                id="ai-accelerate-toggle"
                 checked={enabled}
                 onCheckedChange={onEnabledChange}
                 disabled={true} // Always enabled in this version

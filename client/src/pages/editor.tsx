@@ -12,7 +12,7 @@ import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
 import { ApiConfig, SiteStructure } from "@shared/schema";
 import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
-import { DeepSiteConfig } from "@/components/ui/deepsite-config";
+import { AIAccelerateConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RefreshCw, Zap } from "lucide-react";
@@ -71,7 +71,7 @@ export default function Editor() {
     saveToken: false,
   });
 
-  // DeepSite configuration
+  // AI Accelerate configuration
   const [siteStructure, setSiteStructure] = useState<SiteStructure>({
     sections: ["hero", "features", "testimonials", "about", "contact"],
     contentDepth: "detailed"
@@ -194,11 +194,11 @@ export default function Editor() {
     try {
       // Show toast indicating generation
       toast({
-        title: "DeepSite™ Generation",
+        title: "AI Accelerate™ Generation",
         description: "Creating a comprehensive landing page with multiple sections...",
       });
       
-      // Call the DeepSite API
+      // Call the AI Accelerate API
       const result = await generateDeepSite(
         prompt,
         selectedCategory,
@@ -230,7 +230,7 @@ export default function Editor() {
       }
       
       toast({
-        title: "DeepSite™ Generation Complete",
+        title: "AI Accelerate™ Generation Complete",
         description: "Your comprehensive landing page has been generated successfully",
       });
     } catch (error) {
@@ -313,7 +313,7 @@ export default function Editor() {
       <main className="flex-1 flex flex-col">
         <div className="container mx-auto py-4">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">LandingCraft</h1>
+            <h1 className="text-3xl font-bold">Landing Craft by AI Accelerate</h1>
             <div className="flex items-center">
               <Button variant="outline" onClick={handleNewProject}>
                 New Project
@@ -396,10 +396,10 @@ export default function Editor() {
               onApiConfigChange={setApiConfig}
             />
             
-            {/* DeepSite Configuration */}
-            <DeepSiteConfig
+            {/* AI Accelerate Configuration */}
+            <AIAccelerateConfig
               enabled={true}
-              onEnabledChange={() => {/* DeepSite is always enabled */}}
+              onEnabledChange={() => {/* AI Accelerate is always enabled */}}
               siteStructure={siteStructure}
               onSiteStructureChange={setSiteStructure}
               isGenerating={isGenerating}

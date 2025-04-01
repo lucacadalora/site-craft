@@ -17,7 +17,7 @@ export default function Home() {
             <svg className="w-8 h-8 text-primary" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
             </svg>
-            <h1 className="text-xl font-heading font-bold text-gray-900">LandingCraft</h1>
+            <h1 className="text-xl font-heading font-bold text-gray-900">Landing Craft by AI Accelerate</h1>
           </div>
           
           <Button
@@ -38,7 +38,7 @@ export default function Home() {
                 Turn Text into Beautiful Landing Pages
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Generate professional landing pages instantly with AI. Choose from templates for education, portfolios, finance, marketplaces, and more.
+                Generate professional landing pages instantly with AI Accelerate™ technology. Just describe your page and select your industry to create pixel-perfect landing pages in seconds.
               </p>
               <Button 
                 onClick={() => navigate("/editor")}
@@ -52,7 +52,7 @@ export default function Home() {
             <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
               <img 
                 src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80" 
-                alt="LandingCraft Interface" 
+                alt="Landing Craft Interface" 
                 className="rounded-lg w-full"
               />
             </div>
@@ -80,8 +80,8 @@ export default function Home() {
                   <div className="mb-4 bg-purple-100 p-3 rounded-full w-12 h-12 flex items-center justify-center">
                     <Layers className="h-6 w-6 text-purple-600" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 font-heading">Niche Templates</h3>
-                  <p className="text-gray-600">Choose from templates specialized for education, portfolios, finance, marketplaces, and more.</p>
+                  <h3 className="text-xl font-bold mb-2 font-heading">Industry Optimization</h3>
+                  <p className="text-gray-600">Specify your industry and our AI will generate content tailored to education, finance, marketplaces, and more.</p>
                 </CardContent>
               </Card>
               
@@ -135,7 +135,7 @@ export default function Home() {
           <div className="container mx-auto max-w-6xl text-center">
             <h2 className="text-3xl font-bold mb-6 font-heading">Start Creating Your Landing Page Today</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              No design skills needed. Just describe your vision and let LandingCraft do the rest.
+              No design skills needed. Just describe your vision and let AI Accelerate™ do the rest.
             </p>
             <Button 
               onClick={() => navigate("/editor")}
