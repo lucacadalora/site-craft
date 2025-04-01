@@ -12,7 +12,6 @@ import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
 import { ApiConfig, SiteStructure } from "@shared/schema";
 import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
-import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RefreshCw, Zap } from "lucide-react";
@@ -394,16 +393,6 @@ export default function Editor() {
             <ApiConfigComponent
               apiConfig={apiConfig}
               onApiConfigChange={setApiConfig}
-            />
-            
-            {/* DeepSite Configuration */}
-            <DeepSiteConfig
-              enabled={true}
-              onEnabledChange={() => {/* DeepSite is always enabled */}}
-              siteStructure={siteStructure}
-              onSiteStructureChange={setSiteStructure}
-              isGenerating={isGenerating}
-              onGenerate={handleGenerate}
             />
           </div>
           
