@@ -90,7 +90,7 @@ export function AIAccelerateConfig({
                 id="ai-accelerate-toggle"
                 checked={enabled}
                 onCheckedChange={onEnabledChange}
-                disabled={true} // Always enabled in this version
+                disabled={false} // Now can be toggled
               />
             </div>
             

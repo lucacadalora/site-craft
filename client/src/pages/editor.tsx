@@ -71,6 +71,9 @@ export default function Editor() {
     saveToken: false,
   });
 
+  // AI Accelerate enabled state
+  const [aiAccelerateEnabled, setAiAccelerateEnabled] = useState<boolean>(true);
+
   // AI Accelerate configuration
   const [siteStructure, setSiteStructure] = useState<SiteStructure>({
     sections: ["hero", "features", "testimonials", "about", "contact"],
@@ -185,6 +188,16 @@ export default function Editor() {
       toast({
         title: "Missing Information",
         description: "Please provide a description and select a category",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if AI Accelerate is enabled
+    if (!aiAccelerateEnabled) {
+      toast({
+        title: "AI Accelerate™ Disabled",
+        description: "Please enable AI Accelerate™ to generate a landing page",
         variant: "destructive",
       });
       return;
@@ -393,8 +406,8 @@ export default function Editor() {
             
             {/* AI Accelerate Configuration */}
             <AIAccelerateConfig
-              enabled={true}
-              onEnabledChange={() => {/* AI Accelerate is always enabled */}}
+              enabled={aiAccelerateEnabled}
+              onEnabledChange={setAiAccelerateEnabled}
               siteStructure={siteStructure}
               onSiteStructureChange={setSiteStructure}
               isGenerating={isGenerating}
