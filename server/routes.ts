@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { dbStorage } from "./db-storage";
+// Use dbStorage for all database operations
 import { 
   insertProjectSchema, 
   generatePageSchema, 
@@ -24,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Category is required" });
       }
       
-      const templates = await storage.getTemplatesByCategory(category);
+      const templates = await dbStorage.getTemplatesByCategory(category);
       return res.json(templates);
     } catch (error) {
       console.error("Error fetching templates:", error);
@@ -34,7 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/templates/:id", async (req, res) => {
     try {
-      const template = await storage.getTemplate(req.params.id);
+      const template = await dbStorage.getTemplate(req.params.id);
       if (!template) {
         return res.status(404).json({ message: "Template not found" });
       }
@@ -48,7 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Projects routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const projects = await storage.getAllProjects();
+      const projects = await dbStorage.getAllProjects();
       return res.json(projects);
     } catch (error) {
       console.error("Error fetching projects:", error);
@@ -63,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
-      const project = await storage.getProject(id);
+      const project = await dbStorage.getProject(id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -78,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", async (req, res) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
-      const project = await storage.createProject(projectData);
+      const project = await dbStorage.createProject(projectData);
       return res.status(201).json(project);
     } catch (error) {
       console.error("Error creating project:", error);
@@ -93,12 +94,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
-      const project = await storage.getProject(id);
+      const project = await dbStorage.getProject(id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      const updatedProject = await storage.updateProject(id, req.body);
+      const updatedProject = await dbStorage.updateProject(id, req.body);
       return res.json(updatedProject);
     } catch (error) {
       console.error("Error updating project:", error);
@@ -113,12 +114,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid project ID" });
       }
       
-      const project = await storage.getProject(id);
+      const project = await dbStorage.getProject(id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       
-      await storage.deleteProject(id);
+      await dbStorage.deleteProject(id);
       return res.status(204).end();
     } catch (error) {
       console.error("Error deleting project:", error);
@@ -133,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { prompt, templateId, category, settings, apiConfig } = generatePageSchema.parse(req.body);
       
       // Get the template
-      const template = await storage.getTemplate(templateId);
+      const template = await dbStorage.getTemplate(templateId);
       if (!template) {
         return res.status(404).json({ message: "Template not found" });
       }
@@ -218,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { projectId, siteName, useCustomDomain, customDomain } = publishSchema.parse(req.body);
       
       // Get the project
-      const project = await storage.getProject(projectId);
+      const project = await dbStorage.getProject(projectId);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -231,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, we'll simulate it by updating the project's publish path and status
       const publishPath = useCustomDomain ? customDomain : `landingcraft.io/sites/${siteName}`;
       
-      const updatedProject = await storage.updateProject(projectId, {
+      const updatedProject = await dbStorage.updateProject(projectId, {
         published: true,
         publishPath,
       });
@@ -257,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get the project
-      const project = await storage.getProject(id);
+      const project = await dbStorage.getProject(id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
