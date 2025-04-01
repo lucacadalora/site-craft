@@ -6,30 +6,14 @@ import { Footer } from "@/components/footer";
 import { PreviewPane } from "@/components/ui/preview-pane";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ApiConfigComponent } from "@/components/ui/api-config";
 import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
-import { ApiConfig, SiteStructure } from "@shared/schema";
+import { ApiConfig } from "@shared/schema";
 import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
-import { DeepSiteConfig } from "@/components/ui/deepsite-config";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RefreshCw, Zap } from "lucide-react";
-
-// Categories available for landing pages
-const CATEGORIES = [
-  { id: "general", name: "General" },
-  { id: "education", name: "Education/EdTech" },
-  { id: "portfolio", name: "Designer/Portfolio" }, 
-  { id: "finance", name: "Finance" },
-  { id: "marketplace", name: "Marketplace/E-commerce" },
-  { id: "technology", name: "Technology" },
-  { id: "healthcare", name: "Healthcare" },
-  { id: "real-estate", name: "Real Estate" },
-  { id: "restaurant", name: "Restaurant/Food" },
-  { id: "nonprofit", name: "Nonprofit/Charity" }
-];
 
 // Define project interface
 interface Project {
@@ -44,7 +28,6 @@ interface Project {
   publishPath?: string;
   userId?: number;
   createdAt?: string;
-  siteStructure?: SiteStructure;
 }
 
 export default function Editor() {
@@ -55,7 +38,6 @@ export default function Editor() {
 
   // Core state
   const [prompt, setPrompt] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("general");
   const [html, setHtml] = useState<string | null>(null);
   const [css, setCss] = useState<string | null>(null);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
@@ -69,12 +51,6 @@ export default function Editor() {
     provider: "SambaNova (DeepSeek-V3-0324)",
     apiKey: "",  // This will use the environment variable
     saveToken: false,
-  });
-
-  // DeepSite configuration
-  const [siteStructure, setSiteStructure] = useState<SiteStructure>({
-    sections: ["hero", "features", "testimonials", "about", "contact"],
-    contentDepth: "detailed"
   });
 
   // No database, so no need to fetch projects
@@ -97,15 +73,9 @@ export default function Editor() {
       try {
         const project = JSON.parse(savedProject);
         setPrompt(project.prompt || '');
-        setSelectedCategory(project.category || 'general');
         setHtml(project.html || null);
         setCss(project.css || null);
         setProjectId(project.id || null);
-        
-        // Load site structure if available
-        if (project.siteStructure) {
-          setSiteStructure(project.siteStructure);
-        }
       } catch (e) {
         console.error("Failed to parse saved project:", e);
       }
@@ -184,10 +154,10 @@ export default function Editor() {
 
   // Handle generation
   const handleGenerate = async () => {
-    if (!prompt || !selectedCategory) {
+    if (!prompt) {
       toast({
         title: "Missing Information",
-        description: "Please provide a description and select a category",
+        description: "Please provide a description for your landing page",
         variant: "destructive",
       });
       return;
@@ -197,16 +167,16 @@ export default function Editor() {
     try {
       // Show toast indicating generation
       toast({
-        title: "DeepSite™ Generation",
-        description: "Creating a comprehensive landing page with multiple sections...",
+        title: "AI Generation",
+        description: "Creating your landing page from description...",
       });
       
-      // Call the DeepSite API
+      // Call the SambaNova API
       const result = await generateDeepSite(
         prompt,
-        selectedCategory,
-        siteStructure.sections,
-        siteStructure.contentDepth,
+        "general", // Default category
+        ["hero", "features", "testimonials", "about", "contact"], // Default sections
+        "detailed", // Default content depth
         apiConfig
       );
       
@@ -220,11 +190,10 @@ export default function Editor() {
         name: prompt.slice(0, 30) + "...",
         description: prompt,
         prompt,
-        category: selectedCategory,
+        category: "general",
         templateId: "default", // Required by schema
         html: result.html,
         css: result.css,
-        siteStructure,
         createdAt: new Date().toISOString()
       };
       
@@ -232,8 +201,8 @@ export default function Editor() {
       saveProject(projectData);
       
       toast({
-        title: "DeepSite™ Generation Complete",
-        description: "Your comprehensive landing page has been generated successfully",
+        title: "Generation Complete",
+        description: "Your landing page has been generated successfully",
       });
     } catch (error) {
       toast({
@@ -248,7 +217,7 @@ export default function Editor() {
 
   // Handle save
   const handleSave = () => {
-    if (!selectedCategory || !html || !css) {
+    if (!html || !css) {
       toast({
         title: "Missing Information",
         description: "Please generate a landing page before saving",
@@ -262,35 +231,34 @@ export default function Editor() {
       name: prompt.slice(0, 30) + "...",
       description: prompt,
       prompt,
-      category: selectedCategory,
+      category: "general",
       templateId: "default", // Required by schema
       html,
       css,
-      siteStructure,
       createdAt: new Date().toISOString()
     };
     
     // Save to localStorage
     saveProject(projectData);
+    
+    toast({
+      title: "Saved",
+      description: "Your landing page has been saved successfully",
+    });
   };
 
   // Handle new project
   const handleNewProject = () => {
     setPrompt("");
-    setSelectedCategory("general");
     setHtml(null);
     setCss(null);
     setProjectId(null);
-    setSiteStructure({
-      sections: ["hero", "features", "testimonials", "about", "contact"],
-      contentDepth: "detailed"
-    });
     navigate("/editor");
   };
 
   // Handle preview refresh
   const handlePreviewRefresh = () => {
-    if (!prompt || !selectedCategory) {
+    if (!prompt) {
       toast({
         title: "Missing Information",
         description: "Please provide a description before generating",
@@ -346,48 +314,29 @@ export default function Editor() {
               </CardContent>
             </Card>
             
-            {/* Category selection */}
+            {/* Generate button */}
             <Card className="mb-4">
               <CardHeader>
-                <CardTitle className="text-lg">Select a category</CardTitle>
+                <CardTitle className="text-lg">Generate Landing Page</CardTitle>
               </CardHeader>
-              <CardContent>
-                <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                  disabled={isGenerating}
+              <CardContent>                
+                <Button
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !prompt}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <div className="mt-4">
-                  <Button
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="mr-2 h-4 w-4" />
-                        Generate Landing Page
-                      </>
-                    )}
-                  </Button>
-                </div>
+                  {isGenerating ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Generate Landing Page
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
 
@@ -397,15 +346,7 @@ export default function Editor() {
               onApiConfigChange={setApiConfig}
             />
             
-            {/* DeepSite Configuration */}
-            <DeepSiteConfig
-              enabled={true}
-              onEnabledChange={() => {/* DeepSite is always enabled */}}
-              siteStructure={siteStructure}
-              onSiteStructureChange={setSiteStructure}
-              isGenerating={isGenerating}
-              onGenerate={handleGenerate}
-            />
+
           </div>
           
           {/* Preview pane */}
