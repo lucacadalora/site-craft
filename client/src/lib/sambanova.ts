@@ -71,10 +71,47 @@ Make sure the content relates specifically to the user's request and includes re
 
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
     
-    // Mock response for demonstration - in a real app we'd make an actual API call
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call delay
+    // Use the environment API key if none is provided in the config
+    const apiKey = apiConfig.apiKey || process.env.SAMBANOVA_API_KEY || '';
     
-    // Create the HTML and CSS based on the prompt and category
+    try {
+      // Make the actual API call to SambaNova
+      const response = await fetch('https://api.sambanova.ai/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(options)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`SambaNova API error: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Process the response data and extract HTML/CSS
+      // This will vary based on the exact API response format
+      const generatedContent = data.choices?.[0]?.message?.content || '';
+      
+      // Try to extract HTML and CSS from the response
+      const htmlMatch = generatedContent.match(/<html[\s\S]*?<\/html>/i);
+      const cssMatch = generatedContent.match(/<style>[\s\S]*?<\/style>/i);
+      
+      let extractedHtml, extractedCss;
+      
+      if (htmlMatch && cssMatch) {
+        extractedHtml = htmlMatch[0];
+        extractedCss = cssMatch[0].replace(/<\/?style>/g, '');
+        return { html: extractedHtml, css: extractedCss };
+      }
+    } catch (error) {
+      console.error("Error calling SambaNova API:", error);
+      console.log("Using fallback generation...");
+    }
+    
+    // Fallback to mock generation if the API call fails or can't extract properly formatted HTML/CSS
     const html = generateFallbackHTML(prompt, category, sections);
     const css = generateFallbackCSS(category);
     
@@ -846,10 +883,30 @@ footer {
 // For validation and token estimation - simplified versions
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    // In a real app, you would validate with the SambaNova API
-    console.log("Validating API key:", apiKey);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-    return true; // Always return true for demo
+    console.log("Validating API key with SambaNova...");
+    
+    // Simple check to verify key format
+    if (!apiKey || apiKey.length < 10) {
+      return false;
+    }
+    
+    // Try to make a simple API call to validate the key
+    try {
+      const response = await fetch('https://api.sambanova.ai/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+      
+      return response.ok;
+    } catch (e) {
+      console.error("Error connecting to SambaNova API:", e);
+      // If we can't connect, assume the key might still be valid
+      // but show a warning in the console
+      console.warn("Could not connect to SambaNova API to validate key, assuming valid");
+      return true;
+    }
   } catch (error) {
     console.error("Error validating API key:", error);
     return false;

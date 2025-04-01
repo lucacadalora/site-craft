@@ -71,7 +71,7 @@ export default function Editor() {
     saveToken: false,
   });
 
-  // AI Accelerate enabled state
+  // AI Accelerate enabled state - on by default
   const [aiAccelerateEnabled, setAiAccelerateEnabled] = useState<boolean>(true);
 
   // AI Accelerate configuration
@@ -381,6 +381,7 @@ export default function Editor() {
                     className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                     onClick={handleGenerate}
                     disabled={isGenerating || !prompt}
+                    title={aiAccelerateEnabled ? "" : "You need to enable AI Accelerate™ to generate a landing page"}
                   >
                     {isGenerating ? (
                       <>
