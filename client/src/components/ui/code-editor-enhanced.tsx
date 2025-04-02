@@ -207,7 +207,18 @@ export function CodeEditor({
       const observer = new MutationObserver((mutations) => {
         // When content changes, ensure scrollbars are visible
         if (editorWrapperRef.current) {
-          editorWrapperRef.current.style.overflowY = 'scroll';
+          // Always force scrollbar to be visible during content generation
+          if (isGenerating) {
+            editorWrapperRef.current.style.overflowY = 'scroll';
+          } else {
+            // Otherwise, let the browser decide based on content height
+            const textareaEl = editorWrapperRef.current.querySelector('textarea');
+            if (textareaEl && textareaEl.scrollHeight > editorWrapperRef.current.clientHeight) {
+              editorWrapperRef.current.style.overflowY = 'scroll';
+            } else {
+              editorWrapperRef.current.style.overflowY = 'auto';
+            }
+          }
         
           // Check if we need to scroll to bottom for streaming content
           if (isGenerating) {
@@ -216,6 +227,19 @@ export function CodeEditor({
                 editorWrapperRef.current.scrollTop = 
                   editorWrapperRef.current.scrollHeight - 
                   editorWrapperRef.current.clientHeight;
+                
+                // Log details for debugging
+                const textareaEl = editorWrapperRef.current.querySelector('textarea');
+                if (textareaEl) {
+                  console.log("EDITOR DIMENSIONS DURING GENERATION:", {
+                    editorWrapperHeight: editorWrapperRef.current.clientHeight,
+                    editorWrapperScrollHeight: editorWrapperRef.current.scrollHeight,
+                    textareaScrollHeight: textareaEl.scrollHeight,
+                    contentLength: value.length,
+                    scrollTop: editorWrapperRef.current.scrollTop,
+                    scrollPosition: `${editorWrapperRef.current.scrollTop}/${editorWrapperRef.current.scrollHeight}`
+                  });
+                }
               }
             }, 10);
           }
@@ -225,12 +249,13 @@ export function CodeEditor({
       observer.observe(editorWrapperRef.current, { 
         childList: true, 
         subtree: true,
-        characterData: true
+        characterData: true,
+        attributes: true
       });
       
       return () => observer.disconnect();
     }
-  }, [isGenerating]);
+  }, [isGenerating, value]);
   
   return (
     <div className="code-editor-container">
@@ -241,12 +266,13 @@ export function CodeEditor({
           ref={editorWrapperRef}
           className="editor-wrapper"
           style={{ 
-            overflowY: 'scroll', // Force scrollbar to always be visible
+            overflowY: 'auto', // Let the browser decide when to show scrollbar
             height: '600px',
             maxHeight: '600px',
             position: 'relative',
             willChange: 'transform',
-            transform: 'translateZ(0)'
+            transform: 'translateZ(0)',
+            width: '100%'
           }}
         >
           <Editor

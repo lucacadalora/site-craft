@@ -991,7 +991,7 @@ export default function Editor({
               </div>
             </div>
             <div className="relative w-full h-[calc(100%-32px)] flex flex-col">
-              <div className="flex-1" style={{ height: '600px', maxHeight: '600px' }}>
+              <div className="flex-1 w-full" style={{ height: '600px', maxHeight: '600px', overflow: 'visible' }}>
                 <CodeEditor
                   value={htmlContent}
                   onChange={handleHtmlChange}
