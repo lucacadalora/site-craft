@@ -5,7 +5,7 @@
   max-height: 100%; /* Don't exceed parent container */
   background-color: #111827;
   border-radius: 0.25rem;
-  overflow: visible; /* Explicitly allow overflow */
+  overflow: hidden; /* Contain overflow inside */
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */
@@ -37,9 +37,9 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: auto !important; /* Allow scrolling when needed */
+  overflow-y: scroll !important; /* Force scrollbars to always appear */
   overflow-x: auto;
-  height: auto; /* Let it grow based on content */
+  height: 600px; /* Fixed height to ensure scroll behavior */
   max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;

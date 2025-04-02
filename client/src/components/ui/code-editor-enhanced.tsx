@@ -99,27 +99,43 @@ export function CodeEditor({
       const textarea = editorWrapper.querySelector('textarea');
       if (textarea) {
         // Calculate height based on content
-        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20; // Default to 20px if can't get computed value
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20;
         const lines = value.split('\n').length;
-        const totalHeight = Math.max(lines * lineHeight + 40, 400); // Add some padding and ensure minimum height
+        const totalHeight = Math.max(lines * lineHeight + 40, 400);
         
-        // Apply dynamic height
+        // Log the dimensions for debugging
+        const parentElement = editorWrapper.parentElement;
+        console.log("EDITOR DIMENSIONS:", {
+          lines,
+          lineHeight,
+          calculatedHeight: totalHeight,
+          editorWrapperHeight: editorWrapper.clientHeight,
+          editorWrapperScrollHeight: editorWrapper.scrollHeight,
+          textareaScrollHeight: textarea.scrollHeight,
+          contentLength: value.length,
+          overflowY: getComputedStyle(editorWrapper).overflowY,
+          parentOverflow: parentElement ? getComputedStyle(parentElement).overflow : 'unknown'
+        });
+        
+        // Apply height to textarea
         textarea.style.minHeight = `${totalHeight}px`;
         
-        // Make container scrollable if content is very large
-        if (lines > 30) {
-          editorWrapper.style.overflowY = 'auto';
-        } else {
-          // For smaller content, let it expand naturally
-          editorWrapper.style.overflow = 'visible';
-        }
+        // Always ensure we have scrollbars when needed
+        editorWrapper.style.overflowY = 'auto';
+        
+        // Force editor wrapper to have sufficient height
+        editorWrapper.style.minHeight = '400px';
+        editorWrapper.style.maxHeight = '100%';
       }
       
-      // Ensure scrollbar is active when needed
+      // Ensure scrollbar appears if needed by forcing a small scroll
       setTimeout(() => {
-        // Only set scrollTop if content is actually larger than visible area
         if (editorWrapper.scrollHeight > editorWrapper.clientHeight) {
-          editorWrapper.scrollTop = 1; // Activate scrollbar if needed
+          console.log("SCROLL NEEDED - Container height vs scroll height:", 
+            editorWrapper.clientHeight, editorWrapper.scrollHeight);
+          editorWrapper.scrollTop = 1;
+        } else {
+          console.log("NO SCROLL NEEDED - Content fits in container");
         }
       }, 100);
     };
@@ -147,6 +163,23 @@ export function CodeEditor({
     };
   }, [value]); // Re-run when content changes
 
+  // Force editor wrapper to have fixed height to ensure scroll behavior
+  useEffect(() => {
+    if (editorWrapperRef.current) {
+      // This forces the wrapper to have a fixed height, ensuring scroll behavior
+      editorWrapperRef.current.style.height = '600px';
+      editorWrapperRef.current.style.overflowY = 'scroll';
+      
+      // Force scroll position to activate scrollbar
+      setTimeout(() => {
+        if (editorWrapperRef.current) {
+          editorWrapperRef.current.scrollTop = 1;
+          console.log("FORCE APPLIED - Scrollbar enabled with fixed height");
+        }
+      }, 100);
+    }
+  }, []);
+  
   return (
     <div className="code-editor-container">
       <div className="flex h-full">
@@ -156,10 +189,9 @@ export function CodeEditor({
           ref={editorWrapperRef}
           className="editor-wrapper"
           style={{ 
-            overflow: 'auto',
-            height: 'auto',
-            minHeight: '400px',
-            maxHeight: 'none' // Allow full content to show
+            overflowY: 'scroll',
+            height: '600px',
+            maxHeight: '600px' // Fix height to ensure scrolling
           }}
         >
           <Editor
@@ -175,7 +207,6 @@ export function CodeEditor({
               lineHeight: '1.4',
               minHeight: '100%',
               whiteSpace: 'pre',
-              height: 'auto', // Let content determine height
             }}
             readOnly={readOnly || isGenerating}
           />
