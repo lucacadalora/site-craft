@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { PreviewPane } from "@/components/ui/preview-pane";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ApiConfigComponent } from "@/components/ui/api-config";
-import { PublishModal } from "@/components/ui/publish-modal";
 import { PageExport } from "@/components/ui/page-export";
 import { ApiConfig } from "@shared/schema";
-import { generateDeepSite, estimateTokenUsage } from "@/lib/sambanova";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { RefreshCw, Zap } from "lucide-react";
+import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
+import { useQueryClient } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  RefreshCw, 
+  Zap, 
+  Save, 
+  Download, 
+  Settings,
+  Maximize,
+  Minimize
+} from "lucide-react";
 
 // Define project interface
 interface Project {
@@ -30,21 +32,86 @@ interface Project {
   createdAt?: string;
 }
 
+// Default HTML template
+const defaultHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Landing Page</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 800px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #3b82f6;
+    }
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    .cta-button:hover {
+      background-color: #2563eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to DeepSite</h1>
+    <p>Create stunning landing pages with the power of AI. Describe your business, product, or service in the prompt area and click "Generate" to see the magic happen!</p>
+    <a href="#" class="cta-button">Get Started</a>
+  </div>
+</body>
+</html>`;
+
 export default function Editor() {
   const { id } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLIFrameElement>(null);
+  const resizeRef = useRef<HTMLDivElement>(null);
 
   // Core state
   const [prompt, setPrompt] = useState("");
-  const [html, setHtml] = useState<string | null>(null);
-  const [css, setCss] = useState<string | null>(null);
-  const [publishModalOpen, setPublishModalOpen] = useState(false);
-  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [htmlContent, setHtmlContent] = useState(defaultHTML);
   const [projectId, setProjectId] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
+  const [isResizing, setIsResizing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [fullscreenPreview, setFullscreenPreview] = useState(false);
+  const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   
   // API config for SambaNova - using environment variable by default
   const [apiConfig, setApiConfig] = useState<ApiConfig>({
@@ -52,9 +119,6 @@ export default function Editor() {
     apiKey: "",  // This will use the environment variable
     saveToken: false,
   });
-
-  // No database, so no need to fetch projects
-  // We'll use local state and localStorage instead
 
   // Update token estimate when prompt changes
   useEffect(() => {
@@ -67,24 +131,57 @@ export default function Editor() {
   }, [prompt]);
 
   // Load project data from localStorage instead of database
+  // Set up resize handler for editor/preview panes
   useEffect(() => {
-    const savedProject = localStorage.getItem('landingcraft_current_project');
-    if (savedProject) {
-      try {
-        const project = JSON.parse(savedProject);
-        setPrompt(project.prompt || '');
-        setHtml(project.html || null);
-        setCss(project.css || null);
-        setProjectId(project.id || null);
-      } catch (e) {
-        console.error("Failed to parse saved project:", e);
+    const handleMouseDown = (e: MouseEvent) => {
+      if (resizeRef.current && resizeRef.current.contains(e.target as Node)) {
+        setIsResizing(true);
       }
-    }
-  }, []);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizing) {
+        const container = document.querySelector('.editor-container') as HTMLElement;
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const newEditorWidth = e.clientX - containerRect.left;
+          const totalWidth = containerRect.width;
+          
+          // Ensure minimum width for editor and preview
+          if (newEditorWidth > 300 && totalWidth - newEditorWidth > 300) {
+            const editorElement = document.querySelector('.editor-panel') as HTMLElement;
+            const previewElement = document.querySelector('.preview-panel') as HTMLElement;
+            
+            if (editorElement && previewElement) {
+              const editorPercent = (newEditorWidth / totalWidth) * 100;
+              const previewPercent = 100 - editorPercent;
+              
+              editorElement.style.width = `${editorPercent}%`;
+              previewElement.style.width = `${previewPercent}%`;
+            }
+          }
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [isResizing]);
 
   // Load API config from localStorage
   useEffect(() => {
-    const savedConfig = localStorage.getItem('landingcraft_api_config');
+    const savedConfig = localStorage.getItem('deepsite_api_config');
     if (savedConfig) {
       try {
         const parsed = JSON.parse(savedConfig);
@@ -101,277 +198,426 @@ export default function Editor() {
   // Save API config to localStorage when it changes
   useEffect(() => {
     if (apiConfig.saveToken) {
-      localStorage.setItem('landingcraft_api_config', JSON.stringify(apiConfig));
+      localStorage.setItem('deepsite_api_config', JSON.stringify(apiConfig));
     } else {
-      localStorage.removeItem('landingcraft_api_config');
+      localStorage.removeItem('deepsite_api_config');
     }
   }, [apiConfig]);
 
-  // Instead of mutations to a database, we'll save to localStorage
-  const saveProject = (data: any) => {
-    try {
-      // Generate an ID if it doesn't exist
-      if (!data.id) {
-        data.id = Date.now();
-        setProjectId(data.id);
+  // Update preview iframe when HTML changes
+  useEffect(() => {
+    if (previewRef.current) {
+      previewRef.current.srcdoc = htmlContent;
+    }
+  }, [htmlContent]);
+
+  // Debounce editor changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (previewRef.current) {
+        previewRef.current.srcdoc = htmlContent;
       }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [htmlContent]);
+
+  // Save project
+  const saveProject = () => {
+    if (!prompt && !htmlContent) {
+      toast({
+        title: "Missing Information",
+        description: "Nothing to save. Please create content first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const id = projectId || Date.now();
+      const projectData = {
+        id,
+        name: prompt ? prompt.slice(0, 30) + "..." : "Untitled Project",
+        description: prompt || "No description",
+        prompt: prompt || "",
+        category: "general",
+        html: htmlContent,
+        createdAt: new Date().toISOString()
+      };
       
       // Save to localStorage
-      localStorage.setItem('landingcraft_current_project', JSON.stringify(data));
+      localStorage.setItem('deepsite_current_project', JSON.stringify(projectData));
+      setProjectId(id);
       
-      // Save to projects list
-      const projectsStr = localStorage.getItem('landingcraft_projects');
+      // Also save to projects list
+      const projectsStr = localStorage.getItem('deepsite_projects');
       let projects = projectsStr ? JSON.parse(projectsStr) : [];
       
-      // Check if project exists in the list
-      const existingProjectIndex = projects.findIndex((p: any) => p.id === data.id);
-      if (existingProjectIndex >= 0) {
-        // Update existing project
-        projects[existingProjectIndex] = data;
+      const existingIndex = projects.findIndex((p: any) => p.id === id);
+      if (existingIndex >= 0) {
+        projects[existingIndex] = projectData;
       } else {
-        // Add new project
-        projects.push(data);
+        projects.push(projectData);
       }
       
-      // Save updated projects list
-      localStorage.setItem('landingcraft_projects', JSON.stringify(projects));
+      localStorage.setItem('deepsite_projects', JSON.stringify(projects));
       
       toast({
-        title: "Project Saved",
-        description: "Your project has been saved locally",
+        title: "Saved",
+        description: "Your project has been saved successfully",
       });
-      
-      return data;
     } catch (error) {
       toast({
         title: "Save Failed",
-        description: "Failed to save project locally",
+        description: "Could not save your project",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
-  // Handle generation
+  // Handle HTML editor changes
+  const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setHtmlContent(e.target.value);
+  };
+
+  // Handle generation with streaming output using the SSE endpoint
   const handleGenerate = async () => {
     if (!prompt) {
       toast({
         title: "Missing Information",
-        description: "Please provide a description for your landing page",
+        description: "Please describe what you want to generate",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!apiConfig.apiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please provide a SambaNova API key in the settings",
+        variant: "destructive",
+      });
+      setShowSettings(true);
       return;
     }
 
     setIsGenerating(true);
+    setStreamingOutput([]);
+
     try {
-      // Show toast indicating generation
-      toast({
-        title: "AI Generation",
-        description: "Creating your landing page from description...",
+      // Use the EventSource API to connect to the streaming endpoint
+      const eventSource = new EventSource(`/api/sambanova/generate-stream?_=${Date.now()}`, { 
+        withCredentials: true 
       });
       
-      // Call the SambaNova API
-      const result = await generateDeepSite(
-        prompt,
-        "general", // Default category
-        ["hero", "features", "testimonials", "about", "contact"], // Default sections
-        "detailed", // Default content depth
-        apiConfig
-      );
-      
-      // Set HTML and CSS for preview
-      setHtml(result.html);
-      setCss(result.css);
-      
-      // Save or update project
-      const projectData = {
-        id: projectId || undefined,
-        name: prompt.slice(0, 30) + "...",
-        description: prompt,
-        prompt,
-        category: "general",
-        templateId: "default", // Required by schema
-        html: result.html,
-        css: result.css,
-        createdAt: new Date().toISOString()
+      // Send the request data in a POST request
+      fetch('/api/sambanova/generate-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          apiConfig,
+        }),
+      }).catch(error => {
+        console.error('Error sending POST data:', error);
+        eventSource.close();
+      });
+
+      // Listen for the 'start' event
+      eventSource.addEventListener('start', (event) => {
+        const data = JSON.parse(event.data);
+        setStreamingOutput([data.message]);
+      });
+
+      // Listen for token streaming
+      eventSource.addEventListener('token', (event) => {
+        const data = JSON.parse(event.data);
+        setStreamingOutput(prev => [...prev, data.message]);
+      });
+
+      // Listen for the 'complete' event
+      eventSource.addEventListener('complete', (event) => {
+        const data = JSON.parse(event.data);
+        setHtmlContent(data.html);
+        setStreamingOutput(prev => [...prev, 'Generation complete! ✅']);
+        eventSource.close();
+        setIsGenerating(false);
+        
+        toast({
+          title: "Generation Complete",
+          description: "Your landing page has been generated",
+        });
+      });
+
+      // Listen for errors
+      eventSource.addEventListener('error', (event) => {
+        console.error('EventSource error:', event);
+        setStreamingOutput(prev => [...prev, 'Error: Generation failed']);
+        eventSource.close();
+        setIsGenerating(false);
+        
+        toast({
+          title: "Generation Failed",
+          description: "The streaming connection encountered an error",
+          variant: "destructive",
+        });
+      });
+
+      // Clean up on component unmount or error
+      return () => {
+        eventSource.close();
       };
-      
-      // Save project to localStorage
-      saveProject(projectData);
-      
-      toast({
-        title: "Generation Complete",
-        description: "Your landing page has been generated successfully",
-      });
     } catch (error) {
+      console.error(error);
       toast({
         title: "Generation Failed",
-        description: error instanceof Error ? error.message : "An error occurred during generation",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
-    } finally {
+      setStreamingOutput([...streamingOutput, "Error: Generation failed"]);
       setIsGenerating(false);
     }
   };
 
-  // Handle save
-  const handleSave = () => {
-    if (!html || !css) {
-      toast({
-        title: "Missing Information",
-        description: "Please generate a landing page before saving",
-        variant: "destructive",
-      });
-      return;
+  // Handle refresh preview
+  const handleRefreshPreview = () => {
+    if (previewRef.current) {
+      const current = previewRef.current;
+      const content = current.srcdoc;
+      current.srcdoc = '';
+      setTimeout(() => {
+        current.srcdoc = content;
+      }, 100);
     }
-
-    const projectData = {
-      id: projectId || undefined,
-      name: prompt.slice(0, 30) + "...",
-      description: prompt,
-      prompt,
-      category: "general",
-      templateId: "default", // Required by schema
-      html,
-      css,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    saveProject(projectData);
-    
-    toast({
-      title: "Saved",
-      description: "Your landing page has been saved successfully",
-    });
-  };
-
-  // Handle new project
-  const handleNewProject = () => {
-    setPrompt("");
-    setHtml(null);
-    setCss(null);
-    setProjectId(null);
-    navigate("/editor");
-  };
-
-  // Handle preview refresh
-  const handlePreviewRefresh = () => {
-    if (!prompt) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a description before generating",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    handleGenerate();
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
-      <Header
-        onSave={handleSave}
-        onPublish={() => setPublishModalOpen(true)}
-        onExport={() => setExportModalOpen(true)}
-        isSaving={false}
-      />
-
-      <main className="flex-1 flex flex-col">
-        <div className="container mx-auto py-4">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">LandingCraft</h1>
-            <div className="flex items-center">
-              <Button variant="outline" onClick={handleNewProject}>
-                New Project
-              </Button>
-              {tokenUsage > 0 && (
-                <div className="ml-4 text-sm text-gray-500">
-                  Estimated tokens: <span className="font-semibold">{tokenUsage}</span>
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="flex flex-col h-screen bg-[#121212] text-white">
+      <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-[#1e1e1e]">
+        <div className="flex items-center">
+          <img 
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVwD7JQXy8I9gkxZQYaD2hXgM1DEjcqsKJnTQkPBDrXA&s" 
+            alt="DeepSite" 
+            className="h-8 mr-2"
+          />
+          <h1 className="text-lg font-semibold">DeepSite</h1>
         </div>
-        
-        <div className="flex-1 flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 p-4 bg-gray-50 overflow-auto">
-            {/* Prompt input */}
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle className="text-lg">Describe your landing page</CardTitle>
-              </CardHeader>
-              <CardContent>
+        <div className="text-xs text-gray-400">Powered by <span className="text-blue-400">DeepSeek</span></div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs" 
+            onClick={saveProject}
+          >
+            <Save className="h-3 w-3 mr-1" />
+            Save
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs" 
+            onClick={() => setExportModalOpen(true)}
+          >
+            <Download className="h-3 w-3 mr-1" />
+            Export
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-pink-500 hover:bg-pink-600 border-0"
+          >
+            Deploy DeepSite
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden editor-container">
+        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-[#1e1e1e]">
+            <div className="text-sm font-medium">index.html</div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 w-7 p-0" 
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {showSettings && (
+            <div className="p-4 bg-[#252525] border-b border-gray-800">
+              <h2 className="text-sm font-semibold mb-3">API Configuration</h2>
+              <div className="space-y-2">
+                <div className="text-xs text-gray-400">SambaNova API Key</div>
+                <div className="flex space-x-2">
+                  <input
+                    type="password"
+                    className="flex-1 bg-[#333] border border-gray-700 rounded-sm p-1 text-sm"
+                    placeholder="Enter your API key"
+                    value={apiConfig.apiKey}
+                    onChange={(e) => setApiConfig({
+                      ...apiConfig,
+                      apiKey: e.target.value
+                    })}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs" 
+                    onClick={async () => {
+                      if (!apiConfig.apiKey) {
+                        toast({
+                          title: "API Key Required",
+                          description: "Please enter an API key to validate",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      const isValid = await validateApiKey(apiConfig.apiKey);
+                      
+                      if (isValid) {
+                        toast({
+                          title: "API Key Valid",
+                          description: "Your API key has been validated successfully",
+                        });
+                      } else {
+                        toast({
+                          title: "API Key Invalid",
+                          description: "The API key could not be validated",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Validate
+                  </Button>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="save-token"
+                    checked={apiConfig.saveToken}
+                    onChange={(e) => setApiConfig({
+                      ...apiConfig,
+                      saveToken: e.target.checked
+                    })}
+                  />
+                  <label htmlFor="save-token" className="text-xs text-gray-400">
+                    Remember API key (saved locally)
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isGenerating ? (
+            <div className="flex-1 flex flex-col">
+              <div className="p-3 border-b border-gray-800 bg-[#1e1e1e]">
                 <textarea
-                  className="w-full h-32 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-2 bg-[#252525] border border-gray-700 rounded text-sm"
+                  placeholder="Describe your landing page and click 'Generate'..."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the landing page you want to create..."
-                  disabled={isGenerating}
+                  rows={3}
                 />
-              </CardContent>
-            </Card>
-            
-            {/* Generate button */}
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle className="text-lg">Generate Landing Page</CardTitle>
-              </CardHeader>
-              <CardContent>                
-                <Button
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                <Button 
+                  className="w-full mt-2 bg-blue-500 hover:bg-blue-600" 
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt}
                 >
                   {isGenerating ? (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                       Generating...
                     </>
                   ) : (
                     <>
-                      <Zap className="mr-2 h-4 w-4" />
+                      <Zap className="h-4 w-4 mr-2" />
                       Generate Landing Page
                     </>
                   )}
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+              
+              <div className="flex-1 overflow-auto p-0 bg-[#1e1e1e]">
+                <textarea
+                  ref={editorRef}
+                  className="w-full h-full p-2 bg-[#1e1e1e] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+                  value={htmlContent}
+                  onChange={handleHtmlChange}
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 p-4 overflow-auto bg-[#1e1e1e] font-mono text-sm">
+              <div className="text-green-400 mb-2">AI Running (DeepSeek-V3-0324)...</div>
+              <div className="p-2 bg-[#252525] rounded">
+                {streamingOutput.map((line, i) => (
+                  <div key={i} className="mb-1 whitespace-pre-wrap">
+                    {line.startsWith("Error") ? (
+                      <span className="text-red-400">{line}</span>
+                    ) : (
+                      <span className="text-gray-300">{line}</span>
+                    )}
+                  </div>
+                ))}
+                {isGenerating && (
+                  <div className="animate-pulse text-blue-400">▌</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-            {/* API Configuration */}
-            <ApiConfigComponent
-              apiConfig={apiConfig}
-              onApiConfigChange={setApiConfig}
-            />
-            
+        <div 
+          ref={resizeRef}
+          className="w-1 bg-gray-800 hover:bg-blue-500 cursor-col-resize flex-shrink-0"
+        ></div>
 
+        <div className="preview-panel w-1/2 h-full flex flex-col bg-white overflow-hidden">
+          <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-100">
+            <div className="text-sm font-medium text-gray-700">Preview</div>
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 w-7 p-0 text-gray-600" 
+                onClick={handleRefreshPreview}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 w-7 p-0 text-gray-600" 
+                onClick={() => setFullscreenPreview(!fullscreenPreview)}
+              >
+                {fullscreenPreview ? (
+                  <Minimize className="h-4 w-4" />
+                ) : (
+                  <Maximize className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
           
-          {/* Preview pane */}
-          <PreviewPane
-            html={html}
-            css={css}
-            isLoading={isGenerating}
-            onRefresh={handlePreviewRefresh}
-          />
+          <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white' : ''}`}>
+            <iframe
+              ref={previewRef}
+              title="Preview"
+              className="w-full h-full border-0"
+              srcDoc={htmlContent}
+              sandbox="allow-scripts"
+            />
+          </div>
         </div>
-      </main>
-
-      <Footer />
-
-      <PublishModal
-        open={publishModalOpen}
-        onOpenChange={setPublishModalOpen}
-        projectId={projectId}
-        onSuccess={(url) => {
-          toast({
-            title: "Published Successfully",
-            description: `Your landing page is now live at ${url}`,
-          });
-        }}
-      />
+      </div>
 
       <PageExport
         open={exportModalOpen}
