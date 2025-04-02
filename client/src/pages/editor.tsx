@@ -91,8 +91,19 @@ const defaultHTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-export default function Editor() {
+interface EditorProps {
+  id?: string;
+  initialApiConfig?: ApiConfig;
+  onApiConfigChange?: (newConfig: ApiConfig) => void;
+}
+
+export default function Editor({ 
+  id: idParam, 
+  initialApiConfig,
+  onApiConfigChange
+}: EditorProps) {
   const { id } = useParams();
+  const projectIdParam = idParam || id; // Use either the prop or the URL param
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -104,7 +115,7 @@ export default function Editor() {
   // Core state
   const [prompt, setPrompt] = useState("");
   const [htmlContent, setHtmlContent] = useState(defaultHTML);
-  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<number | null>(projectIdParam ? parseInt(projectIdParam) : null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [isResizing, setIsResizing] = useState(false);
@@ -114,11 +125,18 @@ export default function Editor() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
   
   // API config for SambaNova - using environment variable by default
-  const [apiConfig, setApiConfig] = useState<ApiConfig>({
+  const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfig || {
     provider: "SambaNova (DeepSeek-V3-0324)",
     apiKey: "",  // This will use the environment variable
     saveToken: false,
   });
+  
+  // Update the parent's API config if it changes and if handler provided
+  useEffect(() => {
+    if (onApiConfigChange) {
+      onApiConfigChange(apiConfig);
+    }
+  }, [apiConfig, onApiConfigChange]);
 
   // Update token estimate when prompt changes
   useEffect(() => {
