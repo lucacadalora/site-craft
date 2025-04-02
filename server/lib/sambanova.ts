@@ -71,6 +71,17 @@ Do not include any introductory text, explanations, or markdown formatting. Just
       max_tokens: 5000
     };
     
+    // Log API request for debugging
+    console.log("Calling SambaNova API with options:", {
+      model: completionOptions.model,
+      temperature: completionOptions.temperature,
+      max_tokens: completionOptions.max_tokens,
+      messages: [
+        { role: systemMessage.role, content: systemMessage.content.substring(0, 50) + "..." },
+        { role: userMessage.role, content: userMessage.content }
+      ]
+    });
+    
     // Perform the API call
     const response = await fetch("https://api.sambanova.ai/api/v1/completions", {
       method: "POST",
@@ -91,7 +102,17 @@ Do not include any introductory text, explanations, or markdown formatting. Just
       };
     }
     
+    // Log successful response
+    console.log("SambaNova API response received successfully");
     const data = await response.json();
+    
+    // Log response format for debugging
+    console.log("SambaNova API response format:", {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasContent: !!data.choices?.[0]?.message?.content,
+      contentStart: data.choices?.[0]?.message?.content?.substring(0, 50) + "..."
+    });
     
     // Extract the HTML content from the response
     if (data.choices && data.choices.length > 0 && data.choices[0].message.content) {

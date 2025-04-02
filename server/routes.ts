@@ -99,13 +99,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await generateLandingPageHtml(prompt, apiConfig);
       
       if (result.success) {
-        // Send the HTML response back
-        return res.json({ html: result.html });
+        // Send the HTML response back with success indicator
+        return res.json({ 
+          html: result.html,
+          source: "api" // Indicate this came from the API
+        });
       } else {
         // If API call failed, use fallback
         console.log("Using fallback HTML generation due to API error:", result.error);
         const fallbackHtml = generateFallbackHtml(title, prompt);
-        return res.json({ html: fallbackHtml });
+        return res.json({ 
+          html: fallbackHtml,
+          source: "fallback", // Indicate this is fallback content
+          error: result.error
+        });
       }
     } catch (error) {
       console.error("Error with SambaNova API:", error);
