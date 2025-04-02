@@ -12,7 +12,7 @@ hljs.registerLanguage('html', xml);
 hljs.registerLanguage('css', css);
 hljs.registerLanguage('javascript', javascript);
 
-// Helper function to highlight HTML with embedded CSS
+// Helper function to highlight HTML with embedded CSS - styled more like VS Code
 const highlightHTML = (code: string): string => {
   // Check if the code is empty to avoid highlight.js errors
   if (!code.trim()) return '';
@@ -20,14 +20,40 @@ const highlightHTML = (code: string): string => {
   // Process the code to extract HTML, CSS and add syntax highlighting
   let highlighted = hljs.highlight(code, { language: 'html' }).value;
 
-  // Apply custom colors to color codes (#RRGGBB)
-  highlighted = highlighted.replace(/(#[0-9A-Fa-f]{3,6})/g, '<span class="hljs-color" style="color:$1">$1</span>');
+  // VS Code-like color scheme
+  const colors = {
+    tag: '#569cd6', // blue for tags
+    attr: '#9cdcfe', // light blue for attributes
+    string: '#ce9178', // orange/salmon for strings
+    comment: '#6a9955', // green for comments
+    keyword: '#c586c0', // purple for keywords
+    function: '#dcdcaa', // yellow for functions
+    variable: '#9cdcfe', // light blue for variables
+    type: '#4ec9b0', // teal for types
+    number: '#b5cea8', // light green for numbers
+    operator: '#d4d4d4', // white for operators
+    punctuation: '#d4d4d4', // white for punctuation
+  };
 
-  // Enhance highlighting for certain tags
-  highlighted = highlighted.replace(/(&lt;[\/]?)([\w-]+)/g, '$1<span class="hljs-tag-name">$2</span>');
+  // Apply VS Code-inspired theming to HTML elements
+  highlighted = highlighted.replace(/(&lt;[\/]?)([\w-]+)/g, 
+    `$1<span style="color:${colors.tag}">$2</span>`);
   
-  // Add custom highlighting for attributes
-  highlighted = highlighted.replace(/([\w-]+)(=)(&quot;.*?&quot;)/g, '<span class="hljs-attr-name">$1</span>$2<span class="hljs-attr-value">$3</span>');
+  // Enhance attribute names with proper color
+  highlighted = highlighted.replace(/([\w-]+)(=)(&quot;.*?&quot;)/g, 
+    `<span style="color:${colors.attr}">$1</span>$2<span style="color:${colors.string}">$3</span>`);
+  
+  // Apply custom colors to CSS elements
+  highlighted = highlighted.replace(/(#[0-9A-Fa-f]{3,6})/g, 
+    `<span style="color:${colors.number}">$1</span>`);
+  
+  // Highlight class/id selectors in CSS
+  highlighted = highlighted.replace(/(\.)?([\w-]+)(\s*\{)/g, 
+    `$1<span style="color:${colors.type}">$2</span>$3`);
+  
+  // Highlight CSS properties
+  highlighted = highlighted.replace(/(\s+)([\w-]+)(\s*:)/g, 
+    `$1<span style="color:${colors.attr}">$2</span>$3`);
 
   return highlighted;
 };
@@ -38,7 +64,8 @@ interface LineNumbersProps {
   lineNumbersRef?: React.RefObject<HTMLDivElement>;
 }
 
-// Optimized LineNumbers component using virtual rendering
+// Simple LineNumbers component similar to the attached image example
+// This provides a clean, fixed column of line numbers with proper styling
 const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   // Ensure we render at least a reasonable minimum number of lines
   const minLineCount = Math.max(count, 10);
@@ -46,81 +73,44 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   // Log line count to help with debugging
   console.log("Rendering line numbers component with count:", count);
   
-  // State to track scroll position and visible range
-  const [scrollTop, setScrollTop] = useState(0);
-  const [visibleHeight, setVisibleHeight] = useState(600);
-  
-  // Constants for rendering optimization
-  const LINE_HEIGHT = 1.4; // em
-  const BUFFER_SIZE = 100; // Extra lines to render above/below visible area
-  
-  // Total height of the content
-  const totalHeight = Math.max(count * LINE_HEIGHT, minLineCount * LINE_HEIGHT);
-  
-  // Calculate which lines should be visible (with buffer)
-  const startLine = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - BUFFER_SIZE);
-  const endLine = Math.min(count, Math.ceil((scrollTop + visibleHeight) / LINE_HEIGHT) + BUFFER_SIZE);
-  
-  // Log the optimization metrics - this shows we're only rendering the visible lines plus buffer
-  console.log(`DEBUG: Line numbers - total lines in file: ${count}, rendering lines ${startLine+1}-${endLine} (${endLine-startLine} lines at a time)`);
-  
-  // Effect to sync scroll position
-  useEffect(() => {
-    if (!lineNumbersRef?.current) return;
-    
-    const container = lineNumbersRef.current;
-    
-    // Update visible dimensions
-    setVisibleHeight(container.clientHeight);
-    
-    // Handler for scroll events
-    const handleScroll = () => {
-      setScrollTop(container.scrollTop);
-    };
-    
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [lineNumbersRef]);
+  // Generate all line numbers at once - simpler approach that matches the image example
+  const lineNumbers = Array.from({ length: count }, (_, i) => i + 1);
   
   return (
     <div 
       ref={lineNumbersRef}
-      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right" 
+      className="line-numbers text-xs select-none border-r border-gray-800 bg-[#1e1e1e]" 
       style={{ 
-        minHeight: `${minLineCount * LINE_HEIGHT}em`,
+        minWidth: '2.5rem',
+        paddingTop: '0.5rem',
+        paddingBottom: '0.5rem',
         height: '100%',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-        position: 'relative'
+        overflowY: 'hidden', // Hide scrollbar in line numbers column
+        position: 'relative',
+        userSelect: 'none',
+        fontFamily: '"Fira Code", "Consolas", monospace',
+        textAlign: 'right',
+        borderRight: '1px solid #333'
       }}
     >
-      {/* This div sets the total height for proper scrolling */}
-      <div style={{ height: `${totalHeight}em`, position: 'relative' }}>
-        {/* Only render the visible lines plus buffer */}
-        {Array.from({ length: endLine - startLine }, (_, i) => {
-          const lineNumber = startLine + i + 1; // +1 because line numbers start at 1
-          return (
-            <div 
-              key={lineNumber} 
-              className="leading-tight py-0.5"
-              style={{ 
-                height: `${LINE_HEIGHT}em`, 
-                lineHeight: '1.4',
-                position: 'absolute',
-                width: '100%',
-                top: `${(startLine + i) * LINE_HEIGHT}em`,
-                right: 0,
-                textAlign: 'right',
-                paddingRight: '0.5rem'
-              }}
-            >
-              {lineNumber}
-            </div>
-          );
-        })}
-      </div>
+      {/* Static numbered lines like in the image example */}
+      {lineNumbers.map((num) => (
+        <div 
+          key={num} 
+          className="line-number py-0 px-2 text-right"
+          style={{ 
+            height: '1.4em', 
+            lineHeight: '1.4',
+            fontSize: '0.75rem',
+            color: '#858585', // Medium gray to match VS Code style
+            paddingRight: '0.5rem',
+            fontFeatureSettings: '"tnum"', // Use tabular numbers for alignment
+            fontVariantNumeric: 'tabular-nums'
+          }}
+        >
+          {num}
+        </div>
+      ))}
     </div>
   );
 };
@@ -218,14 +208,21 @@ export function CodeEditor({
       }, 100);
     };
     
-    // Sync line numbers scrolling
+    // Sync line numbers scrolling with editor
     const handleScroll = () => {
       if (lineNumbers) {
         // Force line numbers to scroll in sync with editor
         lineNumbers.scrollTop = editorWrapper.scrollTop;
         
-        // Log for debugging
-        console.log("Syncing scroll:", editorWrapper.scrollTop);
+        // Highlight current line for better readability (optional)
+        const scrollPosition = editorWrapper.scrollTop;
+        const lineHeight = 20; // approximate line height in pixels
+        const currentLineEstimate = Math.floor(scrollPosition / lineHeight);
+        
+        // Log for debugging (reduced frequency)
+        if (currentLineEstimate % 10 === 0) { // Only log every 10 lines
+          console.log("Viewing approximately line:", currentLineEstimate);
+        }
       }
     };
     
@@ -338,19 +335,21 @@ export function CodeEditor({
   
   return (
     <div className="code-editor-container">
-      <div className="flex h-full">
+      <div className="flex h-full bg-[#1e1e1e]"> {/* Dark background matching the image example */}
         <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
         <div 
           ref={editorWrapperRef}
           className="editor-wrapper"
           style={{ 
-            overflowY: 'auto', // Let the browser decide when to show scrollbar
-            height: '100%', // Use the full height of the container
+            overflowY: 'auto',
+            height: '100%',
             position: 'relative',
             willChange: 'transform',
             transform: 'translateZ(0)',
-            width: '100%'
+            width: '100%',
+            backgroundColor: '#1e1e1e', // Dark background like VS Code
+            color: '#d4d4d4' // Light text color
           }}
         >
           <Editor
@@ -367,7 +366,7 @@ export function CodeEditor({
               minHeight: '100%',
               whiteSpace: 'pre',
               willChange: 'contents',
-              containIntrinsicSize: 'auto',
+              containIntrinsicSize: 'auto'
             }}
             readOnly={readOnly || isGenerating}
           />
