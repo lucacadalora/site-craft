@@ -1,6 +1,7 @@
 /* Editor container styles */
 .code-editor-container {
-  height: 600px !important; /* Force a fixed height */
+  height: 100% !important; /* Use full height of parent container */
+  min-height: 600px; /* Minimum height to ensure usability */
   background-color: #111827;
   border-radius: 0.25rem;
   overflow: hidden;
