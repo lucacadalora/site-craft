@@ -14,7 +14,9 @@ import {
   ArrowLeft,
   Zap,
   CheckCircle,
-  Save
+  Save,
+  Edit,
+  Eye
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -635,35 +637,48 @@ export default function Editor({
       {/* Mobile Mode Tabs - Only shown on mobile */}
       {isMobile && (
         <div className="bg-[#1e293b] px-4 py-2 border-b border-gray-700">
-          <div className="flex flex-col space-y-1">
-            <div className="flex space-x-2">
+          <div className="flex justify-between items-center">
+            <div className="grid grid-cols-2 gap-1 bg-[#111827] p-1 rounded-lg" style={{ width: '60%' }}>
               <Button 
-                variant={!fullscreenPreview ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
                 onClick={() => setFullscreenPreview(false)}
-                className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+                className={!fullscreenPreview 
+                  ? "bg-blue-600 text-white rounded-md" 
+                  : "bg-transparent text-gray-400 hover:text-gray-300 rounded-md"}
               >
+                <Edit className="h-3.5 w-3.5 mr-1" />
                 Editor
               </Button>
               <Button 
-                variant={fullscreenPreview ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
-                onClick={() => setFullscreenPreview(true)}
-                className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+                onClick={() => {
+                  setFullscreenPreview(true);
+                  // Force refresh when switching to preview
+                  setTimeout(handleRefreshPreview, 100);
+                }}
+                className={fullscreenPreview 
+                  ? "bg-blue-600 text-white rounded-md" 
+                  : "bg-transparent text-gray-400 hover:text-gray-300 rounded-md"}
               >
+                <Eye className="h-3.5 w-3.5 mr-1" />
                 Preview
               </Button>
+            </div>
+            
+            {fullscreenPreview && (
               <Button 
                 variant="outline"
                 size="sm"
                 onClick={handleRefreshPreview}
-                className="text-blue-400 ml-auto"
+                className="text-blue-400 border-blue-400/30"
                 title="Refresh Preview"
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1" />
                 Refresh
               </Button>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -795,7 +810,7 @@ export default function Editor({
                 </div>
               )}
               
-              {/* Refresh Button - Added for mobile devices */}
+              {/* Refresh Button - Keep for both mobile and desktop */}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -806,24 +821,27 @@ export default function Editor({
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className={`h-8 ${isMobile ? 'px-1.5' : 'px-2'} text-xs border-gray-300 text-gray-700`} 
-                onClick={() => setFullscreenPreview(!fullscreenPreview)}
-              >
-                {fullscreenPreview ? (
-                  <>
-                    <Minimize className="h-3.5 w-3.5 mr-1" />
-                    {!isMobile && <span>Exit Fullscreen</span>}
-                  </>
-                ) : (
-                  <>
-                    <Maximize className="h-3.5 w-3.5 mr-1" />
-                    {!isMobile && <span>Fullscreen</span>}
-                  </>
-                )}
-              </Button>
+              {/* For mobile, we don't show the fullscreen button in the header since we use tabs */}
+              {!isMobile && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
+                  onClick={() => setFullscreenPreview(!fullscreenPreview)}
+                >
+                  {fullscreenPreview ? (
+                    <>
+                      <Minimize className="h-3.5 w-3.5 mr-1" />
+                      <span>Exit Fullscreen</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize className="h-3.5 w-3.5 mr-1" />
+                      <span>Fullscreen</span>
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           
@@ -887,13 +905,29 @@ export default function Editor({
                   className="w-full h-full overflow-auto bg-white"
                   style={{ 
                     position: 'relative',
-                    overflowX: 'hidden'
+                    height: 'calc(100% - 40px)', /* Adjust for header space */
+                    WebkitOverflowScrolling: 'touch', /* For smooth scrolling on iOS */
+                    overscrollBehavior: 'contain'
+                  }}
+                  onClick={(e) => {
+                    // Prevent links from redirecting away from the application
+                    // when they're clicked in the preview area
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === 'A' || target.closest('a')) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toast({
+                        title: "Link Clicked",
+                        description: "Links are disabled in preview mode",
+                      });
+                      return false;
+                    }
                   }}
                 >
                   {/* Create a container to hold the HTML content directly */}
                   <div
                     id="mobile-preview-container"
-                    className="w-full h-full"
+                    className="w-full min-h-full"
                     dangerouslySetInnerHTML={{ __html: htmlContent }}
                   />
                 </div>
