@@ -5,11 +5,12 @@
   max-height: 100%; /* Don't exceed parent container */
   background-color: #111827;
   border-radius: 0.25rem;
-  overflow: visible; /* Changed from 'hidden' to prevent the shaking issue */
+  overflow: visible; /* Allows children to extend beyond if needed */
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */
   width: 100%; /* Ensure it fills the width of its parent */
+  flex: 1; /* Allow container to grow and fill available space */
 }
 
 /* Line numbers column */
@@ -24,7 +25,8 @@
   user-select: none;
   overflow-y: hidden; /* Hide vertical scrollbar */
   overflow-x: hidden;
-  height: 600px; /* Match exactly with editor height */
+  height: 100%; /* Use full height of the container */
+  min-height: 400px; /* Ensure minimum height */
   border-right: 1px solid #374151;
   background-color: #1f2937;
   display: flex;
@@ -43,11 +45,11 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: auto !important; /* Change back to auto to allow natural scrollbar behavior */
+  overflow-y: auto !important; /* Allow natural scrollbar behavior */
   overflow-x: auto;
-  height: 600px; /* Fixed height to ensure scroll behavior */
+  height: 100%; /* Use full height of parent container */
   max-height: 100%; /* Don't exceed container height */
-  min-height: 300px; /* Ensure a minimum height */
+  min-height: 400px; /* Ensure a minimum height */
   width: 100%; /* Ensure it takes full width */
   font-family: "Fira Code", "Consolas", monospace;
   padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
@@ -63,8 +65,8 @@
   white-space: pre;
   background-color: #111827;
   color: #d1d5db;
-  /* Added to prevent jumpy behavior during typing */
-  contain: strict;
+  /* Changed from 'strict' which might prevent scrolling */
+  contain: content;
   will-change: contents;
 }
 

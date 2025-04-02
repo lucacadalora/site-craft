@@ -187,14 +187,31 @@ export function CodeEditor({
   useEffect(() => {
     if (editorWrapperRef.current) {
       // This forces the wrapper to have a fixed height, ensuring scroll behavior
-      editorWrapperRef.current.style.height = '600px';
+      
+      // Calculate available height in parent container if possible
+      let parentHeight = 600; // Default fallback
+      const parentElement = editorWrapperRef.current.parentElement;
+      
+      if (parentElement && parentElement.parentElement) {
+        const containerHeight = parentElement.parentElement.clientHeight;
+        console.log("DEBUG: Parent container height:", containerHeight);
+        
+        if (containerHeight > 200) { // Sanity check for valid height
+          parentHeight = containerHeight;
+        }
+      }
+      
+      console.log("DEBUG: Setting editor height to:", parentHeight);
+      
+      // Use the container height or 600px as fallback
+      editorWrapperRef.current.style.height = `${parentHeight}px`;
       editorWrapperRef.current.style.overflowY = 'scroll';
       
       // Force scroll position to activate scrollbar
       setTimeout(() => {
         if (editorWrapperRef.current) {
           editorWrapperRef.current.scrollTop = 1;
-          console.log("FORCE APPLIED - Scrollbar enabled with fixed height");
+          console.log("FORCE APPLIED - Scrollbar enabled with dynamic height:", parentHeight);
         }
       }, 100);
     }
@@ -267,8 +284,7 @@ export function CodeEditor({
           className="editor-wrapper"
           style={{ 
             overflowY: 'auto', // Let the browser decide when to show scrollbar
-            height: '600px',
-            maxHeight: '600px',
+            height: '100%', // Use the full height of the container
             position: 'relative',
             willChange: 'transform',
             transform: 'translateZ(0)',
