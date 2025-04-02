@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import Editor from 'react-simple-code-editor';
 import hljs from 'highlight.js/lib/core';
 import xml from 'highlight.js/lib/languages/xml';
@@ -51,7 +51,7 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   );
 };
 
-// Minimap component
+// Minimap component - shows only the visible section of code
 const Minimap: React.FC<{ 
   content: string;
   scrollRatio: number;
@@ -63,6 +63,27 @@ const Minimap: React.FC<{
   const indicatorStyle = {
     top: `${scrollRatio * 100}%`,
     height: `${Math.max(visibleRatio * 100, 10)}%`,
+  };
+  
+  // Create a content view that represents the entire content scaled down
+  const processedContent = useMemo(() => {
+    const lines = content.split('\n');
+    
+    // If content is very large, take a representative sample
+    // This prevents the minimap from being too dense and unreadable
+    if (lines.length > 1000) {
+      const factor = Math.ceil(lines.length / 1000);
+      return lines.filter((_, i) => i % factor === 0).join('\n');
+    }
+    
+    return content;
+  }, [content]);
+  
+  // Calculate minimap content style based on scroll position
+  const contentStyle = {
+    transform: `translateY(-${scrollRatio * 100}%)`,
+    height: `${100 / visibleRatio}%`, 
+    maxHeight: '2000%', // Prevent excessively large height
   };
   
   return (
@@ -77,13 +98,18 @@ const Minimap: React.FC<{
         position: 'relative'
       }}
     >
-      <pre className="p-1 opacity-40 h-full">
-        {content}
-      </pre>
-      <div 
-        className="absolute right-0 w-1 bg-white opacity-50 pointer-events-none"
-        style={indicatorStyle}
-      ></div>
+      <div className="relative h-full">
+        <pre 
+          className="p-1 opacity-40 absolute w-full"
+          style={contentStyle}
+        >
+          {processedContent}
+        </pre>
+        <div 
+          className="absolute right-0 w-1 bg-white opacity-50 pointer-events-none z-10"
+          style={indicatorStyle}
+        ></div>
+      </div>
     </div>
   );
 };
