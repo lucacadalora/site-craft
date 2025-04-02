@@ -618,7 +618,7 @@ export default function Editor({
                 onClick={() => setFullscreenPreview(false)}
                 className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
               >
-                Editor Focus
+                Editor
               </Button>
               <Button 
                 variant={fullscreenPreview ? "default" : "outline"}
@@ -626,7 +626,7 @@ export default function Editor({
                 onClick={() => setFullscreenPreview(true)}
                 className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
               >
-                Preview Focus
+                Preview
               </Button>
               <Button 
                 variant="outline"
@@ -639,20 +639,15 @@ export default function Editor({
                 Refresh
               </Button>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {fullscreenPreview 
-                ? "Editor is always available at the bottom of the screen"
-                : "Preview is always available at the bottom of the screen"}
-            </p>
           </div>
         </div>
       )}
 
       {/* Main Content */}
       <div className={`${isMobile ? 'flex flex-col' : 'flex'} flex-1 overflow-hidden editor-container`}>
-        {/* Editor Panel - Always visible but resized based on view */}
+        {/* Editor Panel - Visibility controlled by tabs on mobile */}
         <div 
-          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'w-full h-[30%]' : 'w-full h-1/2') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
+          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'hidden' : 'w-full h-full') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
         >
           {!isGenerating ? (
             <div className="flex-1 flex flex-col p-4">
@@ -751,9 +746,9 @@ export default function Editor({
           ></div>
         )}
 
-        {/* Preview Panel - Modified for mobile to always leave room for editor */}
+        {/* Preview Panel - Visibility controlled by tabs on mobile */}
         <div 
-          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'h-[70%] w-full' : 'h-1/2 w-full') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
+          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'w-full h-full' : 'hidden') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
             <div className="flex items-center">
