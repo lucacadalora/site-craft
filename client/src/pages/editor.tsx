@@ -407,33 +407,29 @@ export default function Editor({
       if (responseData.html) {
         setHtmlContent(responseData.html);
         
-        // Explicitly update the preview iframe with longer timeout for mobile
-        const updateTimeout = isMobile ? 500 : 100;
-        
-        // Update preview and switch to preview mode on mobile
-        setTimeout(() => {
-          if (previewRef.current) {
-            previewRef.current.srcdoc = responseData.html;
+        // Different handling for mobile vs desktop
+        if (isMobile) {
+          // For mobile, we'll update the preview container and switch to preview tab
+          setTimeout(() => {
+            setFullscreenPreview(true);
             
-            // On mobile, automatically switch to preview after generation
-            if (isMobile) {
-              setFullscreenPreview(true);
-              
-              // Force a second update after switching views to ensure preview works
-              setTimeout(() => {
-                if (previewRef.current) {
-                  // Reset and update the iframe to ensure content loads
-                  const current = previewRef.current;
-                  const content = responseData.html;
-                  current.srcdoc = '';
-                  setTimeout(() => {
-                    current.srcdoc = content;
-                  }, 50);
-                }
-              }, 300);
+            // Force a refresh of the preview content
+            setTimeout(() => {
+              console.log("Updating mobile preview after generation");
+              const container = document.getElementById('mobile-preview-container');
+              if (container) {
+                container.innerHTML = responseData.html;
+              }
+            }, 300);
+          }, 500);
+        } else if (previewRef.current) {
+          // For desktop, update the iframe directly
+          setTimeout(() => {
+            if (previewRef.current) {
+              previewRef.current.srcdoc = responseData.html;
             }
-          }
-        }, updateTimeout);
+          }, 100);
+        }
       } else {
         setStreamingOutput(prev => [...prev, "Error: No HTML content received from API"]);
         throw new Error("No HTML content received from API");
@@ -459,57 +455,38 @@ export default function Editor({
 
   // Handle refresh preview with improved mobile support
   const handleRefreshPreview = () => {
-    if (previewRef.current) {
-      const current = previewRef.current;
-      
-      // Set a loading indicator
-      toast({
-        title: "Refreshing Preview",
-        description: "Reloading the preview content...",
-      });
-      
-      // Always use the latest HTML content
-      const contentToUse = htmlContent;
-      console.log("Refreshing preview with content length:", contentToUse.length);
-      
-      // For mobile, we need a more thorough refresh approach
-      if (isMobile) {
-        // First, clear the iframe
-        current.srcdoc = '';
+    // Set a loading indicator
+    toast({
+      title: "Refreshing Preview",
+      description: "Reloading the preview content...",
+    });
+    
+    // Always use the latest HTML content
+    const contentToUse = htmlContent;
+    console.log("Refreshing preview with content length:", contentToUse.length);
+    
+    // For mobile, we use direct DOM injection
+    if (isMobile) {
+      // Force the React component to re-render by toggling fullscreen state
+      setFullscreenPreview(false);
+      setTimeout(() => {
+        setFullscreenPreview(true);
         
-        // Wait a moment before setting content
+        // Find the mobile preview container and update it directly
         setTimeout(() => {
-          // Directly set the HTML content
-          current.srcdoc = contentToUse;
-          console.log("Preview content set after timeout");
-          
-          // Double check that the content was applied
-          setTimeout(() => {
-            if (!current.srcdoc || current.srcdoc.trim() === '') {
-              console.log("Preview still empty, trying direct HTML injection");
-              
-              try {
-                // Alternative approach: try to use contentDocument to write content
-                if (current.contentDocument) {
-                  current.contentDocument.open();
-                  current.contentDocument.write(contentToUse);
-                  current.contentDocument.close();
-                  console.log("Used contentDocument approach");
-                } else {
-                  // Final fallback
-                  current.srcdoc = contentToUse;
-                  console.log("Used srcdoc fallback");
-                }
-              } catch (e) {
-                console.error("Error updating preview:", e);
-              }
-            }
-          }, 300);
-        }, 200);
-      } else {
-        // Desktop approach is simpler
-        current.srcdoc = contentToUse;
-      }
+          const container = document.getElementById('mobile-preview-container');
+          if (container) {
+            console.log("Updating mobile preview container");
+            container.innerHTML = contentToUse;
+          } else {
+            console.log("Mobile preview container not found");
+          }
+        }, 100);
+      }, 50);
+    } else if (previewRef.current) {
+      // Desktop approach using iframe
+      const current = previewRef.current;
+      current.srcdoc = contentToUse;
     }
   };
 
@@ -904,28 +881,35 @@ export default function Editor({
                   </div>
                 </div>
               )}
-              <iframe
-                ref={previewRef}
-                title="Preview"
-                className="w-full h-full border-0"
-                srcDoc={htmlContent}
-                sandbox="allow-scripts"
-                style={{ backgroundColor: "white" }}
-                onLoad={() => {
-                  console.log("Preview iframe loaded", htmlContent.length > 0 ? "with content" : "empty");
-                  
-                  // Additional check and fix for mobile preview
-                  if (isMobile && fullscreenPreview && (!previewRef.current?.srcdoc || previewRef.current.srcdoc.trim() === '')) {
-                    // If iframe is empty, try to set content again
-                    console.log("Empty preview detected, retrying content injection");
-                    setTimeout(() => {
-                      if (previewRef.current && htmlContent) {
-                        previewRef.current.srcdoc = htmlContent;
-                      }
-                    }, 100);
-                  }
-                }}
-              />
+              {/* For mobile, we'll use a different approach since iframe srcdoc might have issues */}
+              {isMobile ? (
+                <div 
+                  className="w-full h-full overflow-auto bg-white"
+                  style={{ 
+                    position: 'relative',
+                    overflowX: 'hidden'
+                  }}
+                >
+                  {/* Create a container to hold the HTML content directly */}
+                  <div
+                    id="mobile-preview-container"
+                    className="w-full h-full"
+                    dangerouslySetInnerHTML={{ __html: htmlContent }}
+                  />
+                </div>
+              ) : (
+                <iframe
+                  ref={previewRef}
+                  title="Preview"
+                  className="w-full h-full border-0"
+                  srcDoc={htmlContent}
+                  sandbox="allow-scripts" 
+                  style={{ backgroundColor: "white" }}
+                  onLoad={() => {
+                    console.log("Preview iframe loaded", htmlContent.length > 0 ? "with content" : "empty");
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
