@@ -58,34 +58,30 @@ const Minimap: React.FC<{
   visibleRatio: number; 
 }> = ({ content, scrollRatio, visibleRatio }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
   
-  // Update scroll position of minimap when main editor scrolls
+  // Update scroll position of minimap and indicator when main editor scrolls
   useEffect(() => {
-    if (minimapRef.current) {
-      // Instead of transforming content, scroll the minimap container
-      const minimapHeight = minimapRef.current.clientHeight;
-      const totalHeight = minimapRef.current.scrollHeight;
+    if (minimapRef.current && indicatorRef.current) {
+      const minimapContainer = minimapRef.current;
+      const indicator = indicatorRef.current;
+      const minimapHeight = minimapContainer.clientHeight;
       
-      // Only scroll if there's content to scroll
-      if (totalHeight > minimapHeight) {
-        const scrollPosition = scrollRatio * (totalHeight - minimapHeight);
-        minimapRef.current.scrollTop = scrollPosition;
-      }
+      // Set indicator position based on scroll ratio
+      const indicatorTop = scrollRatio * minimapHeight;
+      const indicatorHeight = Math.max(minimapHeight * visibleRatio, 30);
+      
+      // Apply position using style
+      indicator.style.top = `${indicatorTop}px`;
+      indicator.style.height = `${indicatorHeight}px`;
     }
-  }, [scrollRatio]);
-  
-  // Calculate position of the visible area indicator
-  const indicatorStyle = {
-    top: `${scrollRatio * 100}%`,
-    height: `${Math.max(visibleRatio * 100, 10)}%`,
-  };
+  }, [scrollRatio, visibleRatio]);
   
   // Create a content view that represents the entire content scaled down
   const processedContent = useMemo(() => {
     const lines = content.split('\n');
     
     // If content is very large, take a representative sample
-    // This prevents the minimap from being too dense and unreadable
     if (lines.length > 1000) {
       const factor = Math.ceil(lines.length / 1000);
       return lines.filter((_, i) => i % factor === 0).join('\n');
@@ -94,21 +90,27 @@ const Minimap: React.FC<{
     return content;
   }, [content]);
   
-  // The content should be directly scrollable, not transformed
   return (
     <div 
       ref={minimapRef}
       className="minimap"
     >
-      {/* Simple direct rendering approach */}
+      {/* Code content */}
       <pre className="p-1 opacity-40 w-full">
         {processedContent}
       </pre>
       
-      {/* Fixed indicator that shows current viewport position */}
+      {/* Indicator that shows current viewport position */}
       <div 
+        ref={indicatorRef}
         className="minimap-indicator"
-        style={indicatorStyle}
+        style={{
+          position: 'absolute',
+          right: 0,
+          width: '3px',
+          height: `${Math.max(visibleRatio * 100, 10)}%`,
+          top: `${scrollRatio * 100}%`,
+        }}
       ></div>
     </div>
   );

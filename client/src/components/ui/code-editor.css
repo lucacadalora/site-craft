@@ -6,7 +6,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  outline: 1px dashed blue; /* Debug outline */
 }
 
 /* Line numbers column */
@@ -70,7 +69,6 @@
   overflow-y: auto; /* Changed to auto to allow vertical scrolling */
   border-left: 1px solid #374151;
   height: 100%;
-  outline: 1px solid red; /* Debug outline */
 }
 
 .minimap-content {
@@ -82,14 +80,14 @@
 }
 
 .minimap-indicator {
-  position: fixed;
+  position: absolute;
   right: 0;
-  width: 4px;
-  background-color: #ffffff;
-  opacity: 0.7;
+  width: 3px;
+  background-color: #4361ee;
+  opacity: 0.6;
   z-index: 10;
   pointer-events: none;
-  border-radius: 2px;
+  border-radius: 1.5px;
 }
 
 /* Syntax highlighting enhancements */
