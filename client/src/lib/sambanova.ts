@@ -17,7 +17,7 @@ interface GenerationResult {
 }
 
 /**
- * Generate a comprehensive site with DeepSeek-V3-0324
+ * Generate a comprehensive site with SambaNova's DeepSeek-V3-0324 model
  */
 export async function generateDeepSite(
   prompt: string,

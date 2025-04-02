@@ -8,9 +8,9 @@ interface Message {
 interface CompletionOptions {
   model: string;
   messages: Message[];
+  stream?: boolean;
   temperature?: number;
   max_tokens?: number;
-  stream?: boolean;
 }
 
 interface GenerationResult {
@@ -65,25 +65,23 @@ Do not include any introductory text, explanations, or markdown formatting. Just
     };
     
     const completionOptions: CompletionOptions = {
-      model: "deepseek-coder", // Use the correct model that is available
-      messages: [systemMessage, userMessage],
-      temperature: 0.7,
-      max_tokens: 5000
+      stream: true,
+      model: "DeepSeek-V3-0324", // Corrected model name with proper capitalization
+      messages: [systemMessage, userMessage]
     };
     
     // Log API request for debugging
     console.log("Calling SambaNova API with options:", {
       model: completionOptions.model,
-      temperature: completionOptions.temperature,
-      max_tokens: completionOptions.max_tokens,
+      stream: completionOptions.stream,
       messages: [
         { role: systemMessage.role, content: systemMessage.content.substring(0, 50) + "..." },
         { role: userMessage.role, content: userMessage.content }
       ]
     });
     
-    // Perform the API call
-    const response = await fetch("https://api.sambanova.ai/api/v1/completions", {
+    // Perform the API call to the correct endpoint
+    const response = await fetch("https://api.sambanova.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -95,58 +93,128 @@ Do not include any introductory text, explanations, or markdown formatting. Just
     if (!response.ok) {
       const errorText = await response.text();
       console.error("SambaNova API error:", response.status, errorText);
+      console.log("Using fallback HTML generation due to API error:", `API error: ${response.status} - ${errorText}`);
       return {
-        html: "",
+        html: generateFallbackHtml(`${prompt.substring(0, 20)}...`, prompt),
         success: false,
         error: `API error: ${response.status} - ${errorText}`
       };
     }
     
-    // Log successful response
-    console.log("SambaNova API response received successfully");
-    const data = await response.json();
-    
-    // Log response format for debugging
-    console.log("SambaNova API response format:", {
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length,
-      hasContent: !!data.choices?.[0]?.message?.content,
-      contentStart: data.choices?.[0]?.message?.content?.substring(0, 50) + "..."
-    });
-    
-    // Extract the HTML content from the response
-    if (data.choices && data.choices.length > 0 && data.choices[0].message.content) {
-      const generatedContent = data.choices[0].message.content.trim();
+    // For streamed responses, we need to read the chunks and collect them
+    try {
+      console.log("SambaNova API response received successfully");
       
-      // Make sure it starts with <!DOCTYPE html>
-      if (generatedContent.startsWith("<!DOCTYPE html>") || 
-          generatedContent.startsWith("<!doctype html>")) {
+      // Since we're using streaming mode, we need to collect the response differently
+      if (completionOptions.stream) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error("Response body is not readable");
+        }
+        
+        // For demonstration - collect all the streamed content
+        let fullContent = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          // Decode the chunk
+          const chunk = new TextDecoder().decode(value);
+          
+          // Stream chunks are formatted as "data: {JSON}\n\n"
+          const lines = chunk.split('\n\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+              
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.choices && jsonData.choices.length > 0) {
+                  const delta = jsonData.choices[0].delta;
+                  if (delta && delta.content) {
+                    fullContent += delta.content;
+                  }
+                }
+              } catch (e) {
+                console.error("Error parsing JSON chunk:", e);
+              }
+            }
+          }
+        }
+        
+        // Process the collected content
+        console.log("Successfully collected streamed content, length:", fullContent.length);
+        
+        // Find HTML content
+        // Make sure it starts with <!DOCTYPE html>
+        if (fullContent.includes("<!DOCTYPE html>") || fullContent.includes("<!doctype html>")) {
+          // Find the start of the HTML content
+          const htmlStart = Math.max(
+            fullContent.indexOf("<!DOCTYPE html>"),
+            fullContent.indexOf("<!doctype html>")
+          );
+          
+          if (htmlStart >= 0) {
+            const htmlContent = fullContent.substring(htmlStart);
+            return {
+              html: htmlContent,
+              success: true
+            };
+          }
+        }
+        
+        // If no HTML found, wrap the content
         return {
-          html: generatedContent,
+          html: `<!DOCTYPE html><html><head><title>Generated Page</title></head><body>${fullContent}</body></html>`,
           success: true
         };
       } else {
-        // Try to find HTML in the response
-        const htmlStart = generatedContent.indexOf("<!DOCTYPE html>");
-        if (htmlStart >= 0) {
-          return {
-            html: generatedContent.substring(htmlStart),
-            success: true
-          };
+        // Handle non-streaming response
+        const data = await response.json();
+        
+        // Extract the HTML content from the response
+        if (data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+          const generatedContent = data.choices[0].message.content.trim();
+          
+          // Make sure it starts with <!DOCTYPE html>
+          if (generatedContent.startsWith("<!DOCTYPE html>") || 
+              generatedContent.startsWith("<!doctype html>")) {
+            return {
+              html: generatedContent,
+              success: true
+            };
+          } else {
+            // Try to find HTML in the response
+            const htmlStart = generatedContent.indexOf("<!DOCTYPE html>");
+            if (htmlStart >= 0) {
+              return {
+                html: generatedContent.substring(htmlStart),
+                success: true
+              };
+            } else {
+              // As a last resort, wrap the content in HTML
+              return {
+                html: `<!DOCTYPE html><html><head><title>Generated Page</title></head><body>${generatedContent}</body></html>`,
+                success: true
+              };
+            }
+          }
         } else {
-          // As a last resort, wrap the content in HTML
+          console.error("Unexpected API response format:", data);
           return {
-            html: `<!DOCTYPE html><html><head><title>Generated Page</title></head><body>${generatedContent}</body></html>`,
-            success: true
+            html: "",
+            success: false,
+            error: "API returned an unexpected response format"
           };
         }
       }
-    } else {
-      console.error("Unexpected API response format:", data);
+    } catch (error) {
+      console.error("Error processing API response:", error);
       return {
         html: "",
         success: false,
-        error: "API returned an unexpected response format"
+        error: error instanceof Error ? error.message : "Error processing API response"
       };
     }
   } catch (error) {
@@ -167,7 +235,7 @@ export async function validateSambanovaApiKey(apiKey: string): Promise<boolean> 
     if (!apiKey) return false;
     
     // Attempt a minimal call to the API to validate the key
-    const response = await fetch("https://api.sambanova.ai/api/v1/models", {
+    const response = await fetch("https://api.sambanova.ai/v1/models", {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`
