@@ -79,7 +79,7 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   return (
     <div 
       ref={lineNumbersRef}
-      className="line-numbers text-xs select-none border-r border-gray-800 bg-[#1e1e1e]" 
+      className="line-numbers text-xs select-none border-r" 
       style={{ 
         minWidth: '2.5rem',
         paddingTop: '0.5rem',
@@ -90,7 +90,8 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
         userSelect: 'none',
         fontFamily: '"Fira Code", "Consolas", monospace',
         textAlign: 'right',
-        borderRight: '1px solid #333'
+        borderRight: '1px solid #3b3b3b',
+        backgroundColor: '#252526' // Very dark gray that's slightly lighter than pure black
       }}
     >
       {/* Static numbered lines like in the image example */}
@@ -335,7 +336,7 @@ export function CodeEditor({
   
   return (
     <div className="code-editor-container">
-      <div className="flex h-full bg-[#1e1e1e]"> {/* Dark background matching the image example */}
+      <div className="flex h-full bg-[#1e1e1e]">
         <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
         <div 
@@ -348,8 +349,9 @@ export function CodeEditor({
             willChange: 'transform',
             transform: 'translateZ(0)',
             width: '100%',
-            backgroundColor: '#1e1e1e', // Dark background like VS Code
-            color: '#d4d4d4' // Light text color
+            backgroundColor: '#1e1e1e', // VS Code dark theme background
+            color: '#d4d4d4', // VS Code default text color
+            paddingLeft: '4px' // Small padding to match the example image
           }}
         >
           <Editor
