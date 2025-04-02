@@ -823,15 +823,31 @@ export default function Editor({
               
               {/* Fullscreen button for all devices */}
               <Button 
-                variant="outline" 
+                variant={isMobile ? "default" : "outline"}
                 size="sm" 
-                className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
+                className={`h-8 px-2 text-xs ${isMobile ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700'}`}
                 onClick={() => {
                   if (isMobile) {
-                    // For mobile, create a new window with the content
+                    // For mobile, create a properly formatted HTML document in a new window
                     const newWindow = window.open('', '_blank');
                     if (newWindow) {
-                      newWindow.document.write(htmlContent);
+                      // Generate a complete HTML document with proper DOCTYPE and metadata
+                      const fullPageHtml = htmlContent.includes('<!DOCTYPE html>') 
+                        ? htmlContent 
+                        : `<!DOCTYPE html>
+                          <html lang="en">
+                          <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>SiteCraft Preview</title>
+                          </head>
+                          <body>
+                            ${htmlContent}
+                          </body>
+                          </html>`;
+                      
+                      newWindow.document.open();
+                      newWindow.document.write(fullPageHtml);
                       newWindow.document.close();
                     } else {
                       toast({
@@ -846,17 +862,8 @@ export default function Editor({
                   }
                 }}
               >
-                {!isMobile || !fullscreenPreview ? (
-                  <>
-                    <Maximize className="h-3.5 w-3.5 mr-1" />
-                    <span className={isMobile ? "hidden" : "inline"}>Fullscreen</span>
-                  </>
-                ) : (
-                  <>
-                    <Minimize className="h-3.5 w-3.5 mr-1" />
-                    <span className={isMobile ? "hidden" : "inline"}>Exit</span>
-                  </>
-                )}
+                <Maximize className="h-3.5 w-3.5 mr-1" />
+                <span className={isMobile ? "hidden" : "inline"}>Fullscreen</span>
               </Button>
             </div>
           </div>
