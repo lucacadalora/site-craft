@@ -282,6 +282,13 @@ export default function Editor({
       previewRef.current.srcdoc = htmlContent;
     }
   }, [htmlContent]);
+  
+  // Update preview when switching from generation back to editor mode
+  useEffect(() => {
+    if (!isGenerating && previewRef.current) {
+      previewRef.current.srcdoc = htmlContent;
+    }
+  }, [isGenerating, htmlContent]);
 
   // Handle HTML editor changes
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -372,6 +379,12 @@ export default function Editor({
       // Use the HTML from the response directly, no fallback templates
       if (responseData.html) {
         setHtmlContent(responseData.html);
+        // Explicitly update the preview iframe
+        setTimeout(() => {
+          if (previewRef.current) {
+            previewRef.current.srcdoc = responseData.html;
+          }
+        }, 100);
       } else {
         setStreamingOutput(prev => [...prev, "Error: No HTML content received from API"]);
         throw new Error("No HTML content received from API");
