@@ -38,116 +38,49 @@ interface Project {
 
 // Default HTML template
 const defaultHTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
-  <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
-      color: #333;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-    
-    header {
-      background-color: #4361ee;
-      color: white;
-      padding: 80px 0;
-      text-align: center;
-    }
-    
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
-    }
-    
-    p {
-      font-size: 1.2rem;
-      max-width: 800px;
-      margin: 0 auto 30px auto;
-    }
-    
-    .cta-button {
-      display: inline-block;
-      background-color: #fff;
-      color: #4361ee;
-      padding: 12px 30px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-    }
-    
-    section {
-      padding: 80px 0;
-    }
-    
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
-      margin-bottom: 60px;
-      color: #333;
-    }
-    
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-    }
-    
-    .feature {
-      background-color: #f8f9fa;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-    }
-    
-    .feature h3 {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-      color: #4361ee;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>Hello world</h1>
-      <p>Hello world</p>
-      <a href="#" class="cta-button">Get Started</a>
-    </div>
-  </header>
-  
-  <section>
-    <div class="container">
-      <h2 class="section-title">Key Features</h2>
-      <div class="features">
-        <div class="feature">
-          <h3>Feature 1</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 2</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 3</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-</body>
+<html>
+  <head>
+    <title>My app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8">
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        height: 100dvh;
+        font-family: "Arial", sans-serif;
+        text-align: center;
+      }
+      .arrow {
+        position: absolute;
+        bottom: 32px;
+        left: 0px;
+        width: 100px;
+        transform: rotate(30deg);
+      }
+      h1 {
+        font-size: 50px;
+      }
+      h1 span {
+        color: #acacac;
+        font-size: 32px;
+      }
+      @media screen and (max-width: 640px) {
+        .arrow {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <span>I'm ready to work,</span><br />
+      Ask me anything.
+    </h1>
+    <script></script>
+  </body>
 </html>`;
 
 interface EditorProps {
