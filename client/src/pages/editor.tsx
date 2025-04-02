@@ -851,10 +851,10 @@ export default function Editor({
                 {isGenerating ? (
                   <span className="flex items-center">
                     <span className="inline-block h-2 w-2 rounded-full bg-blue-500 mr-1.5 animate-pulse"></span>
-                    Generating HTML + CSS...
+                    Generating index.html...
                   </span>
                 ) : (
-                  "HTML + CSS"
+                  "index.html"
                 )}
               </div>
               <div className="flex space-x-1">

@@ -33,10 +33,19 @@ const highlightHTML = (code: string): string => {
   return highlighted;
 };
 
-// Line numbers component
-const LineNumbers: React.FC<{ count: number }> = ({ count }) => {
+// Line numbers component with ref
+interface LineNumbersProps {
+  count: number;
+  lineNumbersRef?: React.RefObject<HTMLDivElement>;
+}
+
+const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   return (
-    <div className="line-numbers text-xs text-gray-500 select-none pr-2 text-right">
+    <div 
+      ref={lineNumbersRef}
+      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-hidden" 
+      style={{ maxHeight: '100%' }}
+    >
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="leading-tight py-0.5">{i + 1}</div>
       ))}
@@ -75,6 +84,8 @@ export function CodeEditor({
   readOnly = false
 }: CodeEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
   const [lineCount, setLineCount] = useState(1);
   const [isTyping, setIsTyping] = useState(isGenerating);
 
@@ -88,13 +99,35 @@ export function CodeEditor({
   useEffect(() => {
     setIsTyping(isGenerating);
   }, [isGenerating]);
+  
+  // Synchronize scrolling between editor and line numbers
+  useEffect(() => {
+    const editorWrapper = editorWrapperRef.current;
+    const lineNumbers = lineNumbersRef.current;
+    
+    if (!editorWrapper || !lineNumbers) return;
+    
+    const handleScroll = () => {
+      if (lineNumbers) {
+        lineNumbers.scrollTop = editorWrapper.scrollTop;
+      }
+    };
+    
+    editorWrapper.addEventListener('scroll', handleScroll);
+    return () => {
+      editorWrapper.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
     <div className="code-editor-container flex h-full bg-[#111827] rounded">
-      <div className="flex-1 flex overflow-auto">
-        <LineNumbers count={lineCount} />
+      <div className="flex-1 flex overflow-auto" style={{ maxHeight: '100%' }}>
+        <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
-        <div className="editor-wrapper flex-1 relative overflow-auto font-mono leading-normal">
+        <div 
+          ref={editorWrapperRef}
+          className="editor-wrapper flex-1 relative overflow-auto font-mono leading-normal"
+        >
           <Editor
             value={value}
             onValueChange={onChange}
@@ -107,6 +140,7 @@ export function CodeEditor({
               fontSize: '13px',
               lineHeight: '1.4',
               minHeight: '100%',
+              overflow: 'auto',
             }}
             readOnly={readOnly || isGenerating}
           />

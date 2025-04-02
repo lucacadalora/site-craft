@@ -50,4 +50,10 @@
 
 .editor-wrapper {
   font-family: 'Fira Code', 'Consolas', monospace;
+  overflow: auto !important;
+  max-height: 100%;
+}
+
+.editor-area {
+  overflow: auto !important;
 }
