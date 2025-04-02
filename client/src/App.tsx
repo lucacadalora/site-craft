@@ -10,7 +10,7 @@ import { ApiConfig } from "@shared/schema";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
-  provider: "OpenAI (GPT-4o)",
+  provider: "SambaNova (DeepSeek-V3-0324)",
   apiKey: "",
   saveToken: true
 };
@@ -18,10 +18,7 @@ const defaultApiConfig: ApiConfig = {
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
     <Switch>
-      <Route path="/">
-        {() => <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
-      </Route>
-      <Route path="/home" component={Home} />
+      <Route path="/" component={Home} />
       <Route path="/editor">
         {() => <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
       </Route>

@@ -10,8 +10,13 @@ import {
   RefreshCw, 
   Settings,
   Maximize,
-  Minimize
+  Minimize,
+  ArrowLeft,
+  Zap,
+  CheckCircle,
+  Save
 } from "lucide-react";
+import { Link } from "wouter";
 
 // Define project interface
 interface Project {
@@ -403,86 +408,116 @@ export default function Editor({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white">
+    <div className="flex flex-col h-screen bg-[#111827] text-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-black">
-        <div className="flex items-center">
-          <h1 className="text-lg font-semibold">index.html</h1>
+      <div className="flex items-center justify-between p-3 border-b border-gray-800 bg-[#0f172a]">
+        <div className="flex items-center space-x-4">
+          <Link href="/">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-400 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              <span className="text-sm">Back</span>
+            </Button>
+          </Link>
+          <div className="h-5 border-r border-gray-700 mx-1"></div>
+          <h1 className="text-lg font-semibold text-blue-400">Site<span className="text-white">Craft</span> <span className="text-xs text-gray-400 ml-2">Editor</span></h1>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-7 w-7 p-0" 
+            className="text-gray-400 hover:text-white" 
+          >
+            <Save className="h-4 w-4 mr-1" />
+            <span className="text-sm">Save</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-400 hover:text-white" 
             onClick={() => setShowSettings(!showSettings)}
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4 mr-1" />
+            <span className="text-sm">Settings</span>
           </Button>
         </div>
       </div>
 
       {/* API Settings Panel */}
       {showSettings && (
-        <div className="p-4 bg-[#111] border-b border-gray-800">
-          <h2 className="text-sm font-semibold mb-3">API Configuration</h2>
-          <div className="space-y-2">
-            <div className="text-xs text-gray-400">SambaNova API Key</div>
-            <div className="flex space-x-2">
-              <input
-                type="password"
-                className="flex-1 bg-[#222] border border-gray-700 rounded-sm p-1 text-sm"
-                placeholder="Enter your API key"
-                value={apiConfig.apiKey}
-                onChange={(e) => setApiConfig({
-                  ...apiConfig,
-                  apiKey: e.target.value
-                })}
-              />
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-xs" 
-                onClick={async () => {
-                  if (!apiConfig.apiKey) {
-                    toast({
-                      title: "API Key Required",
-                      description: "Please enter an API key to validate",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  const isValid = await validateApiKey(apiConfig.apiKey);
-                  
-                  if (isValid) {
-                    toast({
-                      title: "API Key Valid",
-                      description: "Your API key has been validated successfully",
-                    });
-                  } else {
-                    toast({
-                      title: "API Key Invalid",
-                      description: "The API key could not be validated",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-              >
-                Validate
-              </Button>
+        <div className="p-5 bg-[#1e293b] border-b border-gray-700">
+          <div className="flex items-center mb-4">
+            <Zap className="h-5 w-5 text-blue-400 mr-2" />
+            <h2 className="text-base font-semibold">API Configuration</h2>
+          </div>
+          
+          <div className="bg-[#0f172a] p-4 rounded-lg border border-gray-700">
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-white mb-1">SambaNova API Key</label>
+              <div className="mb-1 text-xs text-gray-400">Enter your DeepSeek-V3-0324 API key to enable AI generation</div>
+              <div className="flex space-x-2 mt-2">
+                <input
+                  type="password"
+                  className="flex-1 bg-[#1e293b] border border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your API key"
+                  value={apiConfig.apiKey}
+                  onChange={(e) => setApiConfig({
+                    ...apiConfig,
+                    apiKey: e.target.value
+                  })}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700" 
+                  onClick={async () => {
+                    if (!apiConfig.apiKey) {
+                      toast({
+                        title: "API Key Required",
+                        description: "Please enter an API key to validate",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    const isValid = await validateApiKey(apiConfig.apiKey);
+                    
+                    if (isValid) {
+                      toast({
+                        title: "API Key Valid",
+                        description: "Your API key has been validated successfully",
+                      });
+                    } else {
+                      toast({
+                        title: "API Key Invalid",
+                        description: "The API key could not be validated",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Validate
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center space-x-2 mt-2">
+            
+            <div className="flex items-center mt-4 bg-[#1e293b] p-3 rounded-md border border-gray-700">
               <input
                 type="checkbox"
                 id="save-token"
+                className="h-4 w-4 rounded border-gray-500 focus:ring-blue-500 text-blue-600"
                 checked={apiConfig.saveToken}
                 onChange={(e) => setApiConfig({
                   ...apiConfig,
                   saveToken: e.target.checked
                 })}
               />
-              <label htmlFor="save-token" className="text-xs text-gray-400">
-                Remember API key (saved locally)
+              <label htmlFor="save-token" className="ml-2 text-sm text-gray-300">
+                Remember API key in local storage (not recommended for shared devices)
               </label>
             </div>
           </div>
@@ -492,41 +527,58 @@ export default function Editor({
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden editor-container">
         {/* Editor Panel */}
-        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden">
+        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden bg-[#0f172a]">
           {!isGenerating ? (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col p-4">
               {/* Prompt Input */}
-              <textarea
-                className="w-full p-2 mb-2 bg-black border border-gray-800 rounded text-sm"
-                placeholder="Hello world"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={3}
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
+                <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                  <textarea
+                    className="w-full p-3 bg-[#1e293b] text-white border-0 text-sm focus:outline-none"
+                    placeholder="Describe the landing page you want to generate. For example: A landing page for a software development company that specializes in mobile apps."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                  <div>Estimated tokens: {tokenUsage}</div>
+                  <div>Powered by SambaNova DeepSeek-V3-0324</div>
+                </div>
+              </div>
               
               {/* Generate Button */}
               <Button 
-                className="w-full mb-4 py-2 bg-blue-600 hover:bg-blue-700" 
+                className="w-full mb-4 py-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 transform hover:translate-y-[-1px]" 
                 onClick={handleGenerate}
                 disabled={isGenerating || !prompt}
               >
                 {isGenerating ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
+                    Generating your landing page...
                   </>
                 ) : (
                   <>
+                    <Zap className="h-4 w-4 mr-2" />
                     Generate Landing Page
                   </>
                 )}
               </Button>
               
               {/* HTML Editor */}
-              <div className="flex-1 overflow-auto p-0 bg-black">
+              <div className="flex-1 overflow-hidden bg-[#111827] rounded-md border border-gray-700">
+                <div className="flex items-center justify-between bg-[#1e293b] px-3 py-2 border-b border-gray-700">
+                  <div className="text-xs font-medium text-gray-300">HTML + CSS</div>
+                  <div className="flex space-x-1">
+                    <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
+                    <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
+                  </div>
+                </div>
                 <textarea
                   ref={editorRef}
-                  className="w-full h-full p-2 bg-black text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+                  className="w-full h-[calc(100%-32px)] p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
                   value={htmlContent}
                   onChange={handleHtmlChange}
                   spellCheck={false}
@@ -535,20 +587,30 @@ export default function Editor({
             </div>
           ) : (
             /* Generation Output Area */
-            <div className="flex-1 p-4 overflow-auto bg-black font-mono text-sm">
-              <div className="text-green-400 mb-2">AI Running (SambaNova API)...</div>
-              <div className="p-2 bg-[#111] rounded">
-                {streamingOutput.map((line, i) => (
-                  <div key={i} className="mb-1 whitespace-pre-wrap">
-                    {line.startsWith("Error") ? (
-                      <span className="text-red-400">{line}</span>
-                    ) : (
-                      <span className="text-gray-300">{line}</span>
-                    )}
-                  </div>
-                ))}
+            <div className="flex-1 p-6 overflow-auto bg-[#111827]">
+              <div className="flex items-center mb-4">
+                <RefreshCw className="h-5 w-5 text-blue-400 mr-2 animate-spin" />
+                <h3 className="text-lg font-medium text-white">Generating with SambaNova AI</h3>
+              </div>
+              
+              <div className="p-4 bg-[#0f172a] rounded-lg border border-gray-700 font-mono text-sm">
+                <div className="space-y-1">
+                  {streamingOutput.map((line, i) => (
+                    <div key={i} className="whitespace-pre-wrap">
+                      {line.startsWith("Error") ? (
+                        <span className="text-red-400">{line}</span>
+                      ) : line.includes("✅") ? (
+                        <span className="text-green-400">{line}</span>
+                      ) : line.includes("⚠️") ? (
+                        <span className="text-yellow-400">{line}</span>
+                      ) : (
+                        <span className="text-gray-300">{line}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
                 {isGenerating && (
-                  <div className="animate-pulse text-blue-400">▌</div>
+                  <div className="mt-2 animate-pulse text-blue-400">▌</div>
                 )}
               </div>
             </div>
@@ -558,39 +620,70 @@ export default function Editor({
         {/* Resizer */}
         <div 
           ref={resizeRef}
-          className="w-1 bg-gray-800 hover:bg-blue-600 cursor-col-resize flex-shrink-0"
+          className="w-1 bg-gray-700 hover:bg-blue-500 cursor-col-resize flex-shrink-0"
         ></div>
 
         {/* Preview Panel */}
         <div className="preview-panel w-1/2 h-full flex flex-col bg-white overflow-hidden">
-          <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-100">
-            <div className="text-sm font-medium text-gray-700">Preview</div>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center">
+              <div className="flex space-x-1.5 mr-4">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              </div>
+              <div className="text-sm font-medium text-gray-800">
+                Preview - <span className="text-gray-500 text-xs">Generated Landing Page</span>
+              </div>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                className="h-7 w-7 p-0 text-gray-600" 
+                className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
                 onClick={handleRefreshPreview}
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                Refresh
               </Button>
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                className="h-7 w-7 p-0 text-gray-600" 
+                className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
                 onClick={() => setFullscreenPreview(!fullscreenPreview)}
               >
                 {fullscreenPreview ? (
-                  <Minimize className="h-4 w-4" />
+                  <>
+                    <Minimize className="h-3.5 w-3.5 mr-1" />
+                    Exit Fullscreen
+                  </>
                 ) : (
-                  <Maximize className="h-4 w-4" />
+                  <>
+                    <Maximize className="h-3.5 w-3.5 mr-1" />
+                    Fullscreen
+                  </>
                 )}
               </Button>
             </div>
           </div>
           
           {/* Preview Iframe */}
-          <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white' : ''}`}>
+          <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white pt-10' : ''}`}>
+            {fullscreenPreview && (
+              <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-2 flex justify-between items-center">
+                <div className="text-sm font-medium text-gray-800">Fullscreen Preview</div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 px-3 text-xs" 
+                  onClick={() => setFullscreenPreview(false)}
+                >
+                  <Minimize className="h-3.5 w-3.5 mr-1" />
+                  Exit
+                </Button>
+              </div>
+            )}
             <iframe
               ref={previewRef}
               title="Preview"
