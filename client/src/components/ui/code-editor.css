@@ -43,6 +43,7 @@
   max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;
+  padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
 }
 
 /* React Simple Editor styles */
