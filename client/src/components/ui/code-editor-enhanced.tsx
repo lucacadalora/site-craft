@@ -118,6 +118,20 @@ const Minimap: React.FC<{
     // This makes only the current viewed content bright, rest is dimmed
     highlighted.style.top = `-${viewportTop}px`;
     
+    // Clip the highlighted content to only show within the viewport height
+    // This prevents highlighting beyond the visible area
+    highlighted.style.height = `${viewportHeight}px`;
+    highlighted.style.clipPath = `inset(0 0 0 0)`;
+    
+    // Add a mask overlay to further isolate just the viewport section
+    const totalContentHeight = content.split('\n').length * 3; // Approx 3px per line in minimap
+    
+    // Create mask effect - dim everything above and below the visible area
+    highlighted.style.boxShadow = `
+      0 -${viewportTop + 500}px 0 rgba(0,0,0,0.85),
+      0 ${totalContentHeight - viewportTop}px 0 rgba(0,0,0,0.85)
+    `;
+    
     // Apply mask to make the code visible only within the viewport area
   }, [scrollRatio, visibleRatio, content]);
   

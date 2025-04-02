@@ -110,14 +110,20 @@
   width: 100%;
   height: auto;
   opacity: 1;
-  filter: contrast(2) brightness(2); /* Much brighter highlighted code */
+  filter: contrast(3) brightness(2.5); /* Even brighter highlighted code */
   color: #ffffff;
   pointer-events: none;
   z-index: 3;
   overflow: hidden;
-  /* Add a subtle highlight filter to make it pop */
+  /* Add a highlight effect to make it pop */
   mix-blend-mode: lighten;
-  text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+  /* Add a subtle gradient background to enhance visibility */
+  background: linear-gradient(
+    to bottom,
+    rgba(67, 97, 238, 0.05) 0%,
+    rgba(67, 97, 238, 0.02) 100%
+  );
 }
 
 .minimap-indicator {
