@@ -420,7 +420,9 @@ export default function Editor({
               // This helps prevent scrolling issues during rapid content updates
               setTimeout(() => {
                 // Use enhanced smooth scrolling with requestAnimationFrame and improved easing
-                smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 100 : 200);
+                if (editorWrapperRef.current) {
+                  smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 100 : 200);
+                }
               }, 5);
             }
           }, 10);
@@ -920,12 +922,7 @@ export default function Editor({
                   editorWrapperRef={editorWrapperRef}
                 />
               </div>
-              {isGenerating && (
-                <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
-                  <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
-                  Typing...
-                </div>
-              )}
+              {/* Typing indicator is now handled in the code-editor-enhanced.tsx component */}
             </div>
           </div>
         </div>
