@@ -23,7 +23,7 @@
   font-size: 0.75rem;
   color: #6b7280;
   user-select: none;
-  overflow-y: hidden; /* Hide vertical scrollbar */
+  overflow-y: auto; /* Allow scrolling but hide scrollbar */
   overflow-x: hidden;
   height: 100%; /* Use full height of the container */
   min-height: 400px; /* Ensure minimum height */
@@ -31,6 +31,7 @@
   background-color: #1f2937;
   display: flex;
   flex-direction: column;
+  position: relative; /* Needed for position sticky scrolling */
 }
 
 .line-numbers > div {

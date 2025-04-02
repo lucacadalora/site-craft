@@ -433,6 +433,11 @@ export default function Editor({
           // Update the editor content
           setHtmlContent(contentToShow);
           
+          // Update preview in real-time as content is generated
+          if (previewRef.current) {
+            previewRef.current.srcdoc = visibleContent;
+          }
+          
           // Throttle scrolling to reduce shakiness - only scroll periodically
           const now = Date.now();
           if (now - lastScrollTime >= scrollThrottleTime && editorWrapperRef.current) {

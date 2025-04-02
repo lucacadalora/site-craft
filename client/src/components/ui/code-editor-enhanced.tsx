@@ -45,24 +45,44 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   // Log line count to help with debugging
   console.log("Rendering line numbers component with count:", count);
   
+  // Create more line numbers than needed to ensure we have enough for scrolling
+  // This helps with very long files
+  const actualCount = Math.max(count, 1000); // Ensure plenty of line numbers for scrolling
+  
   return (
     <div 
       ref={lineNumbersRef}
-      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-hidden" 
+      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right" 
       style={{ 
         minHeight: `${minLineCount * 1.4}em`,  // Ensure min height based on lines
-        height: '100%' // Match the editor height
+        height: '100%', // Match the editor height
+        overflowY: 'auto', // Enable scrolling
+        overflowX: 'hidden',
+        scrollbarWidth: 'none', // Hide scrollbar in Firefox
+        msOverflowStyle: 'none', // Hide scrollbar in IE/Edge
+        position: 'relative'
       }}
     >
-      {Array.from({ length: count }, (_, i) => (
-        <div 
-          key={i} 
-          className="leading-tight py-0.5"
-          style={{ height: '1.4em', lineHeight: '1.4' }} // Fixed height to match code lines
-        >
-          {i + 1}
-        </div>
-      ))}
+      <div style={{ height: `${actualCount * 1.4}em` }}>
+        {Array.from({ length: actualCount }, (_, i) => (
+          <div 
+            key={i} 
+            className="leading-tight py-0.5"
+            style={{ 
+              height: '1.4em', 
+              lineHeight: '1.4',
+              position: 'absolute',
+              width: '100%',
+              top: `${i * 1.4}em`,
+              right: 0,
+              textAlign: 'right',
+              paddingRight: '0.5rem'
+            }}
+          >
+            {i + 1}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -163,7 +183,11 @@ export function CodeEditor({
     // Sync line numbers scrolling
     const handleScroll = () => {
       if (lineNumbers) {
+        // Force line numbers to scroll in sync with editor
         lineNumbers.scrollTop = editorWrapper.scrollTop;
+        
+        // Log for debugging
+        console.log("Syncing scroll:", editorWrapper.scrollTop);
       }
     };
     
