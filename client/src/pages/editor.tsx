@@ -392,8 +392,8 @@ export default function Editor({
         let currentPosition = 0;
         let lastScrollPosition = 0;
         let lastScrollTime = Date.now();
-        const typingInterval = 5; // Base milliseconds between rendering updates
-        const scrollThrottleTime = 150; // Minimum time between scrolls (ms)
+        const typingInterval = 3; // Base milliseconds between rendering updates (faster for smoother typing)
+        const scrollThrottleTime = 50; // Minimum time between scrolls (ms) - reduced for better cursor following
         
         // Create a single reference for computed styles to avoid recomputation
         let lineHeight = 20; // Default fallback
@@ -438,6 +438,15 @@ export default function Editor({
             previewRef.current.srcdoc = visibleContent;
           }
           
+          // DEBUGGING: Log current cursor position and auto-scroll status
+          console.log("DEBUG TYPING: Position", {
+            cursorPos: currentPosition,
+            totalLength: htmlContent.length,
+            percentComplete: Math.round((currentPosition / htmlContent.length) * 100) + "%",
+            visibleContentLines: (visibleContent.match(/\n/g) || []).length + 1,
+            lastLine: visibleContent.split('\n').pop()
+          });
+          
           // Throttle scrolling to reduce shakiness - only scroll periodically
           const now = Date.now();
           if (now - lastScrollTime >= scrollThrottleTime && editorWrapperRef.current) {
@@ -449,6 +458,16 @@ export default function Editor({
             const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
             const isNearEnd = currentPosition > htmlContent.length * 0.9 || lineCount > totalLines * 0.9;
             
+            console.log("DEBUG SCROLL CALCULATION:", {
+              currentPos: currentPosition,
+              lineCount,
+              totalLines,
+              isNearEnd,
+              scrollThrottleTime, 
+              lastScrollTime: Date.now() - lastScrollTime,
+              visibleLines
+            });
+            
             // Determine scroll target position
             let scrollTarget;
             
@@ -457,9 +476,24 @@ export default function Editor({
               scrollTarget = editorWrapperRef.current.scrollHeight;
               console.log("Auto-scrolling to bottom for end of content");
             } else {
-              // Otherwise, keep cursor in view without excessive movement
-              const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
+              // We want to keep the cursor near the middle of the visible area
+              // This makes typing more visible and easier to follow
+              const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.6));
               scrollTarget = targetLine * lineHeight;
+              
+              // Special case: when we're typing the first screen of content
+              // don't scroll until we're near the bottom of the viewable area
+              if (lineCount < visibleLines * 0.8) {
+                scrollTarget = 0; // Stay at the top until we get close to filling the viewport
+              }
+              
+              console.log("DEBUG SCROLL TARGET:", {
+                targetLine, 
+                visibleLines,
+                calculatedScrollPos: scrollTarget,
+                currentScrollPos: editorWrapperRef.current.scrollTop,
+                difference: scrollTarget - editorWrapperRef.current.scrollTop
+              });
               
               // Avoid tiny scrolls that cause visual shake
               if (Math.abs(scrollTarget - lastScrollPosition) < lineHeight * 2) {
@@ -470,7 +504,7 @@ export default function Editor({
             // Only scroll if we've moved significantly from last position
             if (Math.abs(scrollTarget - lastScrollPosition) > lineHeight * 2 || isNearEnd) {
               lastScrollPosition = scrollTarget;
-              smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 150 : 250);
+              smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 100 : 150);
             }
           }
         }, typingInterval);
