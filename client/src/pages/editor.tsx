@@ -2,16 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { PageExport } from "@/components/ui/page-export";
 import { ApiConfig } from "@shared/schema";
 import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   RefreshCw, 
-  Zap, 
-  Save, 
-  Download, 
   Settings,
   Maximize,
   Minimize
@@ -34,60 +30,115 @@ interface Project {
 
 // Default HTML template
 const defaultHTML = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Landing Page</title>
+  <title>Hello World</title>
   <style>
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       margin: 0;
       padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background-color: #f5f5f5;
       color: #333;
-    }
-    .container {
-      text-align: center;
-      padding: 2rem;
-      max-width: 800px;
-    }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      color: #3b82f6;
-    }
-    p {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
       line-height: 1.6;
     }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    header {
+      background-color: #4361ee;
+      color: white;
+      padding: 80px 0;
+      text-align: center;
+    }
+    
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: 1.2rem;
+      max-width: 800px;
+      margin: 0 auto 30px auto;
+    }
+    
     .cta-button {
       display: inline-block;
-      background-color: #3b82f6;
-      color: white;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
+      background-color: #fff;
+      color: #4361ee;
+      padding: 12px 30px;
       border-radius: 5px;
       text-decoration: none;
       font-weight: bold;
-      transition: background-color 0.3s ease;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
     }
-    .cta-button:hover {
-      background-color: #2563eb;
+    
+    section {
+      padding: 80px 0;
+    }
+    
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 60px;
+      color: #333;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    
+    .feature {
+      background-color: #f8f9fa;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .feature h3 {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: #4361ee;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome to DeepSite</h1>
-    <p>Create stunning landing pages with the power of AI. Describe your business, product, or service in the prompt area and click "Generate" to see the magic happen!</p>
-    <a href="#" class="cta-button">Get Started</a>
-  </div>
+  <header>
+    <div class="container">
+      <h1>Hello world</h1>
+      <p>Hello world</p>
+      <a href="#" class="cta-button">Get Started</a>
+    </div>
+  </header>
+  
+  <section>
+    <div class="container">
+      <h2 class="section-title">Key Features</h2>
+      <div class="features">
+        <div class="feature">
+          <h3>Feature 1</h3>
+          <p>A description of this amazing feature and how it benefits the user.</p>
+        </div>
+        <div class="feature">
+          <h3>Feature 2</h3>
+          <p>A description of this amazing feature and how it benefits the user.</p>
+        </div>
+        <div class="feature">
+          <h3>Feature 3</h3>
+          <p>A description of this amazing feature and how it benefits the user.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 </body>
 </html>`;
 
@@ -113,21 +164,20 @@ export default function Editor({
   const resizeRef = useRef<HTMLDivElement>(null);
 
   // Core state
-  const [prompt, setPrompt] = useState("");
-  const [htmlContent, setHtmlContent] = useState(defaultHTML);
+  const [prompt, setPrompt] = useState<string>("Hello world");
+  const [htmlContent, setHtmlContent] = useState<string>(defaultHTML);
   const [projectId, setProjectId] = useState<number | null>(projectIdParam ? parseInt(projectIdParam) : null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [tokenUsage, setTokenUsage] = useState(0);
-  const [isResizing, setIsResizing] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [fullscreenPreview, setFullscreenPreview] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [tokenUsage, setTokenUsage] = useState<number>(0);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [fullscreenPreview, setFullscreenPreview] = useState<boolean>(false);
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
-  const [exportModalOpen, setExportModalOpen] = useState(false);
   
-  // API config for SambaNova - using environment variable by default
+  // API config for SambaNova
   const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfig || {
     provider: "SambaNova (DeepSeek-V3-0324)",
-    apiKey: "",  // This will use the environment variable
+    apiKey: "",
     saveToken: false,
   });
   
@@ -148,7 +198,6 @@ export default function Editor({
     }
   }, [prompt]);
 
-  // Load project data from localStorage instead of database
   // Set up resize handler for editor/preview panes
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -229,76 +278,12 @@ export default function Editor({
     }
   }, [htmlContent]);
 
-  // Debounce editor changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (previewRef.current) {
-        previewRef.current.srcdoc = htmlContent;
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [htmlContent]);
-
-  // Save project
-  const saveProject = () => {
-    if (!prompt && !htmlContent) {
-      toast({
-        title: "Missing Information",
-        description: "Nothing to save. Please create content first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const id = projectId || Date.now();
-      const projectData = {
-        id,
-        name: prompt ? prompt.slice(0, 30) + "..." : "Untitled Project",
-        description: prompt || "No description",
-        prompt: prompt || "",
-        category: "general",
-        html: htmlContent,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Save to localStorage
-      localStorage.setItem('deepsite_current_project', JSON.stringify(projectData));
-      setProjectId(id);
-      
-      // Also save to projects list
-      const projectsStr = localStorage.getItem('deepsite_projects');
-      let projects = projectsStr ? JSON.parse(projectsStr) : [];
-      
-      const existingIndex = projects.findIndex((p: any) => p.id === id);
-      if (existingIndex >= 0) {
-        projects[existingIndex] = projectData;
-      } else {
-        projects.push(projectData);
-      }
-      
-      localStorage.setItem('deepsite_projects', JSON.stringify(projects));
-      
-      toast({
-        title: "Saved",
-        description: "Your project has been saved successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Save Failed",
-        description: "Could not save your project",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Handle HTML editor changes
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setHtmlContent(e.target.value);
   };
 
-  // Handle generation with streaming output using the SSE endpoint
+  // Handle generation with streaming output
   const handleGenerate = async () => {
     if (!prompt) {
       toast({
@@ -323,7 +308,7 @@ export default function Editor({
     setStreamingOutput(["Starting DeepSeek-V3 generator..."]);
 
     try {
-      // For simpler implementation, make a POST request directly, not using EventSource
+      // For simpler implementation, make a POST request directly
       const response = await fetch('/api/sambanova/generate-stream', {
         method: 'POST',
         headers: {
@@ -334,7 +319,7 @@ export default function Editor({
 
       // Check if the response is ok
       if (!response.ok) {
-        // If we got a non-ok response, handle the error
+        // Handle error
         let errorMessage = "Failed to generate content";
         try {
           const errorData = await response.json();
@@ -348,8 +333,7 @@ export default function Editor({
       // Try to parse the response as JSON
       const responseData = await response.json();
 
-      // For simpler debugging, let's simulate the token-by-token streaming
-      // First, show a starting message
+      // Simulate token-by-token streaming
       setStreamingOutput(prev => [...prev, "Analyzing prompt..."]);
       await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -456,27 +440,6 @@ export default function Editor({
       margin-bottom: 15px;
       color: #3b82f6;
     }
-    
-    footer {
-      background-color: #333;
-      color: white;
-      padding: 40px 0;
-      text-align: center;
-    }
-    
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2.5rem;
-      }
-      
-      .section-title {
-        font-size: 2rem;
-      }
-      
-      .features {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 <body>
@@ -507,12 +470,6 @@ export default function Editor({
       </div>
     </div>
   </section>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${title}. All rights reserved.</p>
-    </div>
-  </footer>
 </body>
 </html>`;
       
@@ -550,160 +507,130 @@ export default function Editor({
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#121212] text-white">
-      <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-[#1e1e1e]">
+    <div className="flex flex-col h-screen bg-black text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-black">
         <div className="flex items-center">
-          <img 
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVwD7JQXy8I9gkxZQYaD2hXgM1DEjcqsKJnTQkPBDrXA&s" 
-            alt="DeepSite" 
-            className="h-8 mr-2"
-          />
-          <h1 className="text-lg font-semibold">DeepSite</h1>
+          <h1 className="text-lg font-semibold">index.html</h1>
         </div>
-        <div className="text-xs text-gray-400">Powered by <span className="text-blue-400">DeepSeek</span></div>
         <div className="flex items-center space-x-2">
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            className="text-xs" 
-            onClick={saveProject}
+            className="h-7 w-7 p-0" 
+            onClick={() => setShowSettings(!showSettings)}
           >
-            <Save className="h-3 w-3 mr-1" />
-            Save
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs" 
-            onClick={() => setExportModalOpen(true)}
-          >
-            <Download className="h-3 w-3 mr-1" />
-            Export
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs bg-pink-500 hover:bg-pink-600 border-0"
-          >
-            Deploy DeepSite
+            <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden editor-container">
-        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between p-2 border-b border-gray-800 bg-[#1e1e1e]">
-            <div className="text-sm font-medium">index.html</div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 w-7 p-0" 
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {showSettings && (
-            <div className="p-4 bg-[#252525] border-b border-gray-800">
-              <h2 className="text-sm font-semibold mb-3">API Configuration</h2>
-              <div className="space-y-2">
-                <div className="text-xs text-gray-400">SambaNova API Key</div>
-                <div className="flex space-x-2">
-                  <input
-                    type="password"
-                    className="flex-1 bg-[#333] border border-gray-700 rounded-sm p-1 text-sm"
-                    placeholder="Enter your API key"
-                    value={apiConfig.apiKey}
-                    onChange={(e) => setApiConfig({
-                      ...apiConfig,
-                      apiKey: e.target.value
-                    })}
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs" 
-                    onClick={async () => {
-                      if (!apiConfig.apiKey) {
-                        toast({
-                          title: "API Key Required",
-                          description: "Please enter an API key to validate",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      
-                      const isValid = await validateApiKey(apiConfig.apiKey);
-                      
-                      if (isValid) {
-                        toast({
-                          title: "API Key Valid",
-                          description: "Your API key has been validated successfully",
-                        });
-                      } else {
-                        toast({
-                          title: "API Key Invalid",
-                          description: "The API key could not be validated",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    Validate
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <input
-                    type="checkbox"
-                    id="save-token"
-                    checked={apiConfig.saveToken}
-                    onChange={(e) => setApiConfig({
-                      ...apiConfig,
-                      saveToken: e.target.checked
-                    })}
-                  />
-                  <label htmlFor="save-token" className="text-xs text-gray-400">
-                    Remember API key (saved locally)
-                  </label>
-                </div>
-              </div>
+      {/* API Settings Panel */}
+      {showSettings && (
+        <div className="p-4 bg-[#111] border-b border-gray-800">
+          <h2 className="text-sm font-semibold mb-3">API Configuration</h2>
+          <div className="space-y-2">
+            <div className="text-xs text-gray-400">SambaNova API Key</div>
+            <div className="flex space-x-2">
+              <input
+                type="password"
+                className="flex-1 bg-[#222] border border-gray-700 rounded-sm p-1 text-sm"
+                placeholder="Enter your API key"
+                value={apiConfig.apiKey}
+                onChange={(e) => setApiConfig({
+                  ...apiConfig,
+                  apiKey: e.target.value
+                })}
+              />
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs" 
+                onClick={async () => {
+                  if (!apiConfig.apiKey) {
+                    toast({
+                      title: "API Key Required",
+                      description: "Please enter an API key to validate",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  const isValid = await validateApiKey(apiConfig.apiKey);
+                  
+                  if (isValid) {
+                    toast({
+                      title: "API Key Valid",
+                      description: "Your API key has been validated successfully",
+                    });
+                  } else {
+                    toast({
+                      title: "API Key Invalid",
+                      description: "The API key could not be validated",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Validate
+              </Button>
             </div>
-          )}
+            <div className="flex items-center space-x-2 mt-2">
+              <input
+                type="checkbox"
+                id="save-token"
+                checked={apiConfig.saveToken}
+                onChange={(e) => setApiConfig({
+                  ...apiConfig,
+                  saveToken: e.target.checked
+                })}
+              />
+              <label htmlFor="save-token" className="text-xs text-gray-400">
+                Remember API key (saved locally)
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden editor-container">
+        {/* Editor Panel */}
+        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden">
           {!isGenerating ? (
             <div className="flex-1 flex flex-col">
-              <div className="p-3 border-b border-gray-800 bg-[#1e1e1e]">
-                <textarea
-                  className="w-full p-2 bg-[#252525] border border-gray-700 rounded text-sm"
-                  placeholder="Describe your landing page and click 'Generate'..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={3}
-                />
-                <Button 
-                  className="w-full mt-2 bg-blue-500 hover:bg-blue-600" 
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !prompt}
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Generate Landing Page
-                    </>
-                  )}
-                </Button>
-              </div>
+              {/* Prompt Input */}
+              <textarea
+                className="w-full p-2 mb-2 bg-black border border-gray-800 rounded text-sm"
+                placeholder="Hello world"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                rows={3}
+              />
               
-              <div className="flex-1 overflow-auto p-0 bg-[#1e1e1e]">
+              {/* Generate Button */}
+              <Button 
+                className="w-full mb-4 py-2 bg-blue-600 hover:bg-blue-700" 
+                onClick={handleGenerate}
+                disabled={isGenerating || !prompt}
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    Generate Landing Page
+                  </>
+                )}
+              </Button>
+              
+              {/* HTML Editor */}
+              <div className="flex-1 overflow-auto p-0 bg-black">
                 <textarea
                   ref={editorRef}
-                  className="w-full h-full p-2 bg-[#1e1e1e] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+                  className="w-full h-full p-2 bg-black text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
                   value={htmlContent}
                   onChange={handleHtmlChange}
                   spellCheck={false}
@@ -711,9 +638,10 @@ export default function Editor({
               </div>
             </div>
           ) : (
-            <div className="flex-1 p-4 overflow-auto bg-[#1e1e1e] font-mono text-sm">
+            /* Generation Output Area */
+            <div className="flex-1 p-4 overflow-auto bg-black font-mono text-sm">
               <div className="text-green-400 mb-2">AI Running (DeepSeek-V3-0324)...</div>
-              <div className="p-2 bg-[#252525] rounded">
+              <div className="p-2 bg-[#111] rounded">
                 {streamingOutput.map((line, i) => (
                   <div key={i} className="mb-1 whitespace-pre-wrap">
                     {line.startsWith("Error") ? (
@@ -731,11 +659,13 @@ export default function Editor({
           )}
         </div>
 
+        {/* Resizer */}
         <div 
           ref={resizeRef}
-          className="w-1 bg-gray-800 hover:bg-blue-500 cursor-col-resize flex-shrink-0"
+          className="w-1 bg-gray-800 hover:bg-blue-600 cursor-col-resize flex-shrink-0"
         ></div>
 
+        {/* Preview Panel */}
         <div className="preview-panel w-1/2 h-full flex flex-col bg-white overflow-hidden">
           <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-gray-100">
             <div className="text-sm font-medium text-gray-700">Preview</div>
@@ -763,6 +693,7 @@ export default function Editor({
             </div>
           </div>
           
+          {/* Preview Iframe */}
           <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white' : ''}`}>
             <iframe
               ref={previewRef}
@@ -774,12 +705,6 @@ export default function Editor({
           </div>
         </div>
       </div>
-
-      <PageExport
-        open={exportModalOpen}
-        onOpenChange={setExportModalOpen}
-        projectId={projectId}
-      />
     </div>
   );
 }
