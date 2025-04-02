@@ -4,7 +4,7 @@
   min-height: 600px; /* Minimum height to ensure usability */
   background-color: #111827;
   border-radius: 0.25rem;
-  overflow: hidden;
+  /* Removing overflow: hidden to allow scrollbar to appear */
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */

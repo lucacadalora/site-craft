@@ -97,12 +97,12 @@ export function CodeEditor({
         // Set minimum height for the textarea to ensure we have scrollable content
         const textarea = editorWrapper.querySelector('textarea');
         if (textarea) {
-          // Make sure the content area is taller than its container to enable scrolling
+          // Calculate a minimum height that ensures we have scrollable content
+          // Height should be just a bit larger than container to ensure scrollbar appears
+          // Use a multiplier slightly above 1 to ensure there's enough content to scroll
           const minHeight = Math.max(
-            // Default minimum height to ensure there's something to scroll
-            500,
-            // Or make it proportionally larger than its container
-            containerRect.height * 1.2
+            300, // Absolute minimum height
+            containerRect.height * 1.1 // Just a little taller than container
           );
           textarea.style.minHeight = `${minHeight}px`;
         }
