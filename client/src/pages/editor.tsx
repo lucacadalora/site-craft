@@ -768,10 +768,11 @@ export default function Editor({
         <div 
           className={`editor-panel ${isMobile ? (activeTab === 'preview' ? 'hidden' : 'w-full h-full') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
         >
-          {!isGenerating ? (
-            <div className="flex-1 flex flex-col p-4">
-              {/* Prompt Input */}
-              <div className="mb-4">
+          <div className="flex-1 flex flex-col p-4">
+          {/* Prompt Input and Generation Status */}
+          <div className={isGenerating ? "mb-2" : "mb-4"}>
+            {!isGenerating ? (
+              <>
                 <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
                 <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
                   <textarea
@@ -786,83 +787,93 @@ export default function Editor({
                   <div>Estimated tokens: {tokenUsage}</div>
                   <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate</div>
                 </div>
-              </div>
-              
-              {/* Generate Button */}
-              <Button 
-                className="w-full mb-4 py-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 transform hover:translate-y-[-1px]" 
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt}
-              >
-                {isGenerating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    {isMobile ? 'Generating...' : 'Generating your landing page...'}
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4 mr-2" />
-                    Generate Landing Page
-                  </>
-                )}
-              </Button>
-              
-              {/* HTML Editor */}
-              <div className="flex-1 overflow-hidden bg-[#111827] rounded-md border border-gray-700">
-                <div className="flex items-center justify-between bg-[#1e293b] px-3 py-2 border-b border-gray-700">
-                  <div className="text-xs font-medium text-gray-300">HTML + CSS</div>
-                  <div className="flex space-x-1">
-                    <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
-                    <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
-                  </div>
+              </>
+            ) : (
+              /* Generation Status Area - Now displayed above the editor when generating */
+              <div className="rounded-md overflow-hidden border border-blue-700 bg-[#1e293b] p-2">
+                <div className="flex items-center mb-1">
+                  <RefreshCw className="h-4 w-4 text-blue-400 mr-1.5 animate-spin" />
+                  <h3 className="text-sm font-medium text-white">Generating with AI Accelerate</h3>
                 </div>
-                <div className="relative w-full h-[calc(100%-32px)]">
-                  <textarea
-                    ref={editorRef}
-                    className="w-full h-full p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
-                    value={htmlContent}
-                    onChange={handleHtmlChange}
-                    spellCheck={false}
-                  />
+                
+                <div className="p-2 bg-[#0f172a] rounded-md border border-gray-700 font-mono text-xs max-h-[100px] overflow-y-auto">
+                  <div className="space-y-0.5">
+                    {streamingOutput.map((line, i) => (
+                      <div key={i} className="whitespace-pre-wrap text-xs">
+                        {line.startsWith("Error") ? (
+                          <span className="text-red-400">{line}</span>
+                        ) : line.includes("✅") ? (
+                          <span className="text-green-400">{line}</span>
+                        ) : line.includes("⚠️") ? (
+                          <span className="text-yellow-400">{line}</span>
+                        ) : (
+                          <span className="text-gray-300">{line}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                   {isGenerating && (
-                    <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
-                      <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
-                      Typing...
-                    </div>
+                    <div className="mt-1 animate-pulse text-blue-400">▌</div>
                   )}
                 </div>
               </div>
-            </div>
-          ) : (
-            /* Generation Output Area */
-            <div className="flex-1 p-6 overflow-auto bg-[#111827]">
-              <div className="flex items-center mb-4">
-                <RefreshCw className="h-5 w-5 text-blue-400 mr-2 animate-spin" />
-                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium text-white`}>Generating with AI Accelerate</h3>
-              </div>
-              
-              <div className="p-4 bg-[#0f172a] rounded-lg border border-gray-700 font-mono text-sm">
-                <div className="space-y-1">
-                  {streamingOutput.map((line, i) => (
-                    <div key={i} className="whitespace-pre-wrap text-xs md:text-sm">
-                      {line.startsWith("Error") ? (
-                        <span className="text-red-400">{line}</span>
-                      ) : line.includes("✅") ? (
-                        <span className="text-green-400">{line}</span>
-                      ) : line.includes("⚠️") ? (
-                        <span className="text-yellow-400">{line}</span>
-                      ) : (
-                        <span className="text-gray-300">{line}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {isGenerating && (
-                  <div className="mt-2 animate-pulse text-blue-400">▌</div>
+            )}
+          </div>
+          
+          {/* Generate Button - Always visible */}
+          <Button 
+            className={`w-full ${isGenerating ? 'mb-2' : 'mb-4'} py-3 ${isGenerating ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-all duration-200 transform hover:translate-y-[-1px]`} 
+            onClick={handleGenerate}
+            disabled={isGenerating || !prompt}
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                {isMobile ? 'Generating...' : 'Generating your landing page...'}
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Generate Landing Page
+              </>
+            )}
+          </Button>
+          
+          {/* HTML Editor - Always visible */}
+          <div className="flex-1 overflow-hidden bg-[#111827] rounded-md border border-gray-700">
+            <div className="flex items-center justify-between bg-[#1e293b] px-3 py-2 border-b border-gray-700">
+              <div className="text-xs font-medium text-gray-300">
+                {isGenerating ? (
+                  <span className="flex items-center">
+                    <span className="inline-block h-2 w-2 rounded-full bg-blue-500 mr-1.5 animate-pulse"></span>
+                    Generating HTML + CSS...
+                  </span>
+                ) : (
+                  "HTML + CSS"
                 )}
               </div>
+              <div className="flex space-x-1">
+                <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
+                <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
+              </div>
             </div>
-          )}
+            <div className="relative w-full h-[calc(100%-32px)]">
+              <textarea
+                ref={editorRef}
+                className="w-full h-full p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+                value={htmlContent}
+                onChange={handleHtmlChange}
+                spellCheck={false}
+              />
+              {isGenerating && (
+                <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
+                  <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                  Typing...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
         </div>
 
         {/* Resizer - Only shown on desktop */}
