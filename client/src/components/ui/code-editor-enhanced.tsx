@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Editor from 'react-simple-code-editor';
 import hljs from 'highlight.js/lib/core';
 import xml from 'highlight.js/lib/languages/xml';
@@ -51,127 +51,6 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   );
 };
 
-// Minimap component - shows a scanned preview with highlighted visible area
-const Minimap: React.FC<{ 
-  content: string;
-  scrollRatio: number;
-  visibleRatio: number; 
-}> = ({ content, scrollRatio, visibleRatio }) => {
-  const minimapRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLPreElement>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const highlightedRef = useRef<HTMLPreElement>(null);
-  
-  // Process content to be displayed in the minimap
-  const processedContent = useMemo(() => {
-    const lines = content.split('\n');
-    
-    // For extremely large files, sample the content to prevent performance issues
-    if (lines.length > 2000) {
-      const factor = Math.ceil(lines.length / 2000);
-      return lines.filter((_, i) => i % factor === 0).join('\n');
-    }
-    
-    return content;
-  }, [content]);
-  
-  // Use syntax highlighting to color the minimap
-  const highlightedContent = useMemo(() => {
-    try {
-      return hljs.highlight(processedContent, { language: 'html' }).value;
-    } catch {
-      return processedContent;
-    }
-  }, [processedContent]);
-  
-  // Calculate and apply viewport positioning
-  useEffect(() => {
-    if (!minimapRef.current || !contentRef.current || !viewportRef.current || !highlightedRef.current) return;
-    
-    const minimap = minimapRef.current;
-    const contentEl = contentRef.current;
-    const viewport = viewportRef.current;
-    const highlighted = highlightedRef.current;
-    
-    // Calculate all the key dimensions
-    const minimapHeight = minimap.clientHeight;
-    
-    // Get line count and approximate line height in the minimap
-    const lines = content.split('\n');
-    const totalLines = lines.length;
-    const lineHeight = 3; // Approximate pixel height per line in minimap
-    
-    // Total content height scaled to the minimap
-    const totalContentHeight = totalLines * lineHeight;
-    
-    // Calculate the visible portion and viewport size
-    // This is a direct ratio of what's visible in the editor
-    const viewportHeight = Math.max(visibleRatio * minimapHeight, 20);
-    
-    // The position where the viewport starts (relative to top of minimap)
-    // This is the same ratio as where the editor is scrolled to
-    const viewportTop = scrollRatio * (minimapHeight - viewportHeight);
-    
-    // Position the blue viewport indicator box
-    viewport.style.top = `${viewportTop}px`;
-    viewport.style.height = `${viewportHeight}px`;
-    
-    // Now for the highlighted content:
-    
-    // 1. First, position the highlight content at the right spot
-    highlighted.style.top = `0px`; // Start from top of container
-    
-    // 2. Calculate which portion of content to show brightly
-    // We need to find which lines are currently visible
-    const linesPerViewport = Math.ceil(viewportHeight / lineHeight);
-    const startLine = Math.floor(scrollRatio * (totalLines - linesPerViewport));
-    
-    // 3. Create a clipPath that only shows the content in the current viewport
-    const startY = startLine * lineHeight; // Top of visible portion in the highlighted view
-    const clipHeight = linesPerViewport * lineHeight; // Height of visible portion
-    
-    // Position the highlight at the exact point the viewport begins
-    highlighted.style.top = `${viewportTop - startY}px`;
-    
-    // Clip the highlight to ONLY show the currently visible viewport portion
-    highlighted.style.height = `${viewportHeight}px`;
-    highlighted.style.overflow = 'hidden';
-    
-    // Apply a mask to dark out everything outside the visible area
-    highlighted.style.boxShadow = `
-      0 -100vh 0 100vh rgba(0,0,0,0.95),
-      0 100vh 0 100vh rgba(0,0,0,0.95)
-    `;
-  }, [scrollRatio, visibleRatio, content]);
-  
-  return (
-    <div ref={minimapRef} className="minimap">
-      {/* Base dimmed content */}
-      <pre 
-        ref={contentRef}
-        className="p-1 w-full minimap-content"
-        dangerouslySetInnerHTML={{ __html: highlightedContent }}
-      />
-      
-      {/* Viewport area that shows where we are in the document */}
-      <div ref={viewportRef} className="minimap-viewport" />
-      
-      {/* Highlighted content that appears in the viewport */}
-      <pre 
-        ref={highlightedRef}
-        className="p-1 w-full minimap-highlighted"
-        dangerouslySetInnerHTML={{ __html: highlightedContent }}
-      />
-      
-      {/* Indicator on the right side */}
-      <div className="minimap-indicator" style={{
-        top: `${scrollRatio * 100}%`,
-        height: `${Math.max(visibleRatio * 100, 5)}%`
-      }} />
-    </div>
-  );
-};
-
 interface CodeEditorProps {
   value: string;
   onChange: (code: string) => void;
@@ -187,13 +66,10 @@ export function CodeEditor({
   isGenerating = false,
   readOnly = false
 }: CodeEditorProps) {
-  const editorRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
   const [lineCount, setLineCount] = useState(1);
   const [isTyping, setIsTyping] = useState(isGenerating);
-  const [scrollRatio, setScrollRatio] = useState(0);
-  const [visibleRatio, setVisibleRatio] = useState(0.3);
 
   // Update line count when content changes
   useEffect(() => {
@@ -206,7 +82,7 @@ export function CodeEditor({
     setIsTyping(isGenerating);
   }, [isGenerating]);
   
-  // Synchronize scrolling between editor and line numbers and update minimap position
+  // Synchronize scrolling between editor and line numbers
   useEffect(() => {
     const editorWrapper = editorWrapperRef.current;
     const lineNumbers = lineNumbersRef.current;
@@ -229,34 +105,15 @@ export function CodeEditor({
       }
     };
     
-    // Calculate positions for minimap
+    // Sync line numbers scrolling
     const handleScroll = () => {
-      // Sync line numbers scrolling
       if (lineNumbers) {
         lineNumbers.scrollTop = editorWrapper.scrollTop;
-      }
-      
-      // Update minimap scroll position
-      const { scrollTop, scrollHeight, clientHeight } = editorWrapper;
-      
-      // Only update if we have actual content to scroll (prevents NaN values)
-      if (scrollHeight > clientHeight) {
-        const scrollPosition = scrollTop / (scrollHeight - clientHeight) || 0;
-        // Calculate how much of the content is visible in the viewport
-        const visiblePortion = scrollHeight > 0 ? clientHeight / scrollHeight : 0.3;
-        
-        setScrollRatio(scrollPosition);
-        setVisibleRatio(visiblePortion);
-      } else {
-        // Default values for when there's nothing to scroll
-        setScrollRatio(0);
-        setVisibleRatio(1);
       }
     };
     
     // Initial setup
     calculateContentHeight();
-    setTimeout(handleScroll, 100); // Delay to ensure proper rendering
     
     // Set up event listeners
     editorWrapper.addEventListener('scroll', handleScroll);
@@ -304,13 +161,6 @@ export function CodeEditor({
             </div>
           )}
         </div>
-        
-        {/* Minimap on the right side */}
-        <Minimap 
-          content={value} 
-          scrollRatio={scrollRatio} 
-          visibleRatio={visibleRatio} 
-        />
       </div>
     </div>
   );
