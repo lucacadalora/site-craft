@@ -1,0 +1,351 @@
+Let me help you with the issue where the code typing in your landing page container appears shaky and doesn't follow the code generation properly. This is likely a CSS or rendering issue. Let's examine your codebase to understand what might be causing this.
+
+Ran tool
+Let's look at the client directory, which likely contains the frontend code:
+
+Ran tool
+
+Ran tool
+Let's check the components directory, which may contain the code editor component:
+
+Ran tool
+
+Ran tool
+Now let's look at the editor.tsx file which likely contains the code editor that's having issues:
+
+Read file: client/src/pages/editor.tsx
+Let's look at the part of the code that handles the typewriter effect, as that's likely where the shaking issue occurs:
+
+Read file: client/src/pages/editor.tsx
+Now let's look at the code editor component implementation:
+
+Ran tool
+Let's examine the enhanced code editor component which is imported in the editor.tsx file:
+
+Read file: client/src/components/ui/code-editor-enhanced.tsx
+Let's also check the CSS file for the code editor:
+
+Read file: client/src/components/ui/code-editor.css
+Based on my analysis of the code, I can identify the issue causing the shaking in your code editor during typing/generation. Here's the fix:
+
+```css:client/src/components/ui/code-editor.css
+/* Editor container styles */
+.code-editor-container {
+  height: 100% !important; /* Use full height of parent */
+  min-height: 400px; /* Minimum height to ensure usability */
+  max-height: 100%; /* Don't exceed parent container */
+  background-color: #111827;
+  border-radius: 0.25rem;
+  /* Changed from 'overflow: hidden' which was causing the shaking issue */
+  overflow: visible; 
+  display: flex;
+  flex-direction: column;
+  position: relative; /* For absolute positioning of children */
+}
+
+// ... existing code ...
+
+/* Editor wrapper */
+.editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow-y: auto !important; /* Changed from 'scroll' to prevent forced scrollbar */
+  overflow-x: auto;
+  height: 600px; /* Fixed height to ensure scroll behavior */
+  max-height: 100%; /* Don't exceed container height */
+  min-height: 300px; /* Ensure a minimum height */
+  font-family: "Fira Code", "Consolas", monospace;
+  padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
+  will-change: transform; /* Add GPU acceleration to reduce flicker */
+}
+
+// ... existing code ...
+
+/* React Simple Editor styles */
+.editor-area {
+  width: 100%;
+  min-height: 100%;
+  padding: 0;
+  white-space: pre;
+  background-color: #111827;
+  color: #d1d5db;
+  /* Added to prevent jumpy behavior during typing */
+  contain: strict;
+  will-change: contents;
+}
+
+// ... existing code ...
+```
+Now let's also modify the typewriter effect logic in editor.tsx to make it smoother and reduce shaking:
+
+```typescript jsx:client/src/pages/editor.tsx
+// ... existing code ...
+
+        // Use the HTML from the response directly, with typewriter effect
+        if (responseData.html) {
+          // Create an enhanced typewriter effect for the HTML code
+          const htmlContent = responseData.html;
+          const chunkSize = 15; // Characters per chunk
+          const baseDelay = 5; // Base milliseconds between chunks
+          
+          // Dynamically adjust typing speed for more realistic effect
+          const getTypingDelay = () => {
+            // Random variance to typing speed (more human-like)
+            return Math.floor(baseDelay + Math.random() * 15);
+          };
+          
+          // Remove blinking cursor functionality which causes layout shifts
+          // const addCursorToText = (text: string, position: number) => {
+          //   return text.substring(0, position) + 
+          //          '█' + 
+          //          text.substring(position);
+          // };
+          
+          // Split the content into chunks for smoother rendering
+          for (let i = 0; i < htmlContent.length; i += chunkSize) {
+            const visibleContent = htmlContent.substring(0, i + chunkSize);
+            
+            // Don't add blinking cursor - it causes layout shifts
+            // const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
+            setHtmlContent(visibleContent);
+            
+            // Auto-scroll the editor to follow the typing using the saved ref
+            setTimeout(() => {
+              if (editorWrapperRef.current) {
+                // Calculate where the cursor is based on the visible content
+                const lineCount = (visibleContent.match(/\n/g) || []).length;
+                
+                // Get computed styles to determine actual line height
+                const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+                const lineHeight = parseFloat(computedStyles.lineHeight) || 20; // Fallback to 20px if parsing fails
+                
+                // Calculate visible lines based on actual element height
+                const editorHeight = editorWrapperRef.current.clientHeight;
+                const visibleLines = Math.floor(editorHeight / lineHeight);
+                
+                // Check if we're near the end of the content
+                const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
+                const isNearEnd = i > htmlContent.length * 0.95 || lineCount > totalLines * 0.95;
+                
+                // Enhanced scrolling logic with better end-of-content handling
+                // We want to keep the cursor in view and provide smooth scrolling experience
+                let scrollTarget;
+                
+                if (isNearEnd) {
+                  // When we're near the end, always ensure we can see the very bottom
+                  // Add extra buffer to ensure the last few lines are completely visible
+                  scrollTarget = editorWrapperRef.current.scrollHeight;
+                } else {
+                  // Normal scroll behavior - position cursor in the visible area but not at the very bottom
+                  // This creates a more natural reading experience by keeping cursor at ~70% of visible area
+                  const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.6));
+                  scrollTarget = targetLine * lineHeight;
+                }
+                
+                // Reduce frequency of scroll updates to prevent visual jank
+                if (i % 50 === 0 || isNearEnd) {
+                  // Use enhanced smooth scrolling with requestAnimationFrame
+                  if (editorWrapperRef.current) {
+                    smoothScrollTo(editorWrapperRef.current, scrollTarget, 300);
+                  }
+                }
+              }
+            }, 5);
+            
+            // Calculate progress percentage and show in the streaming output
+            if (i % 500 === 0 || i === 0) {
+              const percent = Math.floor((i / htmlContent.length) * 100);
+              setStreamingOutput(prev => {
+                // Replace last line if it has percentage, otherwise add new line
+                const lastLine = prev[prev.length - 1];
+                if (lastLine && lastLine.includes("Building HTML")) {
+                  return [
+                    ...prev.slice(0, -1), 
+                    `Building HTML... ${percent}% complete`
+                  ];
+                }
+                return prev;
+              });
+            }
+            
+            // Slower typing for special characters for a more realistic effect
+            const currentChunk = htmlContent.substring(i, i + chunkSize);
+            const containsSpecialChar = /[<>\/="{}:;]/.test(currentChunk);
+            const containsNewLine = /\n/.test(currentChunk);
+            
+            // Small delay between chunks for the typewriter effect
+            // Longer pauses at special syntax elements
+            if (containsNewLine) {
+              await new Promise(resolve => setTimeout(resolve, 40)); // Pause longer at line breaks
+            } else if (containsSpecialChar) {
+              await new Promise(resolve => setTimeout(resolve, 15)); // Pause at special chars
+            } else {
+              await new Promise(resolve => setTimeout(resolve, getTypingDelay())); // Normal typing
+            }
+          }
+          
+          // Ensure final content is set correctly without any cursor
+          setHtmlContent(htmlContent);
+
+// ... existing code ...
+```
+Let's make one more modification to the smooth scrolling function to make it more efficient:
+
+```typescript jsx:client/src/pages/editor.tsx
+// ... existing code ...
+
+  // Helper function for smooth scrolling with requestAnimationFrame
+  const smoothScrollTo = (element: HTMLElement, targetScrollTop: number, duration = 200) => {
+    // Make sure we can see the very end of the content by adding extra padding
+    // when scrolling near the bottom of the content
+    const maxScroll = element.scrollHeight - element.clientHeight;
+    
+    // If target is within 10% of the max scroll, go all the way to the bottom
+    // This ensures we always can see the last lines of content
+    if (targetScrollTop > maxScroll * 0.9) {
+      targetScrollTop = maxScroll;
+    }
+    
+    // Safety check: ensure targetScrollTop is within bounds
+    targetScrollTop = Math.max(0, Math.min(maxScroll, targetScrollTop));
+    
+    const startScrollTop = element.scrollTop;
+    const distance = targetScrollTop - startScrollTop;
+    
+    // Don't animate if distance is too small or if we're already at target
+    if (Math.abs(distance) < 10 || startScrollTop === targetScrollTop) {
+      element.scrollTop = targetScrollTop;
+      return;
+    }
+    
+    // Throttle animation to reduce CPU usage and shaking
+    // Only run animation if we're not already in the middle of one
+    if (element.dataset.isScrolling === "true") {
+      // Just set the final position if another scroll is in progress
+      element.scrollTop = targetScrollTop;
+      return;
+    }
+    
+    // Mark that we're currently scrolling
+    element.dataset.isScrolling = "true";
+    
+    let startTime: number | null = null;
+    let lastPosition = startScrollTop;
+
+    function animation(currentTime: number) {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Simplified easing function for less CPU usage
+      const easeProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+      // Apply the calculated scroll position
+      const newPosition = startScrollTop + distance * easeProgress;
+      element.scrollTop = newPosition;
+      
+      // Check if we're actually making progress (avoid infinite loop in case of DOM issues)
+      const isMoving = Math.abs(newPosition - lastPosition) > 0.5;
+      lastPosition = newPosition;
+      
+      // Continue animation if we're not done and still making progress
+      if (progress < 1 && isMoving) {
+        requestAnimationFrame(animation);
+      } else {
+        // When finished or stuck, make sure we're exactly at target (no rounding errors)
+        element.scrollTop = targetScrollTop;
+        // Mark that we're done scrolling
+        element.dataset.isScrolling = "false";
+      }
+    }
+    
+    // Start the animation
+    requestAnimationFrame(animation);
+  };
+
+// ... existing code ...
+```
+Finally, let's update the editor component to ensure that layout changes are minimized during typing:
+
+```typescript jsx:client/src/components/ui/code-editor-enhanced.tsx
+// ... existing code ...
+
+  return (
+    <div className="code-editor-container">
+      <div className="flex h-full">
+        <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
+        
+        <div 
+          ref={editorWrapperRef}
+          className="editor-wrapper"
+          style={{ 
+            overflowY: 'auto', // Changed from 'scroll' to auto
+            height: '600px',
+            maxHeight: '600px',
+            position: 'relative',
+            willChange: 'transform', // Add GPU acceleration
+            transform: 'translateZ(0)' // Force GPU rendering
+          }}
+        >
+          <Editor
+            value={value}
+            onValueChange={onChange}
+            highlight={highlightHTML}
+            padding={8}
+            textareaClassName="codearea"
+            className="editor-area"
+            style={{
+              fontFamily: '"Fira Code", "Consolas", monospace',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              minHeight: '100%',
+              whiteSpace: 'pre',
+              willChange: 'contents', // Optimize for content changes
+              containIntrinsicSize: 'auto', // Help browser optimize repaints
+            }}
+            readOnly={readOnly || isGenerating}
+          />
+          
+          {isTyping && (
+            <div className="absolute right-3 bottom-3 z-10 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Typing code...
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+// ... existing code ...
+```
+The shaking issue in your landing page code editor should now be fixed. Here's a summary of the changes made:
+
+1. **CSS Fixes**:
+   - Changed `overflow: hidden` to `overflow: visible` in the code editor container to prevent layout constraints that were causing the shaking
+   - Changed `overflow-y: scroll` to `overflow-y: auto` to let the browser decide when scrollbars are needed
+   - Added `will-change: transform` and GPU acceleration to reduce flickering during updates
+   - Added `contain: strict` to improve rendering performance
+
+2. **Typewriter Effect Optimization**:
+   - Removed the blinking cursor which was causing layout shifts with each character
+   - Reduced the frequency of scroll updates to avoid excessive repaints
+   - Improved scroll timing to prevent jank
+
+3. **Scroll Behavior Improvements**:
+   - Added throttling to avoid simultaneous scroll animations
+   - Simplified the easing function to reduce CPU usage
+   - Added a tracking mechanism to prevent overlapping animations
+   - Removed debug console logs that might have been affecting performance
+
+4. **Editor Component Optimization**:
+   - Added GPU acceleration with `transform: translateZ(0)`
+   - Used `willChange` properties to inform the browser of upcoming changes
+   - Added `containIntrinsicSize` hint to help the browser optimize repaints
+
+These changes should result in a much smoother code generation experience without the shaking effect. The code editor should now maintain a stable appearance while still providing the typewriter effect visual.

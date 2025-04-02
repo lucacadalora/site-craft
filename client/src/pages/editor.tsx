@@ -372,92 +372,109 @@ export default function Editor({
                  text.substring(position);
         };
         
-        // Split the content into chunks for smoother rendering
-        for (let i = 0; i < htmlContent.length; i += chunkSize) {
-          const visibleContent = htmlContent.substring(0, i + chunkSize);
-          
-          // Add blinking cursor to last position for visual effect
-          const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
-          setHtmlContent(contentWithCursor);
-          
-          // Auto-scroll the editor to follow the cursor using the saved ref
-          setTimeout(() => {
-            if (editorWrapperRef.current) {
-              // Calculate where the cursor is based on the visible content
-              const lineCount = (visibleContent.match(/\n/g) || []).length;
-              
-              // Get computed styles to determine actual line height
-              const computedStyles = window.getComputedStyle(editorWrapperRef.current);
-              const lineHeight = parseFloat(computedStyles.lineHeight) || 20; // Fallback to 20px if parsing fails
-              
-              // Calculate visible lines based on actual element height
-              const editorHeight = editorWrapperRef.current.clientHeight;
-              const visibleLines = Math.floor(editorHeight / lineHeight);
-              
-              // Check if we're near the end of the content
-              const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
-              const isNearEnd = i > htmlContent.length * 0.95 || lineCount > totalLines * 0.95;
-              
-              // Enhanced scrolling logic with better end-of-content handling
-              // We want to keep the cursor in view and provide smooth scrolling experience
-              let scrollTarget;
-              
-              if (isNearEnd) {
-                // When we're near the end, always ensure we can see the very bottom
-                // Add extra buffer to ensure the last few lines are completely visible
-                scrollTarget = editorWrapperRef.current.scrollHeight;
-                console.log("Auto-scrolling to ABSOLUTE BOTTOM of editor for last lines");
-              } else {
-                // Normal scroll behavior - position cursor in the visible area but not at the very bottom
-                // This creates a more natural reading experience by keeping cursor at ~70% of visible area
-                const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.6));
-                scrollTarget = targetLine * lineHeight;
-                console.log("Auto-scrolling editor to line:", targetLine, "of", totalLines, 
-                           "lineHeight:", lineHeight, "scrollTarget:", scrollTarget);
-              }
-              
-              // Force a slight delay to ensure DOM updates are complete
-              // This helps prevent scrolling issues during rapid content updates
-              setTimeout(() => {
-                // Use enhanced smooth scrolling with requestAnimationFrame and improved easing
-                if (editorWrapperRef.current) {
-                  smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 100 : 200);
-                }
-              }, 5);
-            }
-          }, 10);
-          
-          // Calculate progress percentage and show in the streaming output
-          if (i % 500 === 0 || i === 0) {
-            const percent = Math.floor((i / htmlContent.length) * 100);
-            setStreamingOutput(prev => {
-              // Replace last line if it has percentage, otherwise add new line
-              const lastLine = prev[prev.length - 1];
-              if (lastLine && lastLine.includes("Building HTML")) {
-                return [
-                  ...prev.slice(0, -1), 
-                  `Building HTML... ${percent}% complete`
-                ];
-              }
-              return prev;
-            });
-          }
-          
-          // Slower typing for special characters for a more realistic effect
-          const currentChunk = htmlContent.substring(i, i + chunkSize);
-          const containsSpecialChar = /[<>\/="{}:;]/.test(currentChunk);
-          const containsNewLine = /\n/.test(currentChunk);
-          
-          // Small delay between chunks for the typewriter effect
-          // Longer pauses at special syntax elements
-          if (containsNewLine) {
-            await new Promise(resolve => setTimeout(resolve, 40)); // Pause longer at line breaks
-          } else if (containsSpecialChar) {
-            await new Promise(resolve => setTimeout(resolve, 15)); // Pause at special chars
-          } else {
-            await new Promise(resolve => setTimeout(resolve, getTypingDelay())); // Normal typing
-          }
+        // Run the typing animation with improved performance
+        let currentPosition = 0;
+        let lastScrollPosition = 0;
+        let lastScrollTime = Date.now();
+        const typingInterval = 5; // Base milliseconds between rendering updates
+        const scrollThrottleTime = 150; // Minimum time between scrolls (ms)
+        
+        // Create a single reference for computed styles to avoid recomputation
+        let lineHeight = 20; // Default fallback
+        let editorHeight = 600; // Default fallback
+        let visibleLines = 30; // Default fallback
+        
+        // Initialize measurements once before starting animation
+        if (editorWrapperRef.current) {
+          const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+          lineHeight = parseFloat(computedStyles.lineHeight) || lineHeight;
+          editorHeight = editorWrapperRef.current.clientHeight;
+          visibleLines = Math.floor(editorHeight / lineHeight);
+          console.log("Initial measurements - lineHeight:", lineHeight, "editorHeight:", editorHeight, "visibleLines:", visibleLines);
         }
+        
+        // Use a more efficient interval-based approach instead of many setTimeout calls
+        const typingAnimationInterval = setInterval(() => {
+          // Stop if we've reached the end of content
+          if (currentPosition >= htmlContent.length) {
+            clearInterval(typingAnimationInterval);
+            // Final update without cursor to show complete content
+            setHtmlContent(htmlContent);
+            console.log("Typing animation completed");
+            return;
+          }
+          
+          // Advance by the chunk size
+          currentPosition = Math.min(currentPosition + chunkSize, htmlContent.length);
+          const visibleContent = htmlContent.substring(0, currentPosition);
+          
+          // Only add the cursor when not at the end (improves performance at completion)
+          const showCursor = currentPosition < htmlContent.length;
+          const contentToShow = showCursor 
+            ? addCursorToText(visibleContent, visibleContent.length)
+            : visibleContent;
+            
+          // Update the editor content
+          setHtmlContent(contentToShow);
+          
+          // Throttle scrolling to reduce shakiness - only scroll periodically
+          const now = Date.now();
+          if (now - lastScrollTime >= scrollThrottleTime && editorWrapperRef.current) {
+            // Track scroll time for throttling
+            lastScrollTime = now;
+            
+            // Calculate cursor position metrics
+            const lineCount = (visibleContent.match(/\n/g) || []).length;
+            const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
+            const isNearEnd = currentPosition > htmlContent.length * 0.9 || lineCount > totalLines * 0.9;
+            
+            // Determine scroll target position
+            let scrollTarget;
+            
+            if (isNearEnd) {
+              // When near the end, ensure we can see the bottom
+              scrollTarget = editorWrapperRef.current.scrollHeight;
+              console.log("Auto-scrolling to bottom for end of content");
+            } else {
+              // Otherwise, keep cursor in view without excessive movement
+              const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
+              scrollTarget = targetLine * lineHeight;
+              
+              // Avoid tiny scrolls that cause visual shake
+              if (Math.abs(scrollTarget - lastScrollPosition) < lineHeight * 2) {
+                scrollTarget = lastScrollPosition;
+              }
+            }
+            
+            // Only scroll if we've moved significantly from last position
+            if (Math.abs(scrollTarget - lastScrollPosition) > lineHeight * 2 || isNearEnd) {
+              lastScrollPosition = scrollTarget;
+              smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 150 : 250);
+            }
+          }
+        }, typingInterval);
+        
+        // Add progress tracking to the interval
+        const progressInterval = setInterval(() => {
+          if (currentPosition >= htmlContent.length) {
+            clearInterval(progressInterval);
+            return;
+          }
+          
+          // Calculate and show progress every second
+          const percent = Math.floor((currentPosition / htmlContent.length) * 100);
+          setStreamingOutput(prev => {
+            // Replace last line if it has percentage, otherwise add new line
+            const lastLine = prev[prev.length - 1];
+            if (lastLine && lastLine.includes("Building HTML")) {
+              return [
+                ...prev.slice(0, -1), 
+                `Building HTML... ${percent}% complete`
+              ];
+            }
+            return prev;
+          });
+        }, 1000); // Update progress every second
         
         // Remove cursor from final content and ensure final content is set correctly
         setHtmlContent(htmlContent);
@@ -540,6 +557,17 @@ export default function Editor({
       return;
     }
     
+    // Throttle animation to reduce CPU usage and shaking
+    // Only run animation if we're not already in the middle of one
+    if (element.dataset.isScrolling === "true") {
+      // Just set the final position if another scroll is in progress
+      element.scrollTop = targetScrollTop;
+      return;
+    }
+    
+    // Mark that we're currently scrolling
+    element.dataset.isScrolling = "true";
+    
     // Log the scroll operation for debugging
     console.log(`Smooth scrolling from ${startScrollTop} to ${targetScrollTop}, distance: ${distance}`);
     
@@ -551,11 +579,10 @@ export default function Editor({
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Enhanced cubic easing function for more professional motion
-      // This provides a smoother acceleration and deceleration curve
+      // Simplified easing function for less CPU usage
       const easeProgress = progress < 0.5 
-        ? 4 * progress * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
         
       // Apply the calculated scroll position
       const newPosition = startScrollTop + distance * easeProgress;
@@ -572,6 +599,8 @@ export default function Editor({
         // When finished or stuck, make sure we're exactly at target (no rounding errors)
         element.scrollTop = targetScrollTop;
         console.log("Scroll complete to position:", element.scrollTop);
+        // Mark that we're done scrolling
+        element.dataset.isScrolling = "false";
       }
     }
     

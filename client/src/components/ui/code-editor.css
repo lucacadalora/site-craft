@@ -5,7 +5,7 @@
   max-height: 100%; /* Don't exceed parent container */
   background-color: #111827;
   border-radius: 0.25rem;
-  overflow: hidden; /* Contain overflow inside */
+  overflow: visible; /* Changed from 'hidden' to prevent the shaking issue */
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */
@@ -42,13 +42,14 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: scroll !important; /* Force scrollbars to always appear */
+  overflow-y: auto !important; /* Changed from 'scroll' to prevent forced scrollbar */
   overflow-x: auto;
   height: 600px; /* Fixed height to ensure scroll behavior */
   max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;
   padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
+  will-change: transform; /* Add GPU acceleration to reduce flicker */
 }
 
 /* React Simple Editor styles */
@@ -59,6 +60,9 @@
   white-space: pre;
   background-color: #111827;
   color: #d1d5db;
+  /* Added to prevent jumpy behavior during typing */
+  contain: strict;
+  will-change: contents;
 }
 
 /* Make textarea match the size of highlighting */
