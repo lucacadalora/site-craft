@@ -9,8 +9,6 @@
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */
-  /* Debug outline to see the container */
-  outline: 2px solid blue;
 }
 
 /* Line numbers column */
@@ -45,8 +43,6 @@
   max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;
-  /* Debug outline to check dimensions */
-  outline: 2px dashed red;
 }
 
 /* React Simple Editor styles */
