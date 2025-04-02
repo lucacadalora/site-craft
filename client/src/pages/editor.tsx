@@ -115,6 +115,7 @@ export default function Editor({
   // Using tab-based navigation for mobile instead of fullscreen
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>(isMobile ? 'editor' : 'preview');
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   // Add ref for editor wrapper to avoid repeated DOM queries
   const editorWrapperRef = useRef<HTMLDivElement | null>(null);
   
@@ -233,6 +234,20 @@ export default function Editor({
     }
   }, [htmlContent, activeTab, isMobile]);
   
+  // Handle ESC key to exit fullscreen mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullscreen]);
+
   // Update preview when switching from generation back to editor mode
   useEffect(() => {
     if (!isGenerating && htmlContent) {
@@ -868,7 +883,7 @@ export default function Editor({
                   />
                 </div>
                 <div className="flex justify-end items-center mt-2 text-xs text-gray-400">
-                  <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate</div>
+                  <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate LLM Inference</div>
                 </div>
               </>
             ) : (
@@ -968,7 +983,13 @@ export default function Editor({
 
         {/* Preview Panel - Visibility controlled by tabs on mobile */}
         <div 
-          className={`preview-panel ${isMobile ? (activeTab === 'preview' ? 'w-full h-full' : 'hidden') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
+          className={`preview-panel ${
+            isFullscreen 
+              ? 'fixed inset-0 z-50' 
+              : isMobile 
+                ? (activeTab === 'preview' ? 'w-full h-full' : 'hidden') 
+                : 'w-1/2 h-full'
+          } flex flex-col bg-white overflow-hidden`}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
             <div className="flex items-center">
@@ -1001,7 +1022,18 @@ export default function Editor({
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               
-              {/* Only keeping refresh button, removing fullscreen for simplicity */}
+              {/* Fullscreen toggle button */}
+              {!isMobile && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-1.5 text-xs border-gray-300 text-gray-700"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                >
+                  {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
+                </Button>
+              )}
             </div>
           </div>
           
