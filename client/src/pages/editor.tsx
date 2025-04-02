@@ -115,6 +115,8 @@ export default function Editor({
   // Using tab-based navigation for mobile instead of fullscreen
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>(isMobile ? 'editor' : 'preview');
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
+  // Add ref for editor wrapper to avoid repeated DOM queries
+  const editorWrapperRef = useRef<HTMLDivElement | null>(null);
   
   // API config for AI Accelerate
   const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfig || {
@@ -378,32 +380,31 @@ export default function Editor({
           const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
           setHtmlContent(contentWithCursor);
           
-          // Auto-scroll the editor to follow the cursor
+          // Auto-scroll the editor to follow the cursor using the saved ref
           setTimeout(() => {
-            // Find the editor wrapper element
-            const editorWrapper = document.querySelector('.editor-wrapper');
-            if (editorWrapper) {
+            if (editorWrapperRef.current) {
               // Calculate where the cursor is based on the visible content
-              // Estimate line position by counting newlines
               const lineCount = (visibleContent.match(/\n/g) || []).length;
               
-              // For longer code with many lines, ensure we're scrolling enough to follow the cursor
-              // Approximate number of visible lines in the editor
-              const editorHeight = editorWrapper.clientHeight;
-              const lineHeight = 20; // Approximate line height in pixels
+              // Get computed styles to determine actual line height
+              const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+              const lineHeight = parseFloat(computedStyles.lineHeight) || 20; // Fallback to 20px if parsing fails
+              
+              // Calculate visible lines based on actual element height
+              const editorHeight = editorWrapperRef.current.clientHeight;
               const visibleLines = Math.floor(editorHeight / lineHeight);
               
               // Calculate target scroll position to keep cursor visible
-              // Aim to keep cursor in the bottom third of the visible area
+              // Keep cursor in the bottom third of the visible area for a better UX
               const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
               const scrollTarget = targetLine * lineHeight;
               
-              // Set scroll position to follow the typing
-              editorWrapper.scrollTop = scrollTarget;
+              // Use smooth scrolling with requestAnimationFrame instead of immediate jump
+              smoothScrollTo(editorWrapperRef.current, scrollTarget);
               
-              console.log("Auto-scrolling editor to line:", targetLine);
+              console.log("Auto-scrolling editor smoothly to line:", targetLine);
             }
-          }, 0);
+          }, 10);
           
           // Calculate progress percentage and show in the streaming output
           if (i % 500 === 0 || i === 0) {
@@ -491,6 +492,35 @@ export default function Editor({
       setStreamingOutput(prev => [...prev, "Error: Generation failed"]);
       setIsGenerating(false);
     }
+  };
+
+  // Helper function for smooth scrolling with requestAnimationFrame
+  const smoothScrollTo = (element: HTMLElement, targetScrollTop: number, duration = 200) => {
+    const startScrollTop = element.scrollTop;
+    const distance = targetScrollTop - startScrollTop;
+    let startTime: number | null = null;
+
+    function animation(currentTime: number) {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Simple easing function (easeInOutQuad) for smoother motion
+      const easeProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : -1 + (4 - 2 * progress) * progress;
+        
+      // Apply the calculated scroll position
+      element.scrollTop = startScrollTop + distance * easeProgress;
+      
+      // Continue animation if we're not done
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    }
+    
+    // Start the animation
+    requestAnimationFrame(animation);
   };
 
   // Handle refresh preview with improved mobile support
@@ -833,6 +863,7 @@ export default function Editor({
                   value={htmlContent}
                   onChange={handleHtmlChange}
                   isGenerating={isGenerating}
+                  editorWrapperRef={editorWrapperRef}
                 />
               </div>
               {isGenerating && (

@@ -57,6 +57,7 @@ interface CodeEditorProps {
   placeholder?: string;
   isGenerating?: boolean;
   readOnly?: boolean;
+  editorWrapperRef?: React.RefObject<HTMLDivElement>;
 }
 
 export function CodeEditor({ 
@@ -64,10 +65,13 @@ export function CodeEditor({
   onChange,
   placeholder = "Enter your code here...",
   isGenerating = false,
-  readOnly = false
+  readOnly = false,
+  editorWrapperRef: externalEditorWrapperRef
 }: CodeEditorProps) {
   const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const editorWrapperRef = useRef<HTMLDivElement>(null);
+  // Use the external ref if provided, otherwise create our own internal ref
+  const internalEditorWrapperRef = useRef<HTMLDivElement>(null);
+  const editorWrapperRef = externalEditorWrapperRef || internalEditorWrapperRef;
   const [lineCount, setLineCount] = useState(1);
   const [isTyping, setIsTyping] = useState(isGenerating);
 
