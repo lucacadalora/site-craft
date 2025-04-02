@@ -424,57 +424,73 @@ export default function Editor({
     <div className="flex flex-col h-screen bg-[#111827] text-white">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-800 bg-[#0f172a]">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
           <Link href="/">
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-gray-400 hover:text-white"
+              className="text-gray-400 hover:text-white px-1 md:px-3"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              <span className="text-sm">Back</span>
+              <ArrowLeft className="h-4 w-4 md:mr-1" />
+              <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>Back</span>
             </Button>
           </Link>
-          <div className="h-5 border-r border-gray-700 mx-1"></div>
-          <h1 className="text-lg font-semibold text-blue-400">Site<span className="text-white">Craft</span> <span className="text-xs text-gray-400 ml-2">Editor</span></h1>
+          <div className={`${isMobile ? 'hidden' : 'inline-block'} h-5 border-r border-gray-700 mx-1`}></div>
+          <h1 className="text-base md:text-lg font-semibold text-blue-400">Site<span className="text-white">Craft</span> 
+            <span className={`${isMobile ? 'hidden' : 'inline'} text-xs text-gray-400 ml-2`}>Editor</span>
+          </h1>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 md:space-x-3">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-400 hover:text-white" 
+            className="text-gray-400 hover:text-white px-2 md:px-3" 
           >
-            <Save className="h-4 w-4 mr-1" />
-            <span className="text-sm">Save</span>
+            <Save className="h-4 w-4 md:mr-1" />
+            <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>Save</span>
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-400 hover:text-white" 
+            className="text-gray-400 hover:text-white px-2 md:px-3" 
             onClick={() => setShowSettings(!showSettings)}
           >
-            <Settings className="h-4 w-4 mr-1" />
-            <span className="text-sm">Settings</span>
+            <Settings className="h-4 w-4 md:mr-1" />
+            <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>Settings</span>
           </Button>
         </div>
       </div>
 
       {/* API Settings Panel */}
       {showSettings && (
-        <div className="p-5 bg-[#1e293b] border-b border-gray-700">
-          <div className="flex items-center mb-4">
-            <Zap className="h-5 w-5 text-blue-400 mr-2" />
-            <h2 className="text-base font-semibold">API Configuration</h2>
+        <div className={`${isMobile ? 'p-3' : 'p-5'} bg-[#1e293b] border-b border-gray-700`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Zap className="h-5 w-5 text-blue-400 mr-2" />
+              <h2 className="text-base font-semibold">API Configuration</h2>
+            </div>
+            {isMobile && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-gray-400 hover:text-white" 
+                onClick={() => setShowSettings(false)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           
-          <div className="bg-[#0f172a] p-4 rounded-lg border border-gray-700">
+          <div className={`bg-[#0f172a] ${isMobile ? 'p-3' : 'p-4'} rounded-lg border border-gray-700`}>
             <div className="mb-3">
               <label className="block text-sm font-medium text-white mb-1">AI Accelerate API Key</label>
-              <div className="mb-1 text-xs text-gray-400">Enter your LLM Inference Router API key to enable AI generation</div>
-              <div className="flex space-x-2 mt-2">
+              <div className={`mb-1 text-xs text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Enter your LLM Inference Router API key to enable AI generation
+              </div>
+              <div className={`${isMobile ? 'flex-col space-y-2' : 'flex space-x-2'} mt-2`}>
                 <input
                   type="password"
-                  className="flex-1 bg-[#1e293b] border border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="flex-1 w-full bg-[#1e293b] border border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter your API key"
                   value={apiConfig.apiKey}
                   onChange={(e) => setApiConfig({
@@ -485,7 +501,7 @@ export default function Editor({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white border-blue-700" 
+                  className={`${isMobile ? 'w-full' : ''} bg-blue-600 hover:bg-blue-700 text-white border-blue-700`} 
                   onClick={async () => {
                     if (!apiConfig.apiKey) {
                       toast({
@@ -513,7 +529,7 @@ export default function Editor({
                   }}
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  Validate
+                  Validate API Key
                 </Button>
               </div>
             </div>
@@ -529,18 +545,53 @@ export default function Editor({
                   saveToken: e.target.checked
                 })}
               />
-              <label htmlFor="save-token" className="ml-2 text-sm text-gray-300">
-                Remember API key in local storage (not recommended for shared devices)
+              <label htmlFor="save-token" className="ml-2 text-xs md:text-sm text-gray-300">
+                {isMobile ? 'Remember API key locally' : 'Remember API key in local storage (not recommended for shared devices)'}
               </label>
             </div>
+          </div>
+          
+          {isMobile && (
+            <Button 
+              className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => setShowSettings(false)}
+            >
+              Done
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Mode Tabs - Only shown on mobile */}
+      {isMobile && (
+        <div className="bg-[#1e293b] px-4 py-2 border-b border-gray-700">
+          <div className="flex space-x-2">
+            <Button 
+              variant={!fullscreenPreview ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFullscreenPreview(false)}
+              className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+            >
+              Editor
+            </Button>
+            <Button 
+              variant={fullscreenPreview ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFullscreenPreview(true)}
+              className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+            >
+              Preview
+            </Button>
           </div>
         </div>
       )}
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden editor-container">
-        {/* Editor Panel */}
-        <div className="editor-panel w-1/2 h-full flex flex-col overflow-hidden bg-[#0f172a]">
+      <div className={`${isMobile ? 'flex flex-col' : 'flex'} flex-1 overflow-hidden editor-container`}>
+        {/* Editor Panel - Hidden when in fullscreen preview on mobile */}
+        <div 
+          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'hidden' : 'w-full h-1/2') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
+        >
           {!isGenerating ? (
             <div className="flex-1 flex flex-col p-4">
               {/* Prompt Input */}
@@ -549,15 +600,15 @@ export default function Editor({
                 <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
                   <textarea
                     className="w-full p-3 bg-[#1e293b] text-white border-0 text-sm focus:outline-none"
-                    placeholder="Describe the landing page you want to generate. For example: A landing page for a software development company that specializes in mobile apps."
+                    placeholder="Describe the landing page you want to generate..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    rows={4}
+                    rows={isMobile ? 3 : 4}
                   />
                 </div>
                 <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
                   <div>Estimated tokens: {tokenUsage}</div>
-                  <div>Powered by AI Accelerate LLM Inference Router</div>
+                  <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate</div>
                 </div>
               </div>
               
@@ -570,7 +621,7 @@ export default function Editor({
                 {isGenerating ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Generating your landing page...
+                    {isMobile ? 'Generating...' : 'Generating your landing page...'}
                   </>
                 ) : (
                   <>
@@ -603,13 +654,13 @@ export default function Editor({
             <div className="flex-1 p-6 overflow-auto bg-[#111827]">
               <div className="flex items-center mb-4">
                 <RefreshCw className="h-5 w-5 text-blue-400 mr-2 animate-spin" />
-                <h3 className="text-lg font-medium text-white">Generating with AI Accelerate LLM Router</h3>
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium text-white`}>Generating with AI Accelerate</h3>
               </div>
               
               <div className="p-4 bg-[#0f172a] rounded-lg border border-gray-700 font-mono text-sm">
                 <div className="space-y-1">
                   {streamingOutput.map((line, i) => (
-                    <div key={i} className="whitespace-pre-wrap">
+                    <div key={i} className="whitespace-pre-wrap text-xs md:text-sm">
                       {line.startsWith("Error") ? (
                         <span className="text-red-400">{line}</span>
                       ) : line.includes("✅") ? (
@@ -630,15 +681,19 @@ export default function Editor({
           )}
         </div>
 
-        {/* Resizer */}
-        <div 
-          ref={resizeRef}
-          className="w-1 bg-gray-700 hover:bg-blue-500 cursor-col-resize flex-shrink-0"
-        ></div>
+        {/* Resizer - Only shown on desktop */}
+        {!isMobile && (
+          <div 
+            ref={resizeRef}
+            className="w-1 bg-gray-700 hover:bg-blue-500 cursor-col-resize flex-shrink-0"
+          ></div>
+        )}
 
-        {/* Preview Panel */}
-        <div className="preview-panel w-1/2 h-full flex flex-col bg-white overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shadow-sm">
+        {/* Preview Panel - Takes full height on mobile in preview mode */}
+        <div 
+          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'h-full w-full' : 'h-1/2 w-full') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
+        >
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
             <div className="flex items-center">
               <div className="flex space-x-1.5 mr-4">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -646,30 +701,32 @@ export default function Editor({
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
               <div className="text-sm font-medium text-gray-800">
-                Preview - <span className="text-gray-500 text-xs">Generated Landing Page</span>
+                Preview <span className={`${isMobile ? 'hidden' : 'inline'} text-gray-500 text-xs`}>- Generated Landing Page</span>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
-              <div className="flex items-center h-8 px-2 text-xs text-green-600 bg-green-50 border border-green-200 rounded-md">
-                <div className="h-2 w-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></div>
-                <span>Live Preview</span>
-              </div>
+              {!isMobile && (
+                <div className="flex items-center h-8 px-2 text-xs text-green-600 bg-green-50 border border-green-200 rounded-md">
+                  <div className="h-2 w-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></div>
+                  <span>Live Preview</span>
+                </div>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
+                className={`h-8 ${isMobile ? 'px-1.5' : 'px-2'} text-xs border-gray-300 text-gray-700`} 
                 onClick={() => setFullscreenPreview(!fullscreenPreview)}
               >
                 {fullscreenPreview ? (
                   <>
                     <Minimize className="h-3.5 w-3.5 mr-1" />
-                    Exit Fullscreen
+                    {!isMobile && <span>Exit Fullscreen</span>}
                   </>
                 ) : (
                   <>
                     <Maximize className="h-3.5 w-3.5 mr-1" />
-                    Fullscreen
+                    {!isMobile && <span>Fullscreen</span>}
                   </>
                 )}
               </Button>
