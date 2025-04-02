@@ -38,24 +38,22 @@ export async function generateLandingPageHtml(
     
     console.log("Generating HTML with SambaNova API using prompt:", prompt.substring(0, 50) + "...");
     
-    // Prepare the system prompt and user message
+    // Prepare the system prompt and user message using DeepSite style
     const systemMessage: Message = {
       role: "system",
-      content: `You are an expert web developer specializing in HTML and CSS coding. 
-Create a professional, responsive landing page based on the user's description.
-Follow these requirements:
-1. Use semantic HTML5
-2. Include embedded CSS in a <style> tag (don't reference external stylesheets)
-3. Create a fully-functioning, complete page that would be ready to deploy
-4. Include clean, well-organized HTML structure
-5. Use responsive design principles for mobile/desktop
-6. Use modern CSS including flexbox/grid
-7. Include professionally designed UI components (nav, header, features, call-to-action, etc.)
-8. Don't use any external libraries or CDNs
-9. Don't include any backend functionality, forms should be static
-10. All the code should be valid, use proper syntax and indentation
+      content: `ONLY USE HTML, CSS AND JAVASCRIPT. If you want to use ICON make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). 
 
-IMPORTANT: Your response must begin with <!DOCTYPE html> and include ONLY the HTML code, nothing else.
+Follow these requirements:
+1. Use semantic HTML5 with proper structure and organization
+2. Create a fully-functioning, complete page that would be ready to deploy
+3. Use responsive design principles for mobile/desktop compatibility
+4. Include professionally designed UI components (nav, header, features, call-to-action, etc.)
+5. All forms should be static (no backend functionality)
+6. All code should be valid with proper syntax and indentation
+7. Elaborate as much as possible to create something unique
+8. Ensure the design is modern, clean, and professional
+
+IMPORTANT: Your response must begin with <!DOCTYPE html> and include ONLY the HTML code in a single file.
 Do not include any introductory text, explanations, or markdown formatting. Just give me the raw HTML code.`
     };
     
