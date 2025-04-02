@@ -685,6 +685,7 @@ export default function Editor({
           <div className={`${isMobile ? 'hidden' : 'inline-block'} h-5 border-r border-gray-700 mx-1`}></div>
           <h1 className="text-base md:text-lg font-semibold text-blue-400">Site<span className="text-white">Craft</span> 
             <span className={`${isMobile ? 'hidden' : 'inline'} text-xs text-gray-400 ml-2`}>Editor</span>
+            <span className={`${isMobile ? 'hidden' : 'inline'} text-xs text-gray-500 ml-2 font-normal`}>Powered by AI Accelerate LLM Inference</span>
           </h1>
         </div>
         <div className="flex items-center space-x-2 md:space-x-3">
