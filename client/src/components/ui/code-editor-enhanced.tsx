@@ -49,10 +49,19 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
     <div 
       ref={lineNumbersRef}
       className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-hidden" 
-      style={{ minHeight: `${minLineCount * 1.4}em` }} // Ensure min height based on lines
+      style={{ 
+        minHeight: `${minLineCount * 1.4}em`,  // Ensure min height based on lines
+        height: '100%' // Match the editor height
+      }}
     >
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="leading-tight py-0.5">{i + 1}</div>
+        <div 
+          key={i} 
+          className="leading-tight py-0.5"
+          style={{ height: '1.4em', lineHeight: '1.4' }} // Fixed height to match code lines
+        >
+          {i + 1}
+        </div>
       ))}
     </div>
   );
@@ -84,7 +93,9 @@ export function CodeEditor({
 
   // Update line count when content changes
   useEffect(() => {
-    const count = (value.match(/\n/g) || []).length + 1;
+    // Calculate line count properly by splitting by newlines
+    const lines = value.split('\n');
+    const count = lines.length;
     setLineCount(count);
     console.log("Line count updated:", count, "from content length:", value.length);
   }, [value]);
