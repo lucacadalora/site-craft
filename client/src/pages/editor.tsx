@@ -838,8 +838,7 @@ export default function Editor({
                     }}
                   />
                 </div>
-                <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
-                  <div>Estimated tokens: {tokenUsage}</div>
+                <div className="flex justify-end items-center mt-2 text-xs text-gray-400">
                   <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate</div>
                 </div>
               </>
@@ -907,9 +906,12 @@ export default function Editor({
                   "index.html"
                 )}
               </div>
-              <div className="flex space-x-1">
-                <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
-                <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
+              <div className="flex items-center space-x-2">
+                <div className="text-xs text-blue-300 mr-1">{htmlContent.length > 0 ? `${Math.round(htmlContent.length / 4)} tokens` : ""}</div>
+                <div className="flex space-x-1">
+                  <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
+                  <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
+                </div>
               </div>
             </div>
             <div className="relative w-full h-[calc(100%-32px)] flex flex-col">
