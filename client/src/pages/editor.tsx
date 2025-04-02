@@ -223,6 +223,11 @@ export default function Editor({
       if (isResizing) {
         const container = document.querySelector('.editor-container') as HTMLElement;
         if (container) {
+          // Apply a fixed height to the editor container to ensure scrolling works
+          if (!container.style.height) {
+            container.style.height = '600px';
+          }
+          
           const containerRect = container.getBoundingClientRect();
           const newEditorWidth = e.clientX - containerRect.left;
           const totalWidth = containerRect.width;

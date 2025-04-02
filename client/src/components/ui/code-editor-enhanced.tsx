@@ -59,6 +59,21 @@ const Minimap: React.FC<{
 }> = ({ content, scrollRatio, visibleRatio }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
   
+  // Update scroll position of minimap when main editor scrolls
+  useEffect(() => {
+    if (minimapRef.current) {
+      // Instead of transforming content, scroll the minimap container
+      const minimapHeight = minimapRef.current.clientHeight;
+      const totalHeight = minimapRef.current.scrollHeight;
+      
+      // Only scroll if there's content to scroll
+      if (totalHeight > minimapHeight) {
+        const scrollPosition = scrollRatio * (totalHeight - minimapHeight);
+        minimapRef.current.scrollTop = scrollPosition;
+      }
+    }
+  }, [scrollRatio]);
+  
   // Calculate position of the visible area indicator
   const indicatorStyle = {
     top: `${scrollRatio * 100}%`,
@@ -79,30 +94,22 @@ const Minimap: React.FC<{
     return content;
   }, [content]);
   
-  // Calculate minimap content style based on scroll position
-  const contentStyle = {
-    transform: `translateY(-${scrollRatio * 100}%)`,
-    height: `${100 / visibleRatio}%`, 
-    maxHeight: '2000%', // Prevent excessively large height
-  };
-  
+  // The content should be directly scrollable, not transformed
   return (
     <div 
       ref={minimapRef}
       className="minimap"
     >
-      <div className="relative h-full">
-        <pre 
-          className="minimap-content p-1 opacity-40 w-full"
-          style={contentStyle}
-        >
-          {processedContent}
-        </pre>
-        <div 
-          className="minimap-indicator"
-          style={indicatorStyle}
-        ></div>
-      </div>
+      {/* Simple direct rendering approach */}
+      <pre className="p-1 opacity-40 w-full">
+        {processedContent}
+      </pre>
+      
+      {/* Fixed indicator that shows current viewport position */}
+      <div 
+        className="minimap-indicator"
+        style={indicatorStyle}
+      ></div>
     </div>
   );
 };
