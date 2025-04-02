@@ -328,7 +328,7 @@ export default function Editor({
     setHtmlContent(e.target.value);
   };
 
-  // Handle generation with streaming output
+  // Handle generation with typewriter streaming effect
   const handleGenerate = async () => {
     if (!prompt) {
       toast({
@@ -351,6 +351,9 @@ export default function Editor({
 
     setIsGenerating(true);
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
+    
+    // Clear any existing HTML content and prepare for streaming visualization
+    setHtmlContent("");
 
     try {
       // For simpler implementation, make a POST request directly
@@ -405,15 +408,73 @@ export default function Editor({
         ]);
       }
       
-      // Final step - apply the HTML from API response
+      // Final step - apply the HTML from API response with typewriter effect
       setStreamingOutput(prev => [...prev, "Generation complete! Building HTML..."]);
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Use the HTML from the response directly, no fallback templates
+      
+      // Use the HTML from the response directly, with typewriter effect
       if (responseData.html) {
-        setHtmlContent(responseData.html);
+        // Create an enhanced typewriter effect for the HTML code
+        const htmlContent = responseData.html;
+        const chunkSize = 15; // Characters per chunk
+        const baseDelay = 5; // Base milliseconds between chunks
         
-        // Different handling for mobile vs desktop
+        // Dynamically adjust typing speed for more realistic effect
+        const getTypingDelay = () => {
+          // Random variance to typing speed (more human-like)
+          return Math.floor(baseDelay + Math.random() * 15);
+        };
+        
+        // Helper to add blinking cursor at current position
+        const addCursorToText = (text: string, position: number) => {
+          return text.substring(0, position) + 
+                 '█' + 
+                 text.substring(position);
+        };
+        
+        // Split the content into chunks for smoother rendering
+        for (let i = 0; i < htmlContent.length; i += chunkSize) {
+          const visibleContent = htmlContent.substring(0, i + chunkSize);
+          
+          // Add blinking cursor to last position for visual effect
+          const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
+          setHtmlContent(contentWithCursor);
+          
+          // Calculate progress percentage and show in the streaming output
+          if (i % 500 === 0 || i === 0) {
+            const percent = Math.floor((i / htmlContent.length) * 100);
+            setStreamingOutput(prev => {
+              // Replace last line if it has percentage, otherwise add new line
+              const lastLine = prev[prev.length - 1];
+              if (lastLine && lastLine.includes("Building HTML")) {
+                return [
+                  ...prev.slice(0, -1), 
+                  `Building HTML... ${percent}% complete`
+                ];
+              }
+              return prev;
+            });
+          }
+          
+          // Slower typing for special characters for a more realistic effect
+          const currentChunk = htmlContent.substring(i, i + chunkSize);
+          const containsSpecialChar = /[<>\/="{}:;]/.test(currentChunk);
+          const containsNewLine = /\n/.test(currentChunk);
+          
+          // Small delay between chunks for the typewriter effect
+          // Longer pauses at special syntax elements
+          if (containsNewLine) {
+            await new Promise(resolve => setTimeout(resolve, 40)); // Pause longer at line breaks
+          } else if (containsSpecialChar) {
+            await new Promise(resolve => setTimeout(resolve, 15)); // Pause at special chars
+          } else {
+            await new Promise(resolve => setTimeout(resolve, getTypingDelay())); // Normal typing
+          }
+        }
+        
+        // Remove cursor from final content and ensure final content is set correctly
+        setHtmlContent(htmlContent);
+        
+        // Update preview based on device type
         if (isMobile) {
           // For mobile, we'll update the preview container and switch to preview tab
           setTimeout(() => {
@@ -424,7 +485,7 @@ export default function Editor({
               console.log("Updating mobile preview after generation");
               const container = document.getElementById('mobile-preview-container');
               if (container) {
-                container.innerHTML = responseData.html;
+                container.innerHTML = htmlContent;
               }
             }, 300);
           }, 500);
@@ -438,8 +499,8 @@ export default function Editor({
           // Then after a small delay, set the new content
           setTimeout(() => {
             if (previewRef.current) {
-              previewRef.current.srcdoc = responseData.html;
-              console.log("Preview updated with new content from API, length:", responseData.html.length);
+              previewRef.current.srcdoc = htmlContent;
+              console.log("Preview updated with new content from API, length:", htmlContent.length);
             }
           }, 100);
         }
@@ -452,7 +513,7 @@ export default function Editor({
       
       toast({
         title: "Generation Complete",
-        description: "Your landing page has been generated",
+        description: "Your landing page has been generated with typewriter effect",
       });
     } catch (error) {
       console.error('Error setting up generation:', error);
@@ -755,13 +816,21 @@ export default function Editor({
                     <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
                   </div>
                 </div>
-                <textarea
-                  ref={editorRef}
-                  className="w-full h-[calc(100%-32px)] p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
-                  value={htmlContent}
-                  onChange={handleHtmlChange}
-                  spellCheck={false}
-                />
+                <div className="relative w-full h-[calc(100%-32px)]">
+                  <textarea
+                    ref={editorRef}
+                    className="w-full h-full p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+                    value={htmlContent}
+                    onChange={handleHtmlChange}
+                    spellCheck={false}
+                  />
+                  {isGenerating && (
+                    <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
+                      <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                      Typing...
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
