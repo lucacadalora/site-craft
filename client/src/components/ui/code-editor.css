@@ -1,13 +1,16 @@
 /* Editor container styles */
 .code-editor-container {
-  height: 100% !important; /* Use full height of parent container */
-  min-height: 600px; /* Minimum height to ensure usability */
+  height: 600px !important; /* Fixed height to ensure scrolling */
+  min-height: 400px; /* Minimum height to ensure usability */
+  max-height: 100%; /* Don't exceed parent container */
   background-color: #111827;
   border-radius: 0.25rem;
-  /* Removing overflow: hidden to allow scrollbar to appear */
+  overflow: visible; /* Explicitly allow overflow */
   display: flex;
   flex-direction: column;
   position: relative; /* For absolute positioning of children */
+  /* Debug outline to see the container */
+  outline: 2px solid blue;
 }
 
 /* Line numbers column */
@@ -36,11 +39,14 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: auto !important; /* Auto mode for scrollbar to appear when needed */
+  overflow-y: scroll !important; /* Force scrollbar to always appear */
   overflow-x: auto;
-  height: 100%;
+  height: 400px; /* Fixed height to ensure overflow */
+  max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;
+  /* Debug outline to check dimensions */
+  outline: 2px dashed red;
 }
 
 /* React Simple Editor styles */

@@ -1,0 +1,56 @@
+If the scrollbar still won’t appear after removing overflow: hidden; or setting overflow-y: auto;, it usually means one of these is happening:
+	1.	No Actual Overflow
+	•	If the content is not taller than the container, the browser won’t show a scrollbar.
+	•	Temporarily add a bunch of extra lines or set a large min-height on the content to force overflow.
+	2.	The Container Has No Fixed Height
+	•	If .editor-wrapper (or its parent) is expanding to fit the content, there’s no overflow.
+	•	Make sure the container or a parent element has a fixed or constrained height (e.g., height: 600px; or max-height: 80vh;) so content that exceeds this height can scroll.
+	3.	Custom Scrollbars Are Hidden
+	•	Some CSS might hide scrollbars globally, such as:
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+
+	•	Or you might have an OS-level setting (on macOS, for instance) that only shows scrollbars while actively scrolling.
+	•	Test by explicitly forcing a scrollbar:
+
+.editor-wrapper {
+  overflow-y: scroll !important;
+}
+
+
+	4.	Parent Container Interference
+	•	Check that no parent element is still using overflow: hidden; or has display: flex; without min-height: 0; (a common flexbox gotcha).
+	•	Try temporarily adding an outline or border to see if the .editor-wrapper is actually the size you expect:
+
+.editor-wrapper {
+  outline: 2px dashed red;
+}
+
+
+	5.	JavaScript Resizing Logic
+	•	Your calculateContentHeight() might be setting the minHeight of the <textarea> larger than the container, effectively removing any need for a scrollbar.
+	•	Try removing or lowering the minHeight logic to confirm whether it’s preventing scrolling.
+
+⸻
+
+Quick Debug Checklist
+	1.	Force a Scrollbar
+
+.editor-wrapper {
+  overflow-y: scroll !important;
+  height: 400px; /* or some fixed size to prove overflow works */
+}
+
+Then add extra text to confirm the scrollbar appears.
+
+	2.	Check the OS Settings
+	•	On macOS, go to System Settings → Appearance → Show scroll bars and select Always.
+	•	This ensures the scrollbar is visible even if you’re not scrolling.
+	3.	Inspect in DevTools
+	•	Hover over .editor-wrapper in your browser’s DevTools to see its computed height.
+	•	If the element’s height is “auto” and the parent is not limiting it, there won’t be an overflow.
+
+Once you verify the container has a fixed height and content that exceeds that height, the scrollbar will appear (assuming it’s not hidden by a custom CSS rule or OS-level setting).

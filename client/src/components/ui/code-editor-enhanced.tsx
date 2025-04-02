@@ -91,22 +91,24 @@ export function CodeEditor({
     
     // Force an initial height calculation
     const calculateContentHeight = () => {
-      // Ensure the editor wrapper has a proper height
-      const containerRect = editorWrapper.parentElement?.getBoundingClientRect();
-      if (containerRect && containerRect.height > 0) {
-        // Set minimum height for the textarea to ensure we have scrollable content
-        const textarea = editorWrapper.querySelector('textarea');
-        if (textarea) {
-          // Calculate a minimum height that ensures we have scrollable content
-          // Height should be just a bit larger than container to ensure scrollbar appears
-          // Use a multiplier slightly above 1 to ensure there's enough content to scroll
-          const minHeight = Math.max(
-            300, // Absolute minimum height
-            containerRect.height * 1.1 // Just a little taller than container
-          );
-          textarea.style.minHeight = `${minHeight}px`;
+      // Force the textarea to have a large height to guarantee scrolling
+      const textarea = editorWrapper.querySelector('textarea');
+      if (textarea) {
+        // Set a very large min-height to guarantee scrollbars
+        textarea.style.minHeight = '1000px';
+        
+        // Also add 20 lines of whitespace if the content is small
+        if (value.split('\n').length < 20) {
+          // This is just a development trick to force scrolling
+          // Don't change the actual value but make the textarea taller
+          textarea.style.paddingBottom = '800px';
         }
       }
+      
+      // Force scrollbar to appear
+      setTimeout(() => {
+        editorWrapper.scrollTop = 1; // Force scrollbar activation
+      }, 100);
     };
     
     // Sync line numbers scrolling
