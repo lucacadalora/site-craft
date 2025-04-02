@@ -93,46 +93,55 @@ const Minimap: React.FC<{
     const viewport = viewportRef.current;
     const highlighted = highlightedRef.current;
     
+    // Calculate all the key dimensions
     const minimapHeight = minimap.clientHeight;
-    const contentHeight = contentEl.scrollHeight;
     
-    // Scale factor for the minimap (if needed)
-    const scaleFactor = contentHeight > 0 ? minimapHeight / contentHeight : 1;
-    
-    // Calculate viewport position and size
-    const viewportTop = scrollRatio * minimapHeight;
-    const viewportHeight = Math.max(visibleRatio * minimapHeight, 30);
-    
-    // Calculate which part of the content should be highlighted
-    // This requires knowing the line height and total lines
+    // Get line count and approximate line height in the minimap
     const lines = content.split('\n');
     const totalLines = lines.length;
-    const visibleLines = Math.round(totalLines * visibleRatio);
-    const startLine = Math.round(scrollRatio * totalLines);
+    const lineHeight = 3; // Approximate pixel height per line in minimap
     
-    // Set viewport position (highlighting overlay)
+    // Total content height scaled to the minimap
+    const totalContentHeight = totalLines * lineHeight;
+    
+    // Calculate the visible portion and viewport size
+    // This is a direct ratio of what's visible in the editor
+    const viewportHeight = Math.max(visibleRatio * minimapHeight, 20);
+    
+    // The position where the viewport starts (relative to top of minimap)
+    // This is the same ratio as where the editor is scrolled to
+    const viewportTop = scrollRatio * (minimapHeight - viewportHeight);
+    
+    // Position the blue viewport indicator box
     viewport.style.top = `${viewportTop}px`;
     viewport.style.height = `${viewportHeight}px`;
     
-    // Position the highlighted content to show in the viewport
-    // This makes only the current viewed content bright, rest is dimmed
-    highlighted.style.top = `-${viewportTop}px`;
+    // Now for the highlighted content:
     
-    // Clip the highlighted content to only show within the viewport height
-    // This prevents highlighting beyond the visible area
+    // 1. First, position the highlight content at the right spot
+    highlighted.style.top = `0px`; // Start from top of container
+    
+    // 2. Calculate which portion of content to show brightly
+    // We need to find which lines are currently visible
+    const linesPerViewport = Math.ceil(viewportHeight / lineHeight);
+    const startLine = Math.floor(scrollRatio * (totalLines - linesPerViewport));
+    
+    // 3. Create a clipPath that only shows the content in the current viewport
+    const startY = startLine * lineHeight; // Top of visible portion in the highlighted view
+    const clipHeight = linesPerViewport * lineHeight; // Height of visible portion
+    
+    // Position the highlight at the exact point the viewport begins
+    highlighted.style.top = `${viewportTop - startY}px`;
+    
+    // Clip the highlight to ONLY show the currently visible viewport portion
     highlighted.style.height = `${viewportHeight}px`;
-    highlighted.style.clipPath = `inset(0 0 0 0)`;
+    highlighted.style.overflow = 'hidden';
     
-    // Add a mask overlay to further isolate just the viewport section
-    const totalContentHeight = content.split('\n').length * 3; // Approx 3px per line in minimap
-    
-    // Create mask effect - dim everything above and below the visible area
+    // Apply a mask to dark out everything outside the visible area
     highlighted.style.boxShadow = `
-      0 -${viewportTop + 500}px 0 rgba(0,0,0,0.85),
-      0 ${totalContentHeight - viewportTop}px 0 rgba(0,0,0,0.85)
+      0 -100vh 0 100vh rgba(0,0,0,0.95),
+      0 100vh 0 100vh rgba(0,0,0,0.95)
     `;
-    
-    // Apply mask to make the code visible only within the viewport area
   }, [scrollRatio, visibleRatio, content]);
   
   return (

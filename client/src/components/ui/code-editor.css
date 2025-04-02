@@ -91,17 +91,33 @@
   left: 0;
   width: 100%;
   height: 20%;
-  background-color: rgba(67, 97, 238, 0.07);
-  border: 1px solid rgba(67, 97, 238, 0.3);
-  box-shadow: 0 0 4px rgba(67, 97, 238, 0.15) inset;
+  background-color: rgba(67, 97, 238, 0.08);
+  border: 1px solid rgba(67, 97, 238, 0.35);
+  box-shadow: 0 0 4px rgba(67, 97, 238, 0.2) inset;
   pointer-events: none;
   z-index: 5;
+  border-radius: 2px;
   /* Add a subtle gradient */
   background-image: linear-gradient(
     to bottom,
-    rgba(67, 97, 238, 0.15) 0%,
-    rgba(67, 97, 238, 0.05) 100%
+    rgba(67, 97, 238, 0.18) 0%,
+    rgba(67, 97, 238, 0.08) 100%
   );
+  /* Add scan-line effect */
+  background-size: 100% 6px;
+  background-image: 
+    linear-gradient(
+      to bottom,
+      rgba(67, 97, 238, 0.18) 0%,
+      rgba(67, 97, 238, 0.08) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.03) 3px
+    );
 }
 
 /* Highlighted content in the visible area */
@@ -110,20 +126,22 @@
   width: 100%;
   height: auto;
   opacity: 1;
-  filter: contrast(3) brightness(2.5); /* Even brighter highlighted code */
+  filter: contrast(4) brightness(2.5); /* Even brighter highlighted code for better visibility */
   color: #ffffff;
   pointer-events: none;
   z-index: 3;
   overflow: hidden;
   /* Add a highlight effect to make it pop */
   mix-blend-mode: lighten;
-  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
   /* Add a subtle gradient background to enhance visibility */
   background: linear-gradient(
     to bottom,
-    rgba(67, 97, 238, 0.05) 0%,
-    rgba(67, 97, 238, 0.02) 100%
+    rgba(67, 97, 238, 0.08) 0%,
+    rgba(67, 97, 238, 0.04) 100%
   );
+  /* Add a subtle glow effect */
+  box-shadow: 0 0 10px 1px rgba(255, 255, 255, 0.05) inset;
 }
 
 .minimap-indicator {

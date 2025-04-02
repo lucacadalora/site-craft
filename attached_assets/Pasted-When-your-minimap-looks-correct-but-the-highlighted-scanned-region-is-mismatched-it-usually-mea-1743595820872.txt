@@ -1,0 +1,124 @@
+When your minimap looks “correct” but the highlighted (scanned) region is mismatched, it usually means the math for scrollRatio or visibleRatio is off. In other words, the minimap’s highlight area isn’t being computed in sync with the actual editor’s scroll position or visible lines.
+
+Below are the most common culprits and how to fix them:
+
+⸻
+
+1. Make Sure You’re Using the Correct Scroll Ratio
+
+If you have a main editor that can scroll, you’ll typically calculate two key ratios:
+	1.	Scroll Ratio (where you are in the document):
+
+scrollRatio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+
+	•	scrollTop = current vertical scroll offset
+	•	scrollHeight = total scrollable height of the content
+	•	clientHeight = height of the visible area
+This should give a value between 0 (top) and 1 (bottom).
+
+	2.	Visible Ratio (what fraction of the total is currently visible):
+
+visibleRatio = editor.clientHeight / editor.scrollHeight;
+
+	•	This should be between 0 (technically never 0, but can be small) and 1.
+
+Then, in the minimap:
+	•	Minimap content “scan” transform:
+
+style={{
+  transform: `translateY(-${scrollRatio * 100}%)`
+}}
+
+or a more precise approach if you have a separate total height for the minimap content.
+
+	•	Minimap highlight (indicator) position:
+
+style={{
+  top: `${scrollRatio * 100}%`,
+  height: `${visibleRatio * 100}%`
+}}
+
+The idea is that top starts at 0% at the top of the minimap when you’re at the top of the file and 100% at the bottom.
+
+If the highlight is “too big,” “too small,” or offset incorrectly, double-check these formulas. A single off-by-one or missing parentheses can throw off the scaling.
+
+⸻
+
+2. Verify Matching Line Heights & Wrapping
+
+If your minimap is rendering text differently (e.g., different font, line-height, or word wrapping), you’ll see a mismatch in line counts.
+	•	No Word Wrap: Make sure the main editor and minimap are both wrapping lines the same way (or both turned off). If the editor wraps but the minimap doesn’t, the minimap’s total lines will be fewer than the main editor’s.
+	•	Consistent Line Height: Even though the minimap uses a tiny font, it should maintain the same line-height ratio so that “line 50 in the editor” visually lines up with “line 50 in the minimap.”
+
+⸻
+
+3. Check for Parent Container Offsets
+
+Sometimes the editor or minimap is inside containers that have their own scrolling or height constraints. Make sure:
+	•	The main editor is truly the one generating the scrollHeight and scrollTop.
+	•	The minimap is referencing the same scroll container.
+	•	There aren’t extra margins or offsets you need to account for in your ratio calculations.
+
+⸻
+
+4. Debug Step-by-Step
+
+A quick way to see what’s happening:
+	1.	Log the values of scrollTop, scrollHeight, clientHeight, scrollRatio, and visibleRatio whenever you scroll.
+	2.	Compare them to what you expect. For example, if your file has 100 lines, does scrollHeight reflect ~100 lines worth of pixel height?
+	3.	Visually check if the highlight is off by a fixed amount (like it’s always 10% too high) or if it drifts more the further you scroll.
+
+⸻
+
+Example “Correct” Implementation (Pseudo-React)
+
+// Pseudocode for main editor
+const [scrollRatio, setScrollRatio] = useState(0);
+const [visibleRatio, setVisibleRatio] = useState(0);
+
+function handleScroll(e) {
+  const { scrollTop, scrollHeight, clientHeight } = e.target;
+  const newScrollRatio = scrollTop / (scrollHeight - clientHeight);
+  const newVisibleRatio = clientHeight / scrollHeight;
+
+  setScrollRatio(newScrollRatio);
+  setVisibleRatio(newVisibleRatio);
+}
+
+// In your render:
+<div className="editor" onScroll={handleScroll}>
+  {/* code content */}
+</div>
+
+Then for the minimap:
+
+<div className="minimap">
+  <pre
+    className="minimap-content"
+    style={{
+      transform: `translateY(-${scrollRatio * 100}%)`,
+      // Possibly also set a scaled height if needed
+    }}
+  >
+    {/* code content */}
+  </pre>
+  <div
+    className="minimap-indicator"
+    style={{
+      top: `${scrollRatio * 100}%`,
+      height: `${Math.max(visibleRatio * 100, 5)}%`
+    }}
+  />
+</div>
+
+Key: The minimap transform moves in the opposite direction of your main editor’s scroll (hence the negative sign). The highlight bar tracks the same ratio but is positive.
+
+⸻
+
+TL;DR
+	1.	Double-check your ratio calculations (scrollRatio, visibleRatio).
+	2.	Ensure consistent line wrapping and line-height in both the main editor and minimap.
+	3.	Inspect parent container offsets or additional scroll containers.
+	4.	Log or console.debug each variable to see where the mismatch starts happening.
+
+If you fix these four things, the minimap highlight should accurately reflect the editor’s visible lines.
