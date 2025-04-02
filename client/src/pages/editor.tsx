@@ -17,7 +17,8 @@ import {
   CheckCircle,
   Save,
   Edit,
-  Eye
+  Eye,
+  PlusCircle
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -701,6 +702,15 @@ export default function Editor({
             variant="ghost" 
             size="sm" 
             className="text-gray-400 hover:text-white px-2 md:px-3" 
+            onClick={() => window.location.href = '/editor'}
+          >
+            <PlusCircle className="h-4 w-4 md:mr-1" />
+            <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>New</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-400 hover:text-white px-2 md:px-3" 
             onClick={() => setShowSettings(!showSettings)}
           >
             <Settings className="h-4 w-4 md:mr-1" />
@@ -884,7 +894,7 @@ export default function Editor({
                   />
                 </div>
                 <div className="flex justify-end items-center mt-2 text-xs text-gray-400">
-                  <div className={`${isMobile ? 'hidden' : 'block'}`}>Powered by AI Accelerate LLM Inference</div>
+                  {/* Removed "Powered by AI Accelerate LLM Inference" text to save space */}
                 </div>
               </>
             ) : (
