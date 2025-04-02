@@ -80,49 +80,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SambaNova API integration for DeepSite generation - Streaming Version
-  app.get("/api/sambanova/generate-stream", (req, res) => {
-    // Set headers for SSE
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering if using nginx
-    
-    // Store the connection in a variable for access by the POST handler
-    const sseConnections = req.app.locals.sseConnections || new Map();
-    const clientId = req.query._ || Date.now().toString();
-    sseConnections.set(clientId.toString(), res);
-    req.app.locals.sseConnections = sseConnections;
-    
-    // Handle client disconnect
-    req.on('close', () => {
-      sseConnections.delete(clientId.toString());
-      console.log(`Client ${clientId} disconnected from SSE.`);
-    });
-    
-    // Send an initial ping to keep the connection alive
-    const keepAliveInterval = setInterval(() => {
-      if (res.writableEnded) {
-        clearInterval(keepAliveInterval);
-        return;
-      }
-      res.write(`:ping\n\n`);
-    }, 15000);
-    
-    console.log(`Client ${clientId} connected to SSE.`);
-  });
-  
+  // SambaNova API integration for DeepSite generation - Simple version (no streaming)
   app.post("/api/sambanova/generate-stream", async (req, res) => {
     try {
       const { prompt, apiConfig } = req.body;
-      const clientId = req.query._ || req.body.clientId;
-      
-      if (!clientId) {
-        return res.status(400).json({ 
-          message: "Client ID is required. Please include a clientId parameter."
-        });
-      }
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -138,42 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Find the client's SSE connection
-      const sseConnections = req.app.locals.sseConnections || new Map();
-      const clientRes = sseConnections.get(clientId.toString());
-      
-      if (!clientRes) {
-        return res.status(404).json({
-          message: "Client connection not found. Please establish an SSE connection first."
-        });
-      }
-      
-      // Helper function to send SSE messages
-      const sendEvent = (event: string, data: any) => {
-        clientRes.write(`event: ${event}\n`);
-        clientRes.write(`data: ${JSON.stringify(data)}\n\n`);
-      };
-      
-      // Return success to the POST request immediately
-      res.status(200).json({ message: "Generation started" });
-      
-      // Simulate stream response
-      sendEvent('start', { message: 'Starting generation with DeepSeek-V3-0324...' });
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      sendEvent('token', { message: 'Analyzing prompt...' });
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Process prompt in chunks to simulate token streaming
-      const words = prompt.split(' ');
-      for (let i = 0; i < words.length; i += 3) {
-        const chunk = words.slice(i, i + 3).join(' ');
-        sendEvent('token', { message: `Processing: ${chunk}` });
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      sendEvent('token', { message: 'Generation complete! Building HTML...' });
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real implementation, we would call the SambaNova API here
+      // For now, we'll simulate the response with a small delay
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Generate a simple HTML based on the prompt
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
@@ -327,23 +255,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </body>
 </html>`;
       
-      // Send the final HTML
-      sendEvent('complete', { html: generatedHtml });
+      // Send the HTML response back
+      return res.json({ html: generatedHtml });
       
     } catch (error) {
       console.error("Error with SambaNova API:", error);
-      
-      // Find the client's SSE connection
-      const sseConnections = req.app.locals.sseConnections || new Map();
-      const clientId = req.query._ || req.body.clientId;
-      const clientRes = clientId ? sseConnections.get(clientId.toString()) : null;
-      
-      if (clientRes) {
-        clientRes.write(`event: error\n`);
-        clientRes.write(`data: ${JSON.stringify({ message: error instanceof Error ? error.message : "Failed to generate content" })}\n\n`);
-      }
-      
-      res.status(500).json({ 
+      return res.status(500).json({ 
         message: error instanceof Error ? error.message : "Failed to generate content with SambaNova API" 
       });
     }
