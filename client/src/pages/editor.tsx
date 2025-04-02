@@ -13,6 +13,7 @@ import { GenerationStatus } from "@/components/ui/generation-status";
 declare global {
   interface Window {
     expectedContentLength?: number;
+    inTypingPhase?: boolean;
   }
 }
 import { 
@@ -319,7 +320,13 @@ export default function Editor({
       return;
     }
 
+    // Mark that we're generating content - this controls showing the status component
     setIsGenerating(true);
+    
+    // This will track whether we're in the typing phase (after API response received)
+    // We will use this to control visibility of status during typing
+    window.inTypingPhase = false;
+    
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
     
     // Clear any existing HTML content and prepare for streaming visualization
@@ -954,14 +961,16 @@ export default function Editor({
         >
           <div className="flex-1 flex flex-col p-4">
           {/* Prompt Input and Generation Status */}
-          <div className={isGenerating ? "mb-2" : "mb-4"}>
+          <div className="mb-2">
             {isGenerating ? (
               <GenerationStatus 
                 status={streamingOutput}
                 processingItem={prompt.split(' ').slice(0, 2).join(' ')} 
-                percentComplete={isGenerating ? 
-                  Math.floor((htmlContent.length / (window.expectedContentLength || 30000)) * 100) : 
-                  undefined} 
+                percentComplete={
+                  window.expectedContentLength && htmlContent.length > 0
+                    ? Math.floor((htmlContent.length / window.expectedContentLength) * 100)
+                    : 0
+                } 
               />
             ) : (
               <>

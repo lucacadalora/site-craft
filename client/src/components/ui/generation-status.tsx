@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface GenerationStatusProps {
   status: string[];
@@ -11,6 +11,22 @@ export function GenerationStatus({
   processingItem, 
   percentComplete 
 }: GenerationStatusProps) {
+  // Keep status component visible for at least some time even if percentComplete reaches 100%
+  const [showProgress, setShowProgress] = useState(true);
+  
+  // When percentComplete changes to 100, delay hiding the progress bar
+  useEffect(() => {
+    if (percentComplete && percentComplete >= 100) {
+      // Keep showing progress bar for a while even after reaching 100%
+      const timer = setTimeout(() => {
+        setShowProgress(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowProgress(true);
+    }
+  }, [percentComplete]);
+
   return (
     <div className="bg-blue-950 text-gray-200 rounded-lg p-4 text-sm font-mono overflow-hidden">
       <div className="flex items-center mb-1">
@@ -43,21 +59,20 @@ export function GenerationStatus({
         );
       })}
       
-      {percentComplete !== undefined && percentComplete < 100 && (
-        <div className="mt-2">
-          <div className="flex items-center">
-            <div className="h-2 bg-blue-900 rounded-full w-full">
-              <div 
-                className="h-2 bg-blue-400 rounded-full transition-all duration-300 ease-in-out" 
-                style={{ width: `${percentComplete}%` }}
-              ></div>
-            </div>
-            <span className="ml-2 text-blue-300 min-w-[4rem] text-right">
-              {Math.round(percentComplete)}% 
-            </span>
+      {/* Always show the progress bar during generation regardless of percentComplete */}
+      <div className="mt-2">
+        <div className="flex items-center">
+          <div className="h-2 bg-blue-900 rounded-full w-full">
+            <div 
+              className="h-2 bg-blue-400 rounded-full transition-all duration-300 ease-in-out" 
+              style={{ width: `${Math.min(percentComplete || 0, 100)}%` }}
+            ></div>
           </div>
+          <span className="ml-2 text-blue-300 min-w-[4rem] text-right">
+            {Math.min(Math.round(percentComplete || 0), 100)}% 
+          </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }
