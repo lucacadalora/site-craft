@@ -127,14 +127,13 @@ export function CodeEditor({
   }, []);
 
   return (
-    <div className="code-editor-container flex h-full bg-[#111827] rounded">
-      <div className="flex-1 flex overflow-auto" style={{ height: '100%', maxHeight: '100%' }}>
+    <div className="code-editor-container h-full bg-[#111827] rounded">
+      <div className="flex h-full overflow-hidden">
         <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
         <div 
           ref={editorWrapperRef}
           className="editor-wrapper flex-1 relative overflow-auto font-mono leading-normal"
-          style={{ height: '100%' }}
         >
           <Editor
             value={value}
@@ -148,8 +147,7 @@ export function CodeEditor({
               fontSize: '13px',
               lineHeight: '1.4',
               minHeight: '100%',
-              height: 'auto',
-              overflow: 'auto',
+              whiteSpace: 'pre',
             }}
             readOnly={readOnly || isGenerating}
           />
@@ -165,8 +163,6 @@ export function CodeEditor({
           )}
         </div>
       </div>
-      
-      <Minimap content={value} />
     </div>
   );
 }

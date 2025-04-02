@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast, toast as showToast } from "@/hooks/use-toast";
-import { CodeEditor } from "@/components/ui/code-editor";
+import { CodeEditor } from "@/components/ui/code-editor-basic";
 import { Button } from "@/components/ui/button";
 import { ApiConfig } from "@shared/schema";
 import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
@@ -862,12 +862,14 @@ export default function Editor({
                 <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
               </div>
             </div>
-            <div className="relative w-full h-[calc(100%-32px)] overflow-hidden">
-              <CodeEditor
-                value={htmlContent}
-                onChange={handleHtmlChange}
-                isGenerating={isGenerating}
-              />
+            <div className="relative w-full h-[calc(100%-32px)] overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-hidden">
+                <CodeEditor
+                  value={htmlContent}
+                  onChange={handleHtmlChange}
+                  isGenerating={isGenerating}
+                />
+              </div>
               {isGenerating && (
                 <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
                   <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
