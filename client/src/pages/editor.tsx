@@ -378,6 +378,33 @@ export default function Editor({
           const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
           setHtmlContent(contentWithCursor);
           
+          // Auto-scroll the editor to follow the cursor
+          setTimeout(() => {
+            // Find the editor wrapper element
+            const editorWrapper = document.querySelector('.editor-wrapper');
+            if (editorWrapper) {
+              // Calculate where the cursor is based on the visible content
+              // Estimate line position by counting newlines
+              const lineCount = (visibleContent.match(/\n/g) || []).length;
+              
+              // For longer code with many lines, ensure we're scrolling enough to follow the cursor
+              // Approximate number of visible lines in the editor
+              const editorHeight = editorWrapper.clientHeight;
+              const lineHeight = 20; // Approximate line height in pixels
+              const visibleLines = Math.floor(editorHeight / lineHeight);
+              
+              // Calculate target scroll position to keep cursor visible
+              // Aim to keep cursor in the bottom third of the visible area
+              const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
+              const scrollTarget = targetLine * lineHeight;
+              
+              // Set scroll position to follow the typing
+              editorWrapper.scrollTop = scrollTarget;
+              
+              console.log("Auto-scrolling editor to line:", targetLine);
+            }
+          }, 0);
+          
           // Calculate progress percentage and show in the streaming output
           if (i % 500 === 0 || i === 0) {
             const percent = Math.floor((i / htmlContent.length) * 100);
