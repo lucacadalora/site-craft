@@ -667,13 +667,31 @@ footer {
 `; 
 }
 
-// For validation and token estimation - simplified versions
+// API key validation
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    // In a real app, you would validate with the SambaNova API
-    console.log("Validating API key:", apiKey);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-    return true; // Always return true for demo
+    if (!apiKey) {
+      return false;
+    }
+    
+    console.log("Validating SambaNova API key...");
+    
+    // Call the server endpoint to validate the API key
+    const response = await fetch('/api/sambanova/validate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ apiKey })
+    });
+    
+    if (!response.ok) {
+      console.error("Error validating API key:", await response.text());
+      return false;
+    }
+    
+    const data = await response.json();
+    return data.valid === true;
   } catch (error) {
     console.error("Error validating API key:", error);
     return false;

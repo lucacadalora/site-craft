@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { apiConfigSchema } from "@shared/schema";
 import fs from "fs";
 import path from "path";
+import { generateLandingPageHtml, generateFallbackHtml, validateSambanovaApiKey } from './lib/sambanova';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
@@ -80,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // SambaNova API integration for DeepSite generation - Simple version (no streaming)
+  // SambaNova API integration for DeepSite generation
   app.post("/api/sambanova/generate-stream", async (req, res) => {
     try {
       const { prompt, apiConfig } = req.body;
@@ -91,173 +92,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Check if we have an API key
-      const apiKey = apiConfig?.apiKey || process.env.SAMBANOVA_API_KEY;
-      if (!apiKey) {
-        return res.status(401).json({ 
-          message: "SambaNova API key is required. Please provide one in the API configuration."
-        });
-      }
-      
-      // In a real implementation, we would call the SambaNova API here
-      // For now, we'll simulate the response with a small delay
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Generate a simple HTML based on the prompt
+      // Generate the landing page HTML
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
-      const generatedHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
-      color: #333;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-    
-    header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 80px 0;
-      text-align: center;
-    }
-    
-    h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
-    }
-    
-    p {
-      font-size: 1.2rem;
-      max-width: 800px;
-      margin: 0 auto 30px auto;
-    }
-    
-    .cta-button {
-      display: inline-block;
-      background-color: #fff;
-      color: #3b82f6;
-      padding: 12px 30px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .cta-button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    
-    section {
-      padding: 80px 0;
-    }
-    
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
-      margin-bottom: 60px;
-      color: #333;
-    }
-    
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-    }
-    
-    .feature {
-      background-color: #f8f9fa;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-      transition: transform 0.3s ease;
-    }
-    
-    .feature:hover {
-      transform: translateY(-10px);
-    }
-    
-    .feature h3 {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-      color: #3b82f6;
-    }
-    
-    footer {
-      background-color: #333;
-      color: white;
-      padding: 40px 0;
-      text-align: center;
-    }
-    
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2.5rem;
+      
+      // Call the SambaNova API
+      const result = await generateLandingPageHtml(prompt, apiConfig);
+      
+      if (result.success) {
+        // Send the HTML response back
+        return res.json({ html: result.html });
+      } else {
+        // If API call failed, use fallback
+        console.log("Using fallback HTML generation due to API error:", result.error);
+        const fallbackHtml = generateFallbackHtml(title, prompt);
+        return res.json({ html: fallbackHtml });
       }
-      
-      .section-title {
-        font-size: 2rem;
-      }
-      
-      .features {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>${title}</h1>
-      <p>${prompt}</p>
-      <a href="#" class="cta-button">Get Started</a>
-    </div>
-  </header>
-  
-  <section>
-    <div class="container">
-      <h2 class="section-title">Key Features</h2>
-      <div class="features">
-        <div class="feature">
-          <h3>Feature 1</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 2</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 3</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${title}. All rights reserved.</p>
-    </div>
-  </footer>
-</body>
-</html>`;
-      
-      // Send the HTML response back
-      return res.json({ html: generatedHtml });
-      
     } catch (error) {
       console.error("Error with SambaNova API:", error);
       return res.status(500).json({ 
@@ -277,162 +126,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Check if we have an API key
-      const apiKey = apiConfig?.apiKey || process.env.SAMBANOVA_API_KEY;
-      if (!apiKey) {
-        return res.status(401).json({ 
-          message: "SambaNova API key is required. Please provide one in the API configuration."
+      // Call the SambaNova API
+      const result = await generateLandingPageHtml(prompt, apiConfig);
+      
+      if (result.success) {
+        // Return the generated HTML as both HTML and CSS for backward compatibility
+        return res.json({ 
+          html: result.html,
+          css: '' // CSS is embedded in the HTML
+        });
+      } else {
+        // Use fallback HTML generation
+        console.log("Using fallback HTML generation for deepsite:", result.error);
+        const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
+        const fallbackHtml = generateFallbackHtml(title, prompt);
+        
+        return res.json({
+          html: fallbackHtml,
+          css: ''
         });
       }
-      
-      // In a real implementation, you would call the SambaNova API here
-      // For now, we'll create a mock response with some delay to simulate the API call
-      
-      // Random delay between 1-3 seconds to simulate API processing
-      const delay = Math.floor(Math.random() * 2000) + 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // Generate a simple HTML based on the prompt
-      const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
-      const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>${category.toUpperCase()} LANDING PAGE</h1>
-      <p>${prompt.slice(0, 100)}...</p>
-      <a href="#" class="btn btn-primary">Get Started</a>
-    </div>
-  </header>
-  
-  <section class="features">
-    <div class="container">
-      <h2>Key Features</h2>
-      <div class="feature-grid">
-        <div class="feature">
-          <h3>Feature 1</h3>
-          <p>Description of feature 1</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 2</h3>
-          <p>Description of feature 2</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 3</h3>
-          <p>Description of feature 3</p>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <section class="cta">
-    <div class="container">
-      <h2>Ready to get started?</h2>
-      <p>Join thousands of satisfied customers today!</p>
-      <a href="#" class="btn btn-secondary">Sign Up Now</a>
-    </div>
-  </section>
-</body>
-</html>
-      `;
-      
-      const css = `
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Arial', sans-serif;
-  line-height: 1.6;
-  color: #333;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-header {
-  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-  color: white;
-  text-align: center;
-  padding: 100px 0;
-}
-
-h1 {
-  font-size: 3rem;
-  margin-bottom: 20px;
-}
-
-.btn {
-  display: inline-block;
-  padding: 12px 30px;
-  background: #fff;
-  color: #6a11cb;
-  border-radius: 5px;
-  text-decoration: none;
-  font-weight: bold;
-  margin-top: 20px;
-  transition: all 0.3s ease;
-}
-
-.btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
-.features {
-  padding: 80px 0;
-  background: #f9f9f9;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  margin-top: 40px;
-}
-
-.feature {
-  background: white;
-  border-radius: 10px;
-  padding: 30px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-
-.cta {
-  background: #2575fc;
-  color: white;
-  text-align: center;
-  padding: 80px 0;
-}
-
-.btn-secondary {
-  background: #6a11cb;
-  color: white;
-}
-      `;
-      
-      return res.json({ html, css });
     } catch (error) {
-      console.error("Error with SambaNova API:", error);
+      console.error("Error generating DeepSite:", error);
       return res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to generate content with SambaNova API" 
+        message: error instanceof Error ? error.message : "Failed to generate DeepSite" 
       });
     }
   });
   
-  // Create an HTTP server
-  const httpServer = createServer(app);
+  // Validate SambaNova API key
+  app.post("/api/sambanova/validate", async (req, res) => {
+    try {
+      const { apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(400).json({ 
+          message: "API key is required"
+        });
+      }
+      
+      const isValid = await validateSambanovaApiKey(apiKey);
+      
+      return res.json({ valid: isValid });
+    } catch (error) {
+      console.error("Error validating API key:", error);
+      return res.status(500).json({ 
+        message: "Failed to validate API key",
+        valid: false
+      });
+    }
+  });
 
-  return httpServer;
+  // Return the HTTP server
+  return createServer(app);
 }
