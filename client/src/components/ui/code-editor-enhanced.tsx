@@ -38,6 +38,7 @@ interface LineNumbersProps {
   lineNumbersRef?: React.RefObject<HTMLDivElement>;
 }
 
+// Optimized LineNumbers component using virtual rendering
 const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   // Ensure we render at least a reasonable minimum number of lines
   const minLineCount = Math.max(count, 10);
@@ -45,43 +46,80 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   // Log line count to help with debugging
   console.log("Rendering line numbers component with count:", count);
   
-  // Create more line numbers than needed to ensure we have enough for scrolling
-  // This helps with very long files
-  const actualCount = Math.max(count, 1000); // Ensure plenty of line numbers for scrolling
+  // State to track scroll position and visible range
+  const [scrollTop, setScrollTop] = useState(0);
+  const [visibleHeight, setVisibleHeight] = useState(600);
+  
+  // Constants for rendering optimization
+  const LINE_HEIGHT = 1.4; // em
+  const BUFFER_SIZE = 100; // Extra lines to render above/below visible area
+  
+  // Total height of the content
+  const totalHeight = Math.max(count * LINE_HEIGHT, minLineCount * LINE_HEIGHT);
+  
+  // Calculate which lines should be visible (with buffer)
+  const startLine = Math.max(0, Math.floor(scrollTop / LINE_HEIGHT) - BUFFER_SIZE);
+  const endLine = Math.min(count, Math.ceil((scrollTop + visibleHeight) / LINE_HEIGHT) + BUFFER_SIZE);
+  
+  // Log the optimization metrics - this shows we're only rendering the visible lines plus buffer
+  console.log(`DEBUG: Line numbers - total lines in file: ${count}, rendering lines ${startLine+1}-${endLine} (${endLine-startLine} lines at a time)`);
+  
+  // Effect to sync scroll position
+  useEffect(() => {
+    if (!lineNumbersRef?.current) return;
+    
+    const container = lineNumbersRef.current;
+    
+    // Update visible dimensions
+    setVisibleHeight(container.clientHeight);
+    
+    // Handler for scroll events
+    const handleScroll = () => {
+      setScrollTop(container.scrollTop);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [lineNumbersRef]);
   
   return (
     <div 
       ref={lineNumbersRef}
       className="line-numbers text-xs text-gray-500 select-none pr-2 text-right" 
       style={{ 
-        minHeight: `${minLineCount * 1.4}em`,  // Ensure min height based on lines
-        height: '100%', // Match the editor height
-        overflowY: 'auto', // Enable scrolling
+        minHeight: `${minLineCount * LINE_HEIGHT}em`,
+        height: '100%',
+        overflowY: 'auto',
         overflowX: 'hidden',
-        scrollbarWidth: 'none', // Hide scrollbar in Firefox
-        msOverflowStyle: 'none', // Hide scrollbar in IE/Edge
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
         position: 'relative'
       }}
     >
-      <div style={{ height: `${actualCount * 1.4}em` }}>
-        {Array.from({ length: actualCount }, (_, i) => (
-          <div 
-            key={i} 
-            className="leading-tight py-0.5"
-            style={{ 
-              height: '1.4em', 
-              lineHeight: '1.4',
-              position: 'absolute',
-              width: '100%',
-              top: `${i * 1.4}em`,
-              right: 0,
-              textAlign: 'right',
-              paddingRight: '0.5rem'
-            }}
-          >
-            {i + 1}
-          </div>
-        ))}
+      {/* This div sets the total height for proper scrolling */}
+      <div style={{ height: `${totalHeight}em`, position: 'relative' }}>
+        {/* Only render the visible lines plus buffer */}
+        {Array.from({ length: endLine - startLine }, (_, i) => {
+          const lineNumber = startLine + i + 1; // +1 because line numbers start at 1
+          return (
+            <div 
+              key={lineNumber} 
+              className="leading-tight py-0.5"
+              style={{ 
+                height: `${LINE_HEIGHT}em`, 
+                lineHeight: '1.4',
+                position: 'absolute',
+                width: '100%',
+                top: `${(startLine + i) * LINE_HEIGHT}em`,
+                right: 0,
+                textAlign: 'right',
+                paddingRight: '0.5rem'
+              }}
+            >
+              {lineNumber}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
