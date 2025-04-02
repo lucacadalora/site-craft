@@ -618,7 +618,7 @@ export default function Editor({
                 onClick={() => setFullscreenPreview(false)}
                 className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
               >
-                Editor
+                Editor Focus
               </Button>
               <Button 
                 variant={fullscreenPreview ? "default" : "outline"}
@@ -626,7 +626,7 @@ export default function Editor({
                 onClick={() => setFullscreenPreview(true)}
                 className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
               >
-                Preview
+                Preview Focus
               </Button>
               <Button 
                 variant="outline"
@@ -639,20 +639,20 @@ export default function Editor({
                 Refresh
               </Button>
             </div>
-            {fullscreenPreview && (
-              <p className="text-xs text-gray-400 mt-1 italic">
-                If preview is blank, use the Refresh button
-              </p>
-            )}
+            <p className="text-xs text-gray-400 mt-1">
+              {fullscreenPreview 
+                ? "Editor is always available at the bottom of the screen"
+                : "Preview is always available at the bottom of the screen"}
+            </p>
           </div>
         </div>
       )}
 
       {/* Main Content */}
       <div className={`${isMobile ? 'flex flex-col' : 'flex'} flex-1 overflow-hidden editor-container`}>
-        {/* Editor Panel - Hidden when in fullscreen preview on mobile */}
+        {/* Editor Panel - Always visible but resized based on view */}
         <div 
-          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'hidden' : 'w-full h-1/2') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
+          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'w-full h-[30%]' : 'w-full h-1/2') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
         >
           {!isGenerating ? (
             <div className="flex-1 flex flex-col p-4">
@@ -751,9 +751,9 @@ export default function Editor({
           ></div>
         )}
 
-        {/* Preview Panel - Takes full height on mobile in preview mode */}
+        {/* Preview Panel - Modified for mobile to always leave room for editor */}
         <div 
-          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'h-full w-full' : 'h-1/2 w-full') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
+          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'h-[70%] w-full' : 'h-1/2 w-full') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
             <div className="flex items-center">
@@ -808,22 +808,11 @@ export default function Editor({
           </div>
           
           {/* Preview Iframe */}
-          <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white pt-10' : ''}`}>
-            {fullscreenPreview && (
+          <div className={`flex-1 ${fullscreenPreview && !isMobile ? 'fixed inset-0 z-50 bg-white pt-10' : ''}`}>
+            {fullscreenPreview && !isMobile && (
               <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-2 flex justify-between items-center">
                 <div className="text-sm font-medium text-gray-800">
                   Fullscreen Preview
-                  {isMobile && (
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="text-xs text-blue-500 ml-2" 
-                      onClick={handleRefreshPreview}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      Refresh
-                    </Button>
-                  )}
                 </div>
                 <Button 
                   variant="outline" 
@@ -833,6 +822,24 @@ export default function Editor({
                 >
                   <Minimize className="h-3.5 w-3.5 mr-1" />
                   Exit
+                </Button>
+              </div>
+            )}
+            
+            {/* Mobile preview toolbar */}
+            {isMobile && fullscreenPreview && (
+              <div className="bg-gray-100 border-b border-gray-200 p-2 flex justify-between items-center">
+                <div className="text-sm font-medium text-gray-800">
+                  Preview
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs text-blue-500" 
+                  onClick={handleRefreshPreview}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Refresh
                 </Button>
               </div>
             )}
