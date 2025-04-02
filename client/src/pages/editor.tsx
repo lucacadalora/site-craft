@@ -398,23 +398,30 @@ export default function Editor({
               const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
               const isNearEnd = i > htmlContent.length * 0.95 || lineCount > totalLines * 0.95;
               
-              // If we're near the end, scroll all the way to bottom
-              // Otherwise keep cursor in the bottom third of the visible area
+              // Enhanced scrolling logic with better end-of-content handling
+              // We want to keep the cursor in view and provide smooth scrolling experience
               let scrollTarget;
               
               if (isNearEnd) {
-                // Scroll all the way to the bottom
-                scrollTarget = editorWrapperRef.current.scrollHeight - editorWrapperRef.current.clientHeight;
-                console.log("Auto-scrolling to BOTTOM of editor, last lines visible");
+                // When we're near the end, always ensure we can see the very bottom
+                // Add extra buffer to ensure the last few lines are completely visible
+                scrollTarget = editorWrapperRef.current.scrollHeight;
+                console.log("Auto-scrolling to ABSOLUTE BOTTOM of editor for last lines");
               } else {
-                // Normal scroll behavior - keep cursor in view
-                const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
+                // Normal scroll behavior - position cursor in the visible area but not at the very bottom
+                // This creates a more natural reading experience by keeping cursor at ~70% of visible area
+                const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.6));
                 scrollTarget = targetLine * lineHeight;
-                console.log("Auto-scrolling editor to line:", targetLine, "of", totalLines);
+                console.log("Auto-scrolling editor to line:", targetLine, "of", totalLines, 
+                           "lineHeight:", lineHeight, "scrollTarget:", scrollTarget);
               }
               
-              // Use smooth scrolling with requestAnimationFrame
-              smoothScrollTo(editorWrapperRef.current, scrollTarget);
+              // Force a slight delay to ensure DOM updates are complete
+              // This helps prevent scrolling issues during rapid content updates
+              setTimeout(() => {
+                // Use enhanced smooth scrolling with requestAnimationFrame and improved easing
+                smoothScrollTo(editorWrapperRef.current, scrollTarget, isNearEnd ? 100 : 200);
+              }, 5);
             }
           }, 10);
           
@@ -512,10 +519,11 @@ export default function Editor({
     // when scrolling near the bottom of the content
     const maxScroll = element.scrollHeight - element.clientHeight;
     
-    // If target is within 5% of the max scroll, go all the way to the bottom
-    if (targetScrollTop > maxScroll * 0.95) {
+    // If target is within 10% of the max scroll, go all the way to the bottom
+    // This ensures we always can see the last lines of content
+    if (targetScrollTop > maxScroll * 0.9) {
       targetScrollTop = maxScroll;
-      console.log("Scroll adjusted to bottom:", targetScrollTop);
+      console.log("Scroll adjusted to BOTTOM:", targetScrollTop);
     }
     
     // Safety check: ensure targetScrollTop is within bounds
@@ -524,33 +532,44 @@ export default function Editor({
     const startScrollTop = element.scrollTop;
     const distance = targetScrollTop - startScrollTop;
     
-    // Don't animate if distance is too small
-    if (Math.abs(distance) < 10) {
+    // Don't animate if distance is too small or if we're already at target
+    if (Math.abs(distance) < 10 || startScrollTop === targetScrollTop) {
       element.scrollTop = targetScrollTop;
       return;
     }
     
+    // Log the scroll operation for debugging
+    console.log(`Smooth scrolling from ${startScrollTop} to ${targetScrollTop}, distance: ${distance}`);
+    
     let startTime: number | null = null;
+    let lastPosition = startScrollTop;
 
     function animation(currentTime: number) {
       if (!startTime) startTime = currentTime;
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       
-      // Simple easing function (easeInOutQuad) for smoother motion
+      // Enhanced cubic easing function for more professional motion
+      // This provides a smoother acceleration and deceleration curve
       const easeProgress = progress < 0.5 
-        ? 2 * progress * progress 
-        : -1 + (4 - 2 * progress) * progress;
+        ? 4 * progress * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
         
       // Apply the calculated scroll position
-      element.scrollTop = startScrollTop + distance * easeProgress;
+      const newPosition = startScrollTop + distance * easeProgress;
+      element.scrollTop = newPosition;
       
-      // Continue animation if we're not done
-      if (progress < 1) {
+      // Check if we're actually making progress (avoid infinite loop in case of DOM issues)
+      const isMoving = Math.abs(newPosition - lastPosition) > 0.5;
+      lastPosition = newPosition;
+      
+      // Continue animation if we're not done and still making progress
+      if (progress < 1 && isMoving) {
         requestAnimationFrame(animation);
       } else {
-        // When finished, make sure we're exactly at target (no rounding errors)
+        // When finished or stuck, make sure we're exactly at target (no rounding errors)
         element.scrollTop = targetScrollTop;
+        console.log("Scroll complete to position:", element.scrollTop);
       }
     }
     

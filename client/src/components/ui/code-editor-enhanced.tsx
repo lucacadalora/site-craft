@@ -39,10 +39,17 @@ interface LineNumbersProps {
 }
 
 const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
+  // Ensure we render at least a reasonable minimum number of lines
+  const minLineCount = Math.max(count, 10);
+  
+  // Log line count to help with debugging
+  console.log("Rendering line numbers component with count:", count);
+  
   return (
     <div 
       ref={lineNumbersRef}
       className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-hidden" 
+      style={{ minHeight: `${minLineCount * 1.4}em` }} // Ensure min height based on lines
     >
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="leading-tight py-0.5">{i + 1}</div>
@@ -79,11 +86,13 @@ export function CodeEditor({
   useEffect(() => {
     const count = (value.match(/\n/g) || []).length + 1;
     setLineCount(count);
+    console.log("Line count updated:", count, "from content length:", value.length);
   }, [value]);
 
   // Display typing indicator
   useEffect(() => {
     setIsTyping(isGenerating);
+    console.log("Typing indicator visibility updated:", isGenerating);
   }, [isGenerating]);
   
   // Synchronize scrolling between editor and line numbers
