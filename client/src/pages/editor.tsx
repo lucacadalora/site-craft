@@ -821,27 +821,43 @@ export default function Editor({
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               
-              {/* For mobile, we don't show the fullscreen button in the header since we use tabs */}
-              {!isMobile && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
-                  onClick={() => setFullscreenPreview(!fullscreenPreview)}
-                >
-                  {fullscreenPreview ? (
-                    <>
-                      <Minimize className="h-3.5 w-3.5 mr-1" />
-                      <span>Exit Fullscreen</span>
-                    </>
-                  ) : (
-                    <>
-                      <Maximize className="h-3.5 w-3.5 mr-1" />
-                      <span>Fullscreen</span>
-                    </>
-                  )}
-                </Button>
-              )}
+              {/* Fullscreen button for all devices */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2 text-xs border-gray-300 text-gray-700" 
+                onClick={() => {
+                  if (isMobile) {
+                    // For mobile, create a new window with the content
+                    const newWindow = window.open('', '_blank');
+                    if (newWindow) {
+                      newWindow.document.write(htmlContent);
+                      newWindow.document.close();
+                    } else {
+                      toast({
+                        title: "Popup Blocked",
+                        description: "Please allow popups to open in fullscreen view",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    // For desktop, toggle the fullscreen preview state
+                    setFullscreenPreview(!fullscreenPreview);
+                  }
+                }}
+              >
+                {!isMobile || !fullscreenPreview ? (
+                  <>
+                    <Maximize className="h-3.5 w-3.5 mr-1" />
+                    <span className={isMobile ? "hidden" : "inline"}>Fullscreen</span>
+                  </>
+                ) : (
+                  <>
+                    <Minimize className="h-3.5 w-3.5 mr-1" />
+                    <span className={isMobile ? "hidden" : "inline"}>Exit</span>
+                  </>
+                )}
+              </Button>
             </div>
           </div>
           
@@ -864,23 +880,7 @@ export default function Editor({
               </div>
             )}
             
-            {/* Mobile preview toolbar */}
-            {isMobile && fullscreenPreview && (
-              <div className="bg-gray-100 border-b border-gray-200 p-2 flex justify-between items-center">
-                <div className="text-sm font-medium text-gray-800">
-                  Preview
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-xs text-blue-500" 
-                  onClick={handleRefreshPreview}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Refresh
-                </Button>
-              </div>
-            )}
+            {/* We removed the duplicate mobile preview toolbar */}
             <div className="w-full h-full relative">
               {isMobile && !htmlContent && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
