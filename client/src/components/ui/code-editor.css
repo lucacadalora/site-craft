@@ -42,7 +42,7 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: auto !important; /* Changed from 'scroll' to prevent forced scrollbar */
+  overflow-y: scroll !important; /* Changed back to scroll to force scrollbar */
   overflow-x: auto;
   height: 600px; /* Fixed height to ensure scroll behavior */
   max-height: 100%; /* Don't exceed container height */

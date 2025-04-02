@@ -199,6 +199,38 @@ export function CodeEditor({
       }, 100);
     }
   }, []);
+
+  // Add handler to ensure editor stays scrollable
+  useEffect(() => {
+    // Add mutation observer to ensure textarea stays scrollable
+    if (editorWrapperRef.current) {
+      const observer = new MutationObserver((mutations) => {
+        // When content changes, ensure scrollbars are visible
+        if (editorWrapperRef.current) {
+          editorWrapperRef.current.style.overflowY = 'scroll';
+        
+          // Check if we need to scroll to bottom for streaming content
+          if (isGenerating) {
+            setTimeout(() => {
+              if (editorWrapperRef.current) {
+                editorWrapperRef.current.scrollTop = 
+                  editorWrapperRef.current.scrollHeight - 
+                  editorWrapperRef.current.clientHeight;
+              }
+            }, 10);
+          }
+        }
+      });
+      
+      observer.observe(editorWrapperRef.current, { 
+        childList: true, 
+        subtree: true,
+        characterData: true
+      });
+      
+      return () => observer.disconnect();
+    }
+  }, [isGenerating]);
   
   return (
     <div className="code-editor-container">
@@ -209,9 +241,12 @@ export function CodeEditor({
           ref={editorWrapperRef}
           className="editor-wrapper"
           style={{ 
-            overflowY: 'scroll',
+            overflowY: 'scroll', // Force scrollbar to always be visible
             height: '600px',
-            maxHeight: '600px' // Fix height to ensure scrolling
+            maxHeight: '600px',
+            position: 'relative',
+            willChange: 'transform',
+            transform: 'translateZ(0)'
           }}
         >
           <Editor
@@ -227,6 +262,8 @@ export function CodeEditor({
               lineHeight: '1.4',
               minHeight: '100%',
               whiteSpace: 'pre',
+              willChange: 'contents',
+              containIntrinsicSize: 'auto',
             }}
             readOnly={readOnly || isGenerating}
           />

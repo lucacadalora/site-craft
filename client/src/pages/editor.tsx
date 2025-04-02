@@ -492,8 +492,28 @@ export default function Editor({
           });
         }, 1000); // Update progress every second
         
-        // Remove cursor from final content and ensure final content is set correctly
+        // Ensure final content is set correctly without any cursor
         setHtmlContent(htmlContent);
+        
+        // Final step to ensure scrolling works after generation is complete
+        setTimeout(() => {
+          if (editorWrapperRef.current) {
+            // Force scrollbar to be visible after all content is loaded
+            editorWrapperRef.current.style.overflowY = 'scroll';
+            
+            // Make one last scroll to ensure we can see the end of the content
+            const scrollableHeight = editorWrapperRef.current.scrollHeight - editorWrapperRef.current.clientHeight;
+            
+            // Scroll to a position just above the bottom to encourage user to scroll
+            editorWrapperRef.current.scrollTop = Math.max(0, scrollableHeight - 100);
+            
+            // Give focus to the editor to enable keyboard navigation
+            const textarea = editorWrapperRef.current.querySelector('textarea');
+            if (textarea) {
+              textarea.focus();
+            }
+          }
+        }, 500);
         
         // Update preview based on device type
         if (isMobile) {
@@ -554,11 +574,13 @@ export default function Editor({
     // when scrolling near the bottom of the content
     const maxScroll = element.scrollHeight - element.clientHeight;
     
+    // Make sure the scrollbar is visible
+    element.style.overflowY = 'scroll';
+    
     // If target is within 10% of the max scroll, go all the way to the bottom
     // This ensures we always can see the last lines of content
     if (targetScrollTop > maxScroll * 0.9) {
       targetScrollTop = maxScroll;
-      console.log("Scroll adjusted to BOTTOM:", targetScrollTop);
     }
     
     // Safety check: ensure targetScrollTop is within bounds
@@ -584,9 +606,6 @@ export default function Editor({
     // Mark that we're currently scrolling
     element.dataset.isScrolling = "true";
     
-    // Log the scroll operation for debugging
-    console.log(`Smooth scrolling from ${startScrollTop} to ${targetScrollTop}, distance: ${distance}`);
-    
     let startTime: number | null = null;
     let lastPosition = startScrollTop;
 
@@ -608,13 +627,15 @@ export default function Editor({
       const isMoving = Math.abs(newPosition - lastPosition) > 0.5;
       lastPosition = newPosition;
       
+      // Ensure scrollbar is visible during animation
+      element.style.overflowY = 'scroll';
+      
       // Continue animation if we're not done and still making progress
       if (progress < 1 && isMoving) {
         requestAnimationFrame(animation);
       } else {
         // When finished or stuck, make sure we're exactly at target (no rounding errors)
         element.scrollTop = targetScrollTop;
-        console.log("Scroll complete to position:", element.scrollTop);
         // Mark that we're done scrolling
         element.dataset.isScrolling = "false";
       }
@@ -949,7 +970,7 @@ export default function Editor({
           </Button>
           
           {/* HTML Editor - Always visible */}
-          <div className="flex-1 overflow-hidden bg-[#111827] rounded-md border border-gray-700">
+          <div className="flex-1 overflow-visible bg-[#111827] rounded-md border border-gray-700">
             <div className="flex items-center justify-between bg-[#1e293b] px-3 py-2 border-b border-gray-700">
               <div className="text-xs font-medium text-gray-300">
                 {isGenerating ? (
