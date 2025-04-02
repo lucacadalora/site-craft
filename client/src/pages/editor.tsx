@@ -321,55 +321,50 @@ export default function Editor({
 
     setIsGenerating(true);
     setStreamingOutput([]);
+    
+    // Generate a unique client ID for this session
+    const clientId = `client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     try {
-      // Use the EventSource API to connect to the streaming endpoint
-      const eventSource = new EventSource(`/api/sambanova/generate-stream?_=${Date.now()}`, { 
-        withCredentials: true 
-      });
+      // First establish the SSE connection
+      const eventSource = new EventSource(`/api/sambanova/generate-stream?_=${clientId}`);
       
-      // Send the request data in a POST request
-      fetch('/api/sambanova/generate-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          apiConfig,
-        }),
-      }).catch(error => {
-        console.error('Error sending POST data:', error);
-        eventSource.close();
-      });
-
-      // Listen for the 'start' event
+      // Setup event listeners right away
       eventSource.addEventListener('start', (event) => {
-        const data = JSON.parse(event.data);
-        setStreamingOutput([data.message]);
+        try {
+          const data = JSON.parse(event.data);
+          setStreamingOutput([data.message]);
+        } catch (e) {
+          console.error('Error parsing SSE start event data:', e);
+        }
       });
 
-      // Listen for token streaming
       eventSource.addEventListener('token', (event) => {
-        const data = JSON.parse(event.data);
-        setStreamingOutput(prev => [...prev, data.message]);
+        try {
+          const data = JSON.parse(event.data);
+          setStreamingOutput(prev => [...prev, data.message]);
+        } catch (e) {
+          console.error('Error parsing SSE token event data:', e);
+        }
       });
 
-      // Listen for the 'complete' event
       eventSource.addEventListener('complete', (event) => {
-        const data = JSON.parse(event.data);
-        setHtmlContent(data.html);
-        setStreamingOutput(prev => [...prev, 'Generation complete! ✅']);
-        eventSource.close();
-        setIsGenerating(false);
-        
-        toast({
-          title: "Generation Complete",
-          description: "Your landing page has been generated",
-        });
+        try {
+          const data = JSON.parse(event.data);
+          setHtmlContent(data.html);
+          setStreamingOutput(prev => [...prev, 'Generation complete! ✅']);
+          eventSource.close();
+          setIsGenerating(false);
+          
+          toast({
+            title: "Generation Complete",
+            description: "Your landing page has been generated",
+          });
+        } catch (e) {
+          console.error('Error parsing SSE complete event data:', e);
+        }
       });
 
-      // Listen for errors
       eventSource.addEventListener('error', (event) => {
         console.error('EventSource error:', event);
         setStreamingOutput(prev => [...prev, 'Error: Generation failed']);
@@ -382,13 +377,49 @@ export default function Editor({
           variant: "destructive",
         });
       });
+      
+      // Wait for the connection to open
+      eventSource.onopen = async () => {
+        console.log('SSE connection established, sending generation request');
+        
+        try {
+          // Now send the POST request with the same client ID to start generation
+          const response = await fetch(`/api/sambanova/generate-stream?_=${clientId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              prompt,
+              apiConfig,
+              clientId
+            }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to start generation');
+          }
+          
+        } catch (error) {
+          console.error('Error sending POST data:', error);
+          eventSource.close();
+          setIsGenerating(false);
+          
+          toast({
+            title: "Generation Failed",
+            description: error instanceof Error ? error.message : "Failed to start generation",
+            variant: "destructive",
+          });
+        }
+      };
 
-      // Clean up on component unmount or error
+      // Clean up on component unmount
       return () => {
         eventSource.close();
       };
     } catch (error) {
-      console.error(error);
+      console.error('Error setting up SSE:', error);
       toast({
         title: "Generation Failed",
         description: error instanceof Error ? error.message : "An error occurred",
