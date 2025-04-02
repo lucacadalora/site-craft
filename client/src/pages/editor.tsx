@@ -827,15 +827,14 @@ export default function Editor({
               <>
                 <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
                 <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
-                  <textarea
-                    className="w-full p-3 bg-[#1e293b] text-white border-0 text-sm focus:outline-none resize-none"
+                  <input
+                    className="w-full p-2 bg-[#1e293b] text-white border-0 text-sm focus:outline-none"
+                    type="text"
                     placeholder="Describe the landing page you want to generate..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    rows={isMobile ? 3 : 4}
                     style={{
                       fontFamily: 'system-ui, -apple-system, sans-serif',
-                      lineHeight: '1.5',
                     }}
                   />
                 </div>
