@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast, toast as showToast } from "@/hooks/use-toast";
-import { CodeEditor } from "@/components/ui/code-editor-basic";
+import { CodeEditor } from "@/components/ui/code-editor-enhanced";
 import { Button } from "@/components/ui/button";
 import { ApiConfig } from "@shared/schema";
 import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
