@@ -278,17 +278,44 @@ export default function Editor({
 
   // Update preview iframe when HTML changes
   useEffect(() => {
-    if (previewRef.current) {
-      previewRef.current.srcdoc = htmlContent;
+    if (previewRef.current && htmlContent) {
+      // For mobile, use the robust refresh method
+      if (isMobile && fullscreenPreview) {
+        handleRefreshPreview();
+      } else {
+        // For desktop, immediate update is fine
+        previewRef.current.srcdoc = htmlContent;
+      }
     }
-  }, [htmlContent]);
+  }, [htmlContent, fullscreenPreview]);
   
   // Update preview when switching from generation back to editor mode
   useEffect(() => {
-    if (!isGenerating && previewRef.current) {
-      previewRef.current.srcdoc = htmlContent;
+    if (!isGenerating && previewRef.current && htmlContent) {
+      console.log("Generation completed, updating preview");
+      
+      // For mobile, give a slight delay to ensure proper rendering
+      if (isMobile) {
+        setTimeout(() => {
+          if (previewRef.current) {
+            previewRef.current.srcdoc = htmlContent;
+            // Auto-switch to preview on mobile when generation completes
+            setFullscreenPreview(true);
+          }
+        }, 300);
+      } else {
+        previewRef.current.srcdoc = htmlContent;
+      }
     }
-  }, [isGenerating, htmlContent]);
+  }, [isGenerating, htmlContent, isMobile]);
+  
+  // Special handling for when user switches to preview mode on mobile
+  useEffect(() => {
+    if (isMobile && fullscreenPreview && previewRef.current && htmlContent) {
+      // Force refresh the preview when user switches to preview tab
+      handleRefreshPreview();
+    }
+  }, [fullscreenPreview, isMobile]);
 
   // Handle HTML editor changes
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -434,7 +461,6 @@ export default function Editor({
   const handleRefreshPreview = () => {
     if (previewRef.current) {
       const current = previewRef.current;
-      const content = current.srcdoc || htmlContent;
       
       // Set a loading indicator
       toast({
@@ -442,26 +468,48 @@ export default function Editor({
         description: "Reloading the preview content...",
       });
       
-      // Clear and reload with longer timeout for mobile
-      current.srcdoc = '';
+      // Always use the latest HTML content
+      const contentToUse = htmlContent;
+      console.log("Refreshing preview with content length:", contentToUse.length);
       
-      // For mobile devices, we use a longer timeout and double-check that content was applied
-      const timeout = isMobile ? 300 : 100;
-      
-      setTimeout(() => {
-        current.srcdoc = content;
+      // For mobile, we need a more thorough refresh approach
+      if (isMobile) {
+        // First, clear the iframe
+        current.srcdoc = '';
         
-        // For mobile, add an extra check to ensure content is loaded
-        if (isMobile) {
+        // Wait a moment before setting content
+        setTimeout(() => {
+          // Directly set the HTML content
+          current.srcdoc = contentToUse;
+          console.log("Preview content set after timeout");
+          
+          // Double check that the content was applied
           setTimeout(() => {
-            // If preview somehow ended up empty, retry with the htmlContent directly
-            if (!current.srcdoc || current.srcdoc === '') {
-              console.log("Retrying preview refresh with direct HTML content");
-              current.srcdoc = htmlContent;
+            if (!current.srcdoc || current.srcdoc.trim() === '') {
+              console.log("Preview still empty, trying direct HTML injection");
+              
+              try {
+                // Alternative approach: try to use contentDocument to write content
+                if (current.contentDocument) {
+                  current.contentDocument.open();
+                  current.contentDocument.write(contentToUse);
+                  current.contentDocument.close();
+                  console.log("Used contentDocument approach");
+                } else {
+                  // Final fallback
+                  current.srcdoc = contentToUse;
+                  console.log("Used srcdoc fallback");
+                }
+              } catch (e) {
+                console.error("Error updating preview:", e);
+              }
             }
-          }, 200);
-        }
-      }, timeout);
+          }, 300);
+        }, 200);
+      } else {
+        // Desktop approach is simpler
+        current.srcdoc = contentToUse;
+      }
     }
   };
 
@@ -862,8 +910,20 @@ export default function Editor({
                 className="w-full h-full border-0"
                 srcDoc={htmlContent}
                 sandbox="allow-scripts"
+                style={{ backgroundColor: "white" }}
                 onLoad={() => {
-                  console.log("Preview iframe loaded");
+                  console.log("Preview iframe loaded", htmlContent.length > 0 ? "with content" : "empty");
+                  
+                  // Additional check and fix for mobile preview
+                  if (isMobile && fullscreenPreview && (!previewRef.current?.srcdoc || previewRef.current.srcdoc.trim() === '')) {
+                    // If iframe is empty, try to set content again
+                    console.log("Empty preview detected, retrying content injection");
+                    setTimeout(() => {
+                      if (previewRef.current && htmlContent) {
+                        previewRef.current.srcdoc = htmlContent;
+                      }
+                    }, 100);
+                  }
                 }}
               />
             </div>
