@@ -949,7 +949,15 @@ export default function Editor({
           <div className="flex-1 flex flex-col p-4">
           {/* Prompt Input and Generation Status */}
           <div className={isGenerating ? "mb-2" : "mb-4"}>
-            {!isGenerating ? (
+            {isGenerating ? (
+              <GenerationStatus 
+                status={streamingOutput}
+                processingItem={prompt.split(' ').slice(0, 2).join(' ')} 
+                percentComplete={isGenerating ? 
+                  Math.floor((htmlContent.length / (window.expectedContentLength || 30000)) * 100) : 
+                  undefined} 
+              />
+            ) : (
               <>
                 <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
                 <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
@@ -968,14 +976,6 @@ export default function Editor({
                   {/* Removed "Powered by AI Accelerate LLM Inference" text to save space */}
                 </div>
               </>
-            ) : (
-              <GenerationStatus 
-                status={streamingOutput}
-                processingItem={prompt.split(' ').slice(0, 2).join(' ')} 
-                percentComplete={isGenerating ? 
-                  Math.floor((htmlContent.length / (window.expectedContentLength || 30000)) * 100) : 
-                  undefined} 
-              />
             )}
           </div>
           
