@@ -89,24 +89,17 @@ const Minimap: React.FC<{
   return (
     <div 
       ref={minimapRef}
-      className="minimap bg-[#1e1e1e] overflow-hidden border-l border-gray-700 text-gray-400" 
-      style={{ 
-        width: '80px',
-        flex: '0 0 80px',
-        fontSize: '2px', 
-        lineHeight: '3px',
-        position: 'relative'
-      }}
+      className="minimap"
     >
       <div className="relative h-full">
         <pre 
-          className="p-1 opacity-40 absolute w-full"
+          className="minimap-content p-1 opacity-40 w-full"
           style={contentStyle}
         >
           {processedContent}
         </pre>
         <div 
-          className="absolute right-0 w-1 bg-white opacity-50 pointer-events-none z-10"
+          className="minimap-indicator"
           style={indicatorStyle}
         ></div>
       </div>
@@ -155,38 +148,69 @@ export function CodeEditor({
     
     if (!editorWrapper || !lineNumbers) return;
     
+    // Force an initial height calculation
+    const calculateContentHeight = () => {
+      // Ensure the editor wrapper has a proper height
+      const containerRect = editorWrapper.parentElement?.getBoundingClientRect();
+      if (containerRect && containerRect.height > 0) {
+        // If editor is not rendered properly, force min-height
+        if (editorWrapper.scrollHeight < 1.5 * containerRect.height) {
+          // Set a minimum height to ensure scrolling
+          const textarea = editorWrapper.querySelector('textarea');
+          if (textarea) {
+            textarea.style.minHeight = `${Math.max(500, 1.5 * containerRect.height)}px`;
+          }
+        }
+      }
+    };
+    
+    // Calculate positions for minimap
     const handleScroll = () => {
+      // Sync line numbers scrolling
       if (lineNumbers) {
         lineNumbers.scrollTop = editorWrapper.scrollTop;
       }
       
       // Update minimap scroll position
       const { scrollTop, scrollHeight, clientHeight } = editorWrapper;
-      const scrollPosition = scrollTop / (scrollHeight - clientHeight) || 0;
-      const visiblePortion = scrollHeight > 0 ? clientHeight / scrollHeight : 0.3;
       
-      setScrollRatio(scrollPosition);
-      setVisibleRatio(visiblePortion);
+      // Only update if we have actual content to scroll (prevents NaN values)
+      if (scrollHeight > clientHeight) {
+        const scrollPosition = scrollTop / (scrollHeight - clientHeight) || 0;
+        // Calculate how much of the content is visible in the viewport
+        const visiblePortion = scrollHeight > 0 ? clientHeight / scrollHeight : 0.3;
+        
+        setScrollRatio(scrollPosition);
+        setVisibleRatio(visiblePortion);
+      } else {
+        // Default values for when there's nothing to scroll
+        setScrollRatio(0);
+        setVisibleRatio(1);
+      }
     };
     
-    editorWrapper.addEventListener('scroll', handleScroll);
+    // Initial setup
+    calculateContentHeight();
+    setTimeout(handleScroll, 100); // Delay to ensure proper rendering
     
-    // Initial calculation
-    handleScroll();
+    // Set up event listeners
+    editorWrapper.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', calculateContentHeight);
     
     return () => {
       editorWrapper.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', calculateContentHeight);
     };
-  }, []);
+  }, [value]); // Re-run when content changes
 
   return (
-    <div className="code-editor-container h-full bg-[#111827] rounded overflow-hidden">
-      <div className="flex h-full overflow-hidden">
+    <div className="code-editor-container">
+      <div className="flex h-full">
         <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
         <div 
           ref={editorWrapperRef}
-          className="editor-wrapper flex-1 relative overflow-auto font-mono leading-normal"
+          className="editor-wrapper"
         >
           <Editor
             value={value}
@@ -194,7 +218,7 @@ export function CodeEditor({
             highlight={highlightHTML}
             padding={8}
             textareaClassName="codearea"
-            className="editor-area text-sm w-full h-full bg-[#111827] text-gray-300"
+            className="editor-area"
             style={{
               fontFamily: '"Fira Code", "Consolas", monospace',
               fontSize: '13px',
