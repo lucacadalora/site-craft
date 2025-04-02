@@ -36,9 +36,10 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: scroll !important; /* Force scrollbar to always appear */
+  overflow-y: auto !important; /* Auto mode for scrollbar to appear when needed */
   overflow-x: auto;
   height: 100%;
+  min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;
 }
 
