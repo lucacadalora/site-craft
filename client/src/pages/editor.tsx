@@ -379,12 +379,34 @@ export default function Editor({
       // Use the HTML from the response directly, no fallback templates
       if (responseData.html) {
         setHtmlContent(responseData.html);
-        // Explicitly update the preview iframe
+        
+        // Explicitly update the preview iframe with longer timeout for mobile
+        const updateTimeout = isMobile ? 500 : 100;
+        
+        // Update preview and switch to preview mode on mobile
         setTimeout(() => {
           if (previewRef.current) {
             previewRef.current.srcdoc = responseData.html;
+            
+            // On mobile, automatically switch to preview after generation
+            if (isMobile) {
+              setFullscreenPreview(true);
+              
+              // Force a second update after switching views to ensure preview works
+              setTimeout(() => {
+                if (previewRef.current) {
+                  // Reset and update the iframe to ensure content loads
+                  const current = previewRef.current;
+                  const content = responseData.html;
+                  current.srcdoc = '';
+                  setTimeout(() => {
+                    current.srcdoc = content;
+                  }, 50);
+                }
+              }, 300);
+            }
           }
-        }, 100);
+        }, updateTimeout);
       } else {
         setStreamingOutput(prev => [...prev, "Error: No HTML content received from API"]);
         throw new Error("No HTML content received from API");
@@ -408,15 +430,38 @@ export default function Editor({
     }
   };
 
-  // Handle refresh preview
+  // Handle refresh preview with improved mobile support
   const handleRefreshPreview = () => {
     if (previewRef.current) {
       const current = previewRef.current;
-      const content = current.srcdoc;
+      const content = current.srcdoc || htmlContent;
+      
+      // Set a loading indicator
+      toast({
+        title: "Refreshing Preview",
+        description: "Reloading the preview content...",
+      });
+      
+      // Clear and reload with longer timeout for mobile
       current.srcdoc = '';
+      
+      // For mobile devices, we use a longer timeout and double-check that content was applied
+      const timeout = isMobile ? 300 : 100;
+      
       setTimeout(() => {
         current.srcdoc = content;
-      }, 100);
+        
+        // For mobile, add an extra check to ensure content is loaded
+        if (isMobile) {
+          setTimeout(() => {
+            // If preview somehow ended up empty, retry with the htmlContent directly
+            if (!current.srcdoc || current.srcdoc === '') {
+              console.log("Retrying preview refresh with direct HTML content");
+              current.srcdoc = htmlContent;
+            }
+          }, 200);
+        }
+      }, timeout);
     }
   };
 
@@ -565,23 +610,40 @@ export default function Editor({
       {/* Mobile Mode Tabs - Only shown on mobile */}
       {isMobile && (
         <div className="bg-[#1e293b] px-4 py-2 border-b border-gray-700">
-          <div className="flex space-x-2">
-            <Button 
-              variant={!fullscreenPreview ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFullscreenPreview(false)}
-              className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
-            >
-              Editor
-            </Button>
-            <Button 
-              variant={fullscreenPreview ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFullscreenPreview(true)}
-              className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
-            >
-              Preview
-            </Button>
+          <div className="flex flex-col space-y-1">
+            <div className="flex space-x-2">
+              <Button 
+                variant={!fullscreenPreview ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFullscreenPreview(false)}
+                className={!fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+              >
+                Editor
+              </Button>
+              <Button 
+                variant={fullscreenPreview ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFullscreenPreview(true)}
+                className={fullscreenPreview ? "bg-blue-600 text-white" : "text-gray-300"}
+              >
+                Preview
+              </Button>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPreview}
+                className="text-blue-400 ml-auto"
+                title="Refresh Preview"
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                Refresh
+              </Button>
+            </div>
+            {fullscreenPreview && (
+              <p className="text-xs text-gray-400 mt-1 italic">
+                If preview is blank, use the Refresh button
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -712,6 +774,18 @@ export default function Editor({
                   <span>Live Preview</span>
                 </div>
               )}
+              
+              {/* Refresh Button - Added for mobile devices */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-1.5 text-xs border-gray-300 text-gray-700" 
+                onClick={handleRefreshPreview}
+                title="Refresh Preview"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -737,7 +811,20 @@ export default function Editor({
           <div className={`flex-1 ${fullscreenPreview ? 'fixed inset-0 z-50 bg-white pt-10' : ''}`}>
             {fullscreenPreview && (
               <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-2 flex justify-between items-center">
-                <div className="text-sm font-medium text-gray-800">Fullscreen Preview</div>
+                <div className="text-sm font-medium text-gray-800">
+                  Fullscreen Preview
+                  {isMobile && (
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="text-xs text-blue-500 ml-2" 
+                      onClick={handleRefreshPreview}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Refresh
+                    </Button>
+                  )}
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -749,13 +836,35 @@ export default function Editor({
                 </Button>
               </div>
             )}
-            <iframe
-              ref={previewRef}
-              title="Preview"
-              className="w-full h-full border-0"
-              srcDoc={htmlContent}
-              sandbox="allow-scripts"
-            />
+            <div className="w-full h-full relative">
+              {isMobile && !htmlContent && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                  <div className="text-center p-4">
+                    <p className="text-sm text-gray-500 mb-2">Generate a landing page to see the preview</p>
+                    {fullscreenPreview && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setFullscreenPreview(false)}
+                        className="text-xs"
+                      >
+                        Switch to Editor
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+              <iframe
+                ref={previewRef}
+                title="Preview"
+                className="w-full h-full border-0"
+                srcDoc={htmlContent}
+                sandbox="allow-scripts"
+                onLoad={() => {
+                  console.log("Preview iframe loaded");
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
