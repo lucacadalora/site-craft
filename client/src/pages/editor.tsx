@@ -862,7 +862,7 @@ export default function Editor({
                 <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
               </div>
             </div>
-            <div className="relative w-full h-[calc(100%-32px)]">
+            <div className="relative w-full h-[calc(100%-32px)] overflow-hidden">
               <CodeEditor
                 value={htmlContent}
                 onChange={handleHtmlChange}

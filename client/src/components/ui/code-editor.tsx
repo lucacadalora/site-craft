@@ -59,8 +59,15 @@ const Minimap: React.FC<{ content: string }> = ({ content }) => {
   const maxLength = Math.max(...lines.map(line => line.length), 1);
   
   return (
-    <div className="minimap w-20 bg-[#1e1e1e] overflow-hidden border-l border-gray-700 text-gray-400" style={{ fontSize: '2px', lineHeight: '3px' }}>
-      <pre className="p-1 opacity-40 pointer-events-none">
+    <div className="minimap w-20 bg-[#1e1e1e] overflow-hidden border-l border-gray-700 text-gray-400" 
+         style={{ 
+           fontSize: '2px', 
+           lineHeight: '3px',
+           height: '100%',
+           position: 'relative'
+         }}
+    >
+      <pre className="p-1 opacity-40 pointer-events-none h-full">
         {content}
       </pre>
       <div className="absolute right-0 top-0 w-full h-20 bg-white opacity-10 pointer-events-none"></div>
@@ -121,12 +128,13 @@ export function CodeEditor({
 
   return (
     <div className="code-editor-container flex h-full bg-[#111827] rounded">
-      <div className="flex-1 flex overflow-auto" style={{ maxHeight: '100%' }}>
+      <div className="flex-1 flex overflow-auto" style={{ height: '100%', maxHeight: '100%' }}>
         <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
         
         <div 
           ref={editorWrapperRef}
           className="editor-wrapper flex-1 relative overflow-auto font-mono leading-normal"
+          style={{ height: '100%' }}
         >
           <Editor
             value={value}
@@ -140,6 +148,7 @@ export function CodeEditor({
               fontSize: '13px',
               lineHeight: '1.4',
               minHeight: '100%',
+              height: 'auto',
               overflow: 'auto',
             }}
             readOnly={readOnly || isGenerating}
