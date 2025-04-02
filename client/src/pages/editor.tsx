@@ -257,28 +257,33 @@ export default function Editor({
     };
   }, [isFullscreen]);
 
-  // Update preview when switching from generation back to editor mode
+  // Update preview when new HTML content is available or generation completes
   useEffect(() => {
-    if (!isGenerating && htmlContent) {
-      console.log("Generation completed, updating preview");
+    // Only update preview if we have content
+    if (htmlContent) {
+      console.log("Generation completed or new content available, updating preview");
       
-      // For mobile, give a slight delay to ensure proper rendering
+      // For mobile, handle preview update differently
       if (isMobile) {
-        setTimeout(() => {
-          // Auto-switch to preview on mobile when generation completes
-          setActiveTab('preview');
-          
-          // Force a refresh of the mobile preview container
-          const container = document.getElementById('mobile-preview-container');
-          if (container) {
-            container.innerHTML = htmlContent;
-          }
-        }, 300);
-      } else if (previewRef.current) {
+        // Only auto-switch to preview on mobile when generation fully completes
+        if (!isGenerating) {
+          setTimeout(() => {
+            setActiveTab('preview');
+            
+            // Force a refresh of the mobile preview container
+            const container = document.getElementById('mobile-preview-container');
+            if (container) {
+              container.innerHTML = htmlContent;
+            }
+          }, 300);
+        }
+      } 
+      // For desktop, update iframe in real-time regardless of generation state
+      else if (previewRef.current) {
         previewRef.current.srcdoc = htmlContent;
       }
     }
-  }, [isGenerating, htmlContent, isMobile, setActiveTab]);
+  }, [htmlContent, isGenerating, isMobile, setActiveTab]);
   
   // Special handling for when user switches to preview mode on mobile
   useEffect(() => {
@@ -599,13 +604,14 @@ export default function Editor({
         setStreamingOutput(prev => [...prev, "Error: No HTML content received from API"]);
         throw new Error("No HTML content received from API");
       }
+      // Add a success message to streaming output but don't show toast
       setStreamingOutput(prev => [...prev, 'Generation complete! ✅']);
-      setIsGenerating(false);
       
-      toast({
-        title: "Generation Complete",
-        description: "Your landing page has been generated with typewriter effect",
-      });
+      // Don't set isGenerating to false immediately, let the user see the completion status
+      // Only hide after a delay
+      setTimeout(() => {
+        setIsGenerating(false);
+      }, 2000);
     } catch (error) {
       console.error('Error setting up generation:', error);
       toast({
