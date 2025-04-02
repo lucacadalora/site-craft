@@ -6,6 +6,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative; /* For absolute positioning of children */
 }
 
 /* Line numbers column */
@@ -17,7 +18,7 @@
   font-size: 0.75rem;
   color: #6b7280;
   user-select: none;
-  overflow-y: auto;
+  overflow-y: hidden; /* Hide vertical scrollbar */
   overflow-x: hidden;
   height: 100%;
   border-right: 1px solid #374151;
@@ -66,7 +67,7 @@
   line-height: 3px;
   position: relative;
   background-color: #1e1e1e;
-  overflow-y: auto; /* Changed to auto to allow vertical scrolling */
+  overflow: hidden; /* Hide overflow, no scrollbar */
   border-left: 1px solid #374151;
   height: 100%;
 }
@@ -75,19 +76,24 @@
   position: absolute;
   width: 100%;
   transition: transform 0.05s ease;
-  height: auto; /* Let content determine height */
-  min-height: 100%; /* At minimum, be as tall as container */
+  height: auto;
+  opacity: 0.6;
+  filter: contrast(1.5); /* Enhance contrast for visibility */
+  color: #c9d1d9; /* Lighter text for better readability */
+  pointer-events: none; /* Prevent interaction with minimap content */
+  overflow: hidden;
 }
 
 .minimap-indicator {
   position: absolute;
   right: 0;
-  width: 3px;
+  width: 4px;
   background-color: #4361ee;
-  opacity: 0.6;
+  opacity: 0.8;
   z-index: 10;
   pointer-events: none;
-  border-radius: 1.5px;
+  border-radius: 2px;
+  box-shadow: 0 0 3px rgba(67, 97, 238, 0.5); /* Add glow effect */
 }
 
 /* Syntax highlighting enhancements */

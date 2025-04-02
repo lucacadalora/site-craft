@@ -51,7 +51,7 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   );
 };
 
-// Minimap component - shows only the visible section of code
+// Minimap component - shows a scanned preview of the code
 const Minimap: React.FC<{ 
   content: string;
   scrollRatio: number;
@@ -59,59 +59,73 @@ const Minimap: React.FC<{
 }> = ({ content, scrollRatio, visibleRatio }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLPreElement>(null);
   
-  // Update scroll position of minimap and indicator when main editor scrolls
+  // Update view position based on scroll ratio
   useEffect(() => {
-    if (minimapRef.current && indicatorRef.current) {
+    if (minimapRef.current && indicatorRef.current && contentRef.current) {
       const minimapContainer = minimapRef.current;
       const indicator = indicatorRef.current;
+      const contentEl = contentRef.current;
       const minimapHeight = minimapContainer.clientHeight;
       
-      // Set indicator position based on scroll ratio
+      // Calculate indicator position and size
       const indicatorTop = scrollRatio * minimapHeight;
       const indicatorHeight = Math.max(minimapHeight * visibleRatio, 30);
       
-      // Apply position using style
+      // Apply indicator styles
       indicator.style.top = `${indicatorTop}px`;
       indicator.style.height = `${indicatorHeight}px`;
+      
+      // Transform the content instead of scrolling the container
+      // This creates the effect of moving the "scanned" code
+      if (contentEl.clientHeight > minimapHeight) {
+        const maxTranslate = contentEl.clientHeight - minimapHeight;
+        const translateY = scrollRatio * maxTranslate;
+        contentEl.style.transform = `translateY(-${translateY}px)`;
+      }
     }
   }, [scrollRatio, visibleRatio]);
   
-  // Create a content view that represents the entire content scaled down
+  // Create properly formatted content for minimap
   const processedContent = useMemo(() => {
     const lines = content.split('\n');
     
-    // If content is very large, take a representative sample
-    if (lines.length > 1000) {
-      const factor = Math.ceil(lines.length / 1000);
+    // For extremely large files, sample the content to prevent performance issues
+    if (lines.length > 2000) {
+      const factor = Math.ceil(lines.length / 2000);
       return lines.filter((_, i) => i % factor === 0).join('\n');
     }
     
     return content;
   }, [content]);
   
+  // Use syntax highlighting to color the minimap (optional)
+  const highlightedContent = useMemo(() => {
+    try {
+      return hljs.highlight(processedContent, { language: 'html' }).value;
+    } catch {
+      return processedContent;
+    }
+  }, [processedContent]);
+  
   return (
     <div 
       ref={minimapRef}
       className="minimap"
     >
-      {/* Code content */}
-      <pre className="p-1 opacity-40 w-full">
-        {processedContent}
-      </pre>
+      {/* Code content with more "scanned" appearance */}
+      <pre 
+        ref={contentRef}
+        className="p-1 w-full minimap-content"
+        dangerouslySetInnerHTML={{ __html: highlightedContent }}
+      />
       
-      {/* Indicator that shows current viewport position */}
+      {/* Viewport indicator */}
       <div 
         ref={indicatorRef}
         className="minimap-indicator"
-        style={{
-          position: 'absolute',
-          right: 0,
-          width: '3px',
-          height: `${Math.max(visibleRatio * 100, 10)}%`,
-          top: `${scrollRatio * 100}%`,
-        }}
-      ></div>
+      />
     </div>
   );
 };
