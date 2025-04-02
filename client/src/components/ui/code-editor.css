@@ -35,7 +35,7 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: auto !important;
+  overflow-y: scroll !important; /* Force scrollbar to always appear */
   overflow-x: auto;
   height: 100%;
   font-family: "Fira Code", "Consolas", monospace;
@@ -66,7 +66,7 @@
   font-size: 2px;
   line-height: 3px;
   position: relative;
-  background-color: #1e1e1e;
+  background-color: #1a1a1a; /* Slightly darker background */
   overflow: hidden; /* Hide overflow, no scrollbar */
   border-left: 1px solid #374151;
   height: 100%;
@@ -77,11 +77,47 @@
   width: 100%;
   transition: transform 0.05s ease;
   height: auto;
-  opacity: 0.6;
-  filter: contrast(1.5); /* Enhance contrast for visibility */
-  color: #c9d1d9; /* Lighter text for better readability */
+  opacity: 0.25; /* Very dimmed for better contrast with highlight */
+  filter: contrast(1.1) brightness(0.6); /* More dimmed minimap */
+  color: #808080; /* Dimmer text */
   pointer-events: none; /* Prevent interaction with minimap content */
   overflow: hidden;
+}
+
+/* Visible viewport area in minimap */
+.minimap-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20%;
+  background-color: rgba(67, 97, 238, 0.07);
+  border: 1px solid rgba(67, 97, 238, 0.3);
+  box-shadow: 0 0 4px rgba(67, 97, 238, 0.15) inset;
+  pointer-events: none;
+  z-index: 5;
+  /* Add a subtle gradient */
+  background-image: linear-gradient(
+    to bottom,
+    rgba(67, 97, 238, 0.15) 0%,
+    rgba(67, 97, 238, 0.05) 100%
+  );
+}
+
+/* Highlighted content in the visible area */
+.minimap-highlighted {
+  position: absolute;
+  width: 100%;
+  height: auto;
+  opacity: 1;
+  filter: contrast(2) brightness(2); /* Much brighter highlighted code */
+  color: #ffffff;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  /* Add a subtle highlight filter to make it pop */
+  mix-blend-mode: lighten;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .minimap-indicator {

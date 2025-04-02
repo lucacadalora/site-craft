@@ -42,7 +42,7 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   return (
     <div 
       ref={lineNumbersRef}
-      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-auto" 
+      className="line-numbers text-xs text-gray-500 select-none pr-2 text-right overflow-hidden" 
     >
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="leading-tight py-0.5">{i + 1}</div>
@@ -51,43 +51,18 @@ const LineNumbers: React.FC<LineNumbersProps> = ({ count, lineNumbersRef }) => {
   );
 };
 
-// Minimap component - shows a scanned preview of the code
+// Minimap component - shows a scanned preview with highlighted visible area
 const Minimap: React.FC<{ 
   content: string;
   scrollRatio: number;
   visibleRatio: number; 
 }> = ({ content, scrollRatio, visibleRatio }) => {
   const minimapRef = useRef<HTMLDivElement>(null);
-  const indicatorRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLPreElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const highlightedRef = useRef<HTMLPreElement>(null);
   
-  // Update view position based on scroll ratio
-  useEffect(() => {
-    if (minimapRef.current && indicatorRef.current && contentRef.current) {
-      const minimapContainer = minimapRef.current;
-      const indicator = indicatorRef.current;
-      const contentEl = contentRef.current;
-      const minimapHeight = minimapContainer.clientHeight;
-      
-      // Calculate indicator position and size
-      const indicatorTop = scrollRatio * minimapHeight;
-      const indicatorHeight = Math.max(minimapHeight * visibleRatio, 30);
-      
-      // Apply indicator styles
-      indicator.style.top = `${indicatorTop}px`;
-      indicator.style.height = `${indicatorHeight}px`;
-      
-      // Transform the content instead of scrolling the container
-      // This creates the effect of moving the "scanned" code
-      if (contentEl.clientHeight > minimapHeight) {
-        const maxTranslate = contentEl.clientHeight - minimapHeight;
-        const translateY = scrollRatio * maxTranslate;
-        contentEl.style.transform = `translateY(-${translateY}px)`;
-      }
-    }
-  }, [scrollRatio, visibleRatio]);
-  
-  // Create properly formatted content for minimap
+  // Process content to be displayed in the minimap
   const processedContent = useMemo(() => {
     const lines = content.split('\n');
     
@@ -100,7 +75,7 @@ const Minimap: React.FC<{
     return content;
   }, [content]);
   
-  // Use syntax highlighting to color the minimap (optional)
+  // Use syntax highlighting to color the minimap
   const highlightedContent = useMemo(() => {
     try {
       return hljs.highlight(processedContent, { language: 'html' }).value;
@@ -109,23 +84,67 @@ const Minimap: React.FC<{
     }
   }, [processedContent]);
   
+  // Calculate and apply viewport positioning
+  useEffect(() => {
+    if (!minimapRef.current || !contentRef.current || !viewportRef.current || !highlightedRef.current) return;
+    
+    const minimap = minimapRef.current;
+    const contentEl = contentRef.current;
+    const viewport = viewportRef.current;
+    const highlighted = highlightedRef.current;
+    
+    const minimapHeight = minimap.clientHeight;
+    const contentHeight = contentEl.scrollHeight;
+    
+    // Scale factor for the minimap (if needed)
+    const scaleFactor = contentHeight > 0 ? minimapHeight / contentHeight : 1;
+    
+    // Calculate viewport position and size
+    const viewportTop = scrollRatio * minimapHeight;
+    const viewportHeight = Math.max(visibleRatio * minimapHeight, 30);
+    
+    // Calculate which part of the content should be highlighted
+    // This requires knowing the line height and total lines
+    const lines = content.split('\n');
+    const totalLines = lines.length;
+    const visibleLines = Math.round(totalLines * visibleRatio);
+    const startLine = Math.round(scrollRatio * totalLines);
+    
+    // Set viewport position (highlighting overlay)
+    viewport.style.top = `${viewportTop}px`;
+    viewport.style.height = `${viewportHeight}px`;
+    
+    // Position the highlighted content to show in the viewport
+    // This makes only the current viewed content bright, rest is dimmed
+    highlighted.style.top = `-${viewportTop}px`;
+    
+    // Apply mask to make the code visible only within the viewport area
+  }, [scrollRatio, visibleRatio, content]);
+  
   return (
-    <div 
-      ref={minimapRef}
-      className="minimap"
-    >
-      {/* Code content with more "scanned" appearance */}
+    <div ref={minimapRef} className="minimap">
+      {/* Base dimmed content */}
       <pre 
         ref={contentRef}
         className="p-1 w-full minimap-content"
         dangerouslySetInnerHTML={{ __html: highlightedContent }}
       />
       
-      {/* Viewport indicator */}
-      <div 
-        ref={indicatorRef}
-        className="minimap-indicator"
+      {/* Viewport area that shows where we are in the document */}
+      <div ref={viewportRef} className="minimap-viewport" />
+      
+      {/* Highlighted content that appears in the viewport */}
+      <pre 
+        ref={highlightedRef}
+        className="p-1 w-full minimap-highlighted"
+        dangerouslySetInnerHTML={{ __html: highlightedContent }}
       />
+      
+      {/* Indicator on the right side */}
+      <div className="minimap-indicator" style={{
+        top: `${scrollRatio * 100}%`,
+        height: `${Math.max(visibleRatio * 100, 5)}%`
+      }} />
     </div>
   );
 };
