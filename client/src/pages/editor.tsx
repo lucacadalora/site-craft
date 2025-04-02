@@ -429,10 +429,17 @@ export default function Editor({
             }, 300);
           }, 500);
         } else if (previewRef.current) {
-          // For desktop, update the iframe directly
+          // For desktop, update the iframe with force refresh technique
+          // First, clear the iframe content
+          if (previewRef.current) {
+            previewRef.current.srcdoc = '';
+          }
+          
+          // Then after a small delay, set the new content
           setTimeout(() => {
             if (previewRef.current) {
               previewRef.current.srcdoc = responseData.html;
+              console.log("Preview updated with new content from API, length:", responseData.html.length);
             }
           }, 100);
         }
@@ -487,9 +494,19 @@ export default function Editor({
         }
       }, 100);
     } else if (previewRef.current) {
-      // Desktop approach using iframe
+      // Desktop approach using iframe with force refresh technique
       const current = previewRef.current;
-      current.srcdoc = contentToUse;
+      
+      // Force the iframe to reload by clearing the content first
+      current.srcdoc = '';
+      
+      // Then after a small delay, set the content again
+      setTimeout(() => {
+        if (previewRef.current) {
+          previewRef.current.srcdoc = contentToUse;
+          console.log("Iframe content refreshed with force reload technique");
+        }
+      }, 50);
     }
   };
 
@@ -884,7 +901,7 @@ export default function Editor({
                   title="Preview"
                   className="w-full h-full border-0"
                   srcDoc={htmlContent}
-                  sandbox="allow-scripts" 
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms" 
                   style={{ backgroundColor: "white" }}
                   onLoad={() => {
                     console.log("Preview iframe loaded", htmlContent.length > 0 ? "with content" : "empty");
