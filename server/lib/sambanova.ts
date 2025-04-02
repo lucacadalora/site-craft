@@ -41,20 +41,7 @@ export async function generateLandingPageHtml(
     // Prepare the system prompt and user message using DeepSite style
     const systemMessage: Message = {
       role: "system",
-      content: `ONLY USE HTML, CSS AND JAVASCRIPT. If you want to use ICON make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). 
-
-Follow these requirements:
-1. Use semantic HTML5 with proper structure and organization
-2. Create a fully-functioning, complete page that would be ready to deploy
-3. Use responsive design principles for mobile/desktop compatibility
-4. Include professionally designed UI components (nav, header, features, call-to-action, etc.)
-5. All forms should be static (no backend functionality)
-6. All code should be valid with proper syntax and indentation
-7. Elaborate as much as possible to create something unique
-8. Ensure the design is modern, clean, and professional
-
-IMPORTANT: Your response must begin with <!DOCTYPE html> and include ONLY the HTML code in a single file.
-Do not include any introductory text, explanations, or markdown formatting. Just give me the raw HTML code.`
+      content: `ONLY USE HTML, CSS AND JAVASCRIPT. If you want to use ICON make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Also, try to ellaborate as much as you can, to create something unique. ALWAYS GIVE THE RESPONSE INTO A SINGLE HTML FILE`
     };
     
     const userMessage: Message = {
