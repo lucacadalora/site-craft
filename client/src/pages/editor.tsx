@@ -178,7 +178,8 @@ export default function Editor({
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const [showSettings, setShowSettings] = useState<boolean>(false);
-  const [fullscreenPreview, setFullscreenPreview] = useState<boolean>(false);
+  // Using tab-based navigation for mobile instead of fullscreen
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>(isMobile ? 'editor' : 'preview');
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
   
   // API config for AI Accelerate
@@ -282,42 +283,45 @@ export default function Editor({
   useEffect(() => {
     if (previewRef.current && htmlContent) {
       // For mobile, use the robust refresh method
-      if (isMobile && fullscreenPreview) {
+      if (isMobile && activeTab === 'preview') {
         handleRefreshPreview();
       } else {
         // For desktop, immediate update is fine
         previewRef.current.srcdoc = htmlContent;
       }
     }
-  }, [htmlContent, fullscreenPreview]);
+  }, [htmlContent, activeTab, isMobile]);
   
   // Update preview when switching from generation back to editor mode
   useEffect(() => {
-    if (!isGenerating && previewRef.current && htmlContent) {
+    if (!isGenerating && htmlContent) {
       console.log("Generation completed, updating preview");
       
       // For mobile, give a slight delay to ensure proper rendering
       if (isMobile) {
         setTimeout(() => {
-          if (previewRef.current) {
-            previewRef.current.srcdoc = htmlContent;
-            // Auto-switch to preview on mobile when generation completes
-            setFullscreenPreview(true);
+          // Auto-switch to preview on mobile when generation completes
+          setActiveTab('preview');
+          
+          // Force a refresh of the mobile preview container
+          const container = document.getElementById('mobile-preview-container');
+          if (container) {
+            container.innerHTML = htmlContent;
           }
         }, 300);
-      } else {
+      } else if (previewRef.current) {
         previewRef.current.srcdoc = htmlContent;
       }
     }
-  }, [isGenerating, htmlContent, isMobile]);
+  }, [isGenerating, htmlContent, isMobile, setActiveTab]);
   
   // Special handling for when user switches to preview mode on mobile
   useEffect(() => {
-    if (isMobile && fullscreenPreview && previewRef.current && htmlContent) {
+    if (isMobile && activeTab === 'preview' && htmlContent) {
       // Force refresh the preview when user switches to preview tab
       handleRefreshPreview();
     }
-  }, [fullscreenPreview, isMobile]);
+  }, [activeTab, isMobile, htmlContent]);
 
   // Handle HTML editor changes
   const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -413,7 +417,7 @@ export default function Editor({
         if (isMobile) {
           // For mobile, we'll update the preview container and switch to preview tab
           setTimeout(() => {
-            setFullscreenPreview(true);
+            setActiveTab('preview');
             
             // Force a refresh of the preview content
             setTimeout(() => {
@@ -469,22 +473,19 @@ export default function Editor({
     
     // For mobile, we use direct DOM injection
     if (isMobile) {
-      // Force the React component to re-render by toggling fullscreen state
-      setFullscreenPreview(false);
+      // Make sure we're on the preview tab
+      setActiveTab('preview');
+      
+      // Find the mobile preview container and update it directly
       setTimeout(() => {
-        setFullscreenPreview(true);
-        
-        // Find the mobile preview container and update it directly
-        setTimeout(() => {
-          const container = document.getElementById('mobile-preview-container');
-          if (container) {
-            console.log("Updating mobile preview container");
-            container.innerHTML = contentToUse;
-          } else {
-            console.log("Mobile preview container not found");
-          }
-        }, 100);
-      }, 50);
+        const container = document.getElementById('mobile-preview-container');
+        if (container) {
+          console.log("Updating mobile preview container");
+          container.innerHTML = contentToUse;
+        } else {
+          console.log("Mobile preview container not found");
+        }
+      }, 100);
     } else if (previewRef.current) {
       // Desktop approach using iframe
       const current = previewRef.current;
@@ -642,8 +643,8 @@ export default function Editor({
               <Button 
                 variant="ghost"
                 size="sm"
-                onClick={() => setFullscreenPreview(false)}
-                className={!fullscreenPreview 
+                onClick={() => setActiveTab('editor')}
+                className={activeTab === 'editor'
                   ? "bg-blue-600 text-white rounded-md" 
                   : "bg-transparent text-gray-400 hover:text-gray-300 rounded-md"}
               >
@@ -654,11 +655,11 @@ export default function Editor({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setFullscreenPreview(true);
+                  setActiveTab('preview');
                   // Force refresh when switching to preview
                   setTimeout(handleRefreshPreview, 100);
                 }}
-                className={fullscreenPreview 
+                className={activeTab === 'preview'
                   ? "bg-blue-600 text-white rounded-md" 
                   : "bg-transparent text-gray-400 hover:text-gray-300 rounded-md"}
               >
@@ -667,7 +668,7 @@ export default function Editor({
               </Button>
             </div>
             
-            {fullscreenPreview && (
+            {activeTab === 'preview' && (
               <Button 
                 variant="outline"
                 size="sm"
@@ -687,7 +688,7 @@ export default function Editor({
       <div className={`${isMobile ? 'flex flex-col' : 'flex'} flex-1 overflow-hidden editor-container`}>
         {/* Editor Panel - Visibility controlled by tabs on mobile */}
         <div 
-          className={`editor-panel ${isMobile ? (fullscreenPreview ? 'hidden' : 'w-full h-full') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
+          className={`editor-panel ${isMobile ? (activeTab === 'preview' ? 'hidden' : 'w-full h-full') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
         >
           {!isGenerating ? (
             <div className="flex-1 flex flex-col p-4">
@@ -788,7 +789,7 @@ export default function Editor({
 
         {/* Preview Panel - Visibility controlled by tabs on mobile */}
         <div 
-          className={`preview-panel ${isMobile ? (fullscreenPreview ? 'w-full h-full' : 'hidden') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
+          className={`preview-panel ${isMobile ? (activeTab === 'preview' ? 'w-full h-full' : 'hidden') : 'w-1/2 h-full'} flex flex-col bg-white overflow-hidden`}
         >
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
             <div className="flex items-center">
@@ -821,71 +822,12 @@ export default function Editor({
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               
-              {/* Fullscreen button for all devices */}
-              <Button 
-                variant={isMobile ? "default" : "outline"}
-                size="sm" 
-                className={`h-8 px-2 text-xs ${isMobile ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700'}`}
-                onClick={() => {
-                  if (isMobile) {
-                    // For mobile, create a properly formatted HTML document in a new window
-                    const newWindow = window.open('', '_blank');
-                    if (newWindow) {
-                      // Generate a complete HTML document with proper DOCTYPE and metadata
-                      const fullPageHtml = htmlContent.includes('<!DOCTYPE html>') 
-                        ? htmlContent 
-                        : `<!DOCTYPE html>
-                          <html lang="en">
-                          <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <title>SiteCraft Preview</title>
-                          </head>
-                          <body>
-                            ${htmlContent}
-                          </body>
-                          </html>`;
-                      
-                      newWindow.document.open();
-                      newWindow.document.write(fullPageHtml);
-                      newWindow.document.close();
-                    } else {
-                      toast({
-                        title: "Popup Blocked",
-                        description: "Please allow popups to open in fullscreen view",
-                        variant: "destructive",
-                      });
-                    }
-                  } else {
-                    // For desktop, toggle the fullscreen preview state
-                    setFullscreenPreview(!fullscreenPreview);
-                  }
-                }}
-              >
-                <Maximize className="h-3.5 w-3.5 mr-1" />
-                <span className={isMobile ? "hidden" : "inline"}>Fullscreen</span>
-              </Button>
+              {/* Only keeping refresh button, removing fullscreen for simplicity */}
             </div>
           </div>
           
           {/* Preview Iframe */}
-          <div className={`flex-1 ${fullscreenPreview && !isMobile ? 'fixed inset-0 z-50 bg-white pt-10' : ''}`}>
-            {fullscreenPreview && !isMobile && (
-              <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-2 flex justify-between items-center">
-                <div className="text-sm font-medium text-gray-800">
-                  Fullscreen Preview
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 px-3 text-xs" 
-                  onClick={() => setFullscreenPreview(false)}
-                >
-                  <Minimize className="h-3.5 w-3.5 mr-1" />
-                  Exit
-                </Button>
-              </div>
-            )}
+          <div className="flex-1">
             
             {/* We removed the duplicate mobile preview toolbar */}
             <div className="w-full h-full relative">
@@ -893,16 +835,14 @@ export default function Editor({
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                   <div className="text-center p-4">
                     <p className="text-sm text-gray-500 mb-2">Generate a landing page to see the preview</p>
-                    {fullscreenPreview && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setFullscreenPreview(false)}
-                        className="text-xs"
-                      >
-                        Switch to Editor
-                      </Button>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setActiveTab('editor')}
+                      className="text-xs"
+                    >
+                      Switch to Editor
+                    </Button>
                   </div>
                 </div>
               )}
