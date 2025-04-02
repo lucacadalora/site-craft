@@ -65,7 +65,7 @@ Do not include any introductory text, explanations, or markdown formatting. Just
     };
     
     const completionOptions: CompletionOptions = {
-      model: "deepseek-v3-0324", // Specific model requested
+      model: "deepseek-coder", // Use the correct model that is available
       messages: [systemMessage, userMessage],
       temperature: 0.7,
       max_tokens: 5000
@@ -191,7 +191,7 @@ export function generateFallbackHtml(title: string, prompt: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>API Error - ${title}</title>
   <style>
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -199,152 +199,130 @@ export function generateFallbackHtml(title: string, prompt: string): string {
       padding: 0;
       color: #333;
       line-height: 1.6;
+      background-color: #f9fafb;
     }
     
     .container {
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 40px 20px;
     }
     
     header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 80px 0;
       text-align: center;
+      margin-bottom: 40px;
     }
     
     h1 {
-      font-size: 3rem;
-      margin-bottom: 20px;
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: #1f2937;
     }
     
-    p {
-      font-size: 1.2rem;
-      max-width: 800px;
-      margin: 0 auto 30px auto;
-    }
-    
-    .cta-button {
-      display: inline-block;
-      background-color: #fff;
-      color: #3b82f6;
-      padding: 12px 30px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-weight: bold;
-      font-size: 1.1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .cta-button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-    }
-    
-    section {
-      padding: 80px 0;
-    }
-    
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
-      margin-bottom: 60px;
-      color: #333;
-    }
-    
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-    }
-    
-    .feature {
-      background-color: #f8f9fa;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
-      transition: transform 0.3s ease;
-    }
-    
-    .feature:hover {
-      transform: translateY(-10px);
-    }
-    
-    .feature h3 {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-      color: #3b82f6;
-    }
-    
-    footer {
-      background-color: #333;
-      color: white;
-      padding: 40px 0;
-      text-align: center;
-    }
-    
-    /* Error Message Styling */
-    .api-error {
+    .error-box {
       background-color: #fee2e2;
       border: 2px solid #ef4444;
       padding: 20px;
       border-radius: 8px;
-      margin: 40px auto;
-      max-width: 800px;
-      text-align: center;
+      margin-bottom: 40px;
     }
     
-    .api-error h2 {
+    .error-box h2 {
       color: #b91c1c;
       margin-top: 0;
+      font-size: 1.5rem;
     }
     
-    .api-error p {
+    .error-box p {
       color: #7f1d1d;
       margin-bottom: 0;
+    }
+    
+    .prompt-preview {
+      background-color: #fff;
+      border: 1px solid #e5e7eb;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 40px;
+    }
+    
+    .prompt-preview h2 {
+      font-size: 1.25rem;
+      margin-top: 0;
+      color: #4b5563;
+    }
+    
+    .prompt-preview p {
+      margin-bottom: 0;
+      color: #6b7280;
+      font-family: monospace;
+      white-space: pre-wrap;
+      padding: 10px;
+      background: #f3f4f6;
+      border-radius: 4px;
+    }
+    
+    .instructions {
+      background-color: #dbeafe;
+      border: 1px solid #93c5fd;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    
+    .instructions h2 {
+      font-size: 1.25rem;
+      margin-top: 0;
+      color: #1e40af;
+    }
+    
+    .instructions ol {
+      margin-bottom: 0;
+      padding-left: 20px;
+    }
+    
+    .instructions li {
+      margin-bottom: 10px;
+      color: #1e3a8a;
+    }
+    
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #6b7280;
+      font-size: 0.875rem;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <h1>${title}</h1>
+  <div class="container">
+    <header>
+      <h1>API Connection Error</h1>
+    </header>
+    
+    <div class="error-box">
+      <h2>SambaNova API Error</h2>
+      <p>We were unable to generate a landing page using the SambaNova API. This is likely due to an API connection issue or an invalid API key.</p>
+    </div>
+    
+    <div class="prompt-preview">
+      <h2>Your Prompt:</h2>
       <p>${prompt}</p>
-      <a href="#" class="cta-button">Get Started</a>
     </div>
-  </header>
-  
-  <section>
-    <div class="container">
-      <div class="api-error">
-        <h2>API Connection Error</h2>
-        <p>We weren't able to generate a customized landing page using the SambaNova API. Please check your API key and try again.</p>
-      </div>
-      
-      <h2 class="section-title">Key Features</h2>
-      <div class="features">
-        <div class="feature">
-          <h3>Feature 1</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 2</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-        <div class="feature">
-          <h3>Feature 3</h3>
-          <p>A description of this amazing feature and how it benefits the user.</p>
-        </div>
-      </div>
+    
+    <div class="instructions">
+      <h2>Troubleshooting Steps:</h2>
+      <ol>
+        <li>Check that you've entered your SambaNova API key correctly in the settings.</li>
+        <li>Verify that your API key is valid by clicking the "Validate" button in the API settings panel.</li>
+        <li>Make sure your API key has the necessary permissions to use the SambaNova models.</li>
+        <li>Try a different, simpler prompt to see if that works.</li>
+      </ol>
     </div>
-  </section>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${title}. All rights reserved.</p>
-    </div>
-  </footer>
+    
+    <footer>
+      <p>This is a fallback error page generated by the application.</p>
+    </footer>
+  </div>
 </body>
 </html>`;
 }

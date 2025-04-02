@@ -360,11 +360,17 @@ export default function Editor({
         ]);
       }
       
+      // Final step - apply the HTML from API response
       setStreamingOutput(prev => [...prev, "Generation complete! Building HTML..."]);
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Use the HTML from the response
-      setHtmlContent(responseData.html);
+      // Use the HTML from the response directly, no fallback templates
+      if (responseData.html) {
+        setHtmlContent(responseData.html);
+      } else {
+        setStreamingOutput(prev => [...prev, "Error: No HTML content received from API"]);
+        throw new Error("No HTML content received from API");
+      }
       setStreamingOutput(prev => [...prev, 'Generation complete! ✅']);
       setIsGenerating(false);
       
@@ -530,7 +536,7 @@ export default function Editor({
           ) : (
             /* Generation Output Area */
             <div className="flex-1 p-4 overflow-auto bg-black font-mono text-sm">
-              <div className="text-green-400 mb-2">AI Running (DeepSeek-V3-0324)...</div>
+              <div className="text-green-400 mb-2">AI Running (SambaNova API)...</div>
               <div className="p-2 bg-[#111] rounded">
                 {streamingOutput.map((line, i) => (
                   <div key={i} className="mb-1 whitespace-pre-wrap">
