@@ -7,6 +7,14 @@ import { ApiConfig } from "@shared/schema";
 import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { GenerationStatus } from "@/components/ui/generation-status";
+
+// Extend the Window interface to include our custom property
+declare global {
+  interface Window {
+    expectedContentLength?: number;
+  }
+}
 import { 
   RefreshCw, 
   Settings,
@@ -529,7 +537,10 @@ export default function Editor({
             }
             return prev;
           });
-        }, 1000); // Update progress every second
+          
+          // Store the total expected content length for progress calculation
+          window.expectedContentLength = htmlContent.length;
+        }, 800); // Update progress every 800ms
         
         // Ensure final content is set correctly without any cursor
         setHtmlContent(htmlContent);
@@ -958,34 +969,13 @@ export default function Editor({
                 </div>
               </>
             ) : (
-              /* Generation Status Area - Now displayed above the editor when generating */
-              <div className="rounded-md overflow-hidden border border-blue-700 bg-[#1e293b] p-2">
-                <div className="flex items-center mb-1">
-                  <RefreshCw className="h-4 w-4 text-blue-400 mr-1.5 animate-spin" />
-                  <h3 className="text-sm font-medium text-white">Generating with AI Accelerate</h3>
-                </div>
-                
-                <div className="p-2 bg-[#0f172a] rounded-md border border-gray-700 font-mono text-xs max-h-[100px] overflow-y-auto">
-                  <div className="space-y-0.5">
-                    {streamingOutput.map((line, i) => (
-                      <div key={i} className="whitespace-pre-wrap text-xs">
-                        {line.startsWith("Error") ? (
-                          <span className="text-red-400">{line}</span>
-                        ) : line.includes("✅") ? (
-                          <span className="text-green-400">{line}</span>
-                        ) : line.includes("⚠️") ? (
-                          <span className="text-yellow-400">{line}</span>
-                        ) : (
-                          <span className="text-gray-300">{line}</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {isGenerating && (
-                    <div className="mt-1 animate-pulse text-blue-400">▌</div>
-                  )}
-                </div>
-              </div>
+              <GenerationStatus 
+                status={streamingOutput}
+                processingItem={prompt.split(' ').slice(0, 2).join(' ')} 
+                percentComplete={isGenerating ? 
+                  Math.floor((htmlContent.length / (window.expectedContentLength || 30000)) * 100) : 
+                  undefined} 
+              />
             )}
           </div>
           
