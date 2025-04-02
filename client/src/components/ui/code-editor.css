@@ -1,6 +1,6 @@
 /* Editor container styles */
 .code-editor-container {
-  height: 600px !important; /* Fixed height to ensure scrolling */
+  height: 100% !important; /* Use full height of parent */
   min-height: 400px; /* Minimum height to ensure usability */
   max-height: 100%; /* Don't exceed parent container */
   background-color: #111827;
@@ -37,9 +37,9 @@
 .editor-wrapper {
   flex: 1;
   position: relative;
-  overflow-y: scroll !important; /* Force scrollbar to always appear */
+  overflow-y: auto !important; /* Allow scrolling when needed */
   overflow-x: auto;
-  height: 400px; /* Fixed height to ensure overflow */
+  height: auto; /* Let it grow based on content */
   max-height: 100%; /* Don't exceed container height */
   min-height: 300px; /* Ensure a minimum height */
   font-family: "Fira Code", "Consolas", monospace;

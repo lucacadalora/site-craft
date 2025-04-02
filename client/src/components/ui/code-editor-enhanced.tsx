@@ -93,25 +93,34 @@ export function CodeEditor({
     
     if (!editorWrapper || !lineNumbers) return;
     
-    // Force an initial height calculation
+    // Force an initial height calculation based on content
     const calculateContentHeight = () => {
-      // Force the textarea to have a large height to guarantee scrolling
+      // Access the textarea element
       const textarea = editorWrapper.querySelector('textarea');
       if (textarea) {
-        // Set a very large min-height to guarantee scrollbars
-        textarea.style.minHeight = '1000px';
+        // Calculate height based on content
+        const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20; // Default to 20px if can't get computed value
+        const lines = value.split('\n').length;
+        const totalHeight = Math.max(lines * lineHeight + 40, 400); // Add some padding and ensure minimum height
         
-        // Also add 20 lines of whitespace if the content is small
-        if (value.split('\n').length < 20) {
-          // This is just a development trick to force scrolling
-          // Don't change the actual value but make the textarea taller
-          textarea.style.paddingBottom = '800px';
+        // Apply dynamic height
+        textarea.style.minHeight = `${totalHeight}px`;
+        
+        // Make container scrollable if content is very large
+        if (lines > 30) {
+          editorWrapper.style.overflowY = 'auto';
+        } else {
+          // For smaller content, let it expand naturally
+          editorWrapper.style.overflow = 'visible';
         }
       }
       
-      // Force scrollbar to appear
+      // Ensure scrollbar is active when needed
       setTimeout(() => {
-        editorWrapper.scrollTop = 1; // Force scrollbar activation
+        // Only set scrollTop if content is actually larger than visible area
+        if (editorWrapper.scrollHeight > editorWrapper.clientHeight) {
+          editorWrapper.scrollTop = 1; // Activate scrollbar if needed
+        }
       }, 100);
     };
     
@@ -146,6 +155,12 @@ export function CodeEditor({
         <div 
           ref={editorWrapperRef}
           className="editor-wrapper"
+          style={{ 
+            overflow: 'auto',
+            height: 'auto',
+            minHeight: '400px',
+            maxHeight: 'none' // Allow full content to show
+          }}
         >
           <Editor
             value={value}
@@ -160,6 +175,7 @@ export function CodeEditor({
               lineHeight: '1.4',
               minHeight: '100%',
               whiteSpace: 'pre',
+              height: 'auto', // Let content determine height
             }}
             readOnly={readOnly || isGenerating}
           />
