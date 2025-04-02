@@ -1,0 +1,53 @@
+.editor-area {
+  counter-reset: line;
+}
+
+.hljs-tag, .hljs-tag-name {
+  color: #569cd6 !important;
+}
+
+.hljs-attr-name {
+  color: #9cdcfe !important;
+}
+
+.hljs-attr-value {
+  color: #ce9178 !important;
+}
+
+.hljs-string {
+  color: #ce9178 !important;
+}
+
+.hljs-keyword {
+  color: #569cd6 !important;
+}
+
+.hljs-comment {
+  color: #6a9955 !important;
+}
+
+.hljs-color {
+  font-weight: bold !important;
+}
+
+.codearea {
+  outline: none !important;
+  min-height: 100% !important;
+}
+
+.line-numbers {
+  background-color: #1a1a1a;
+  min-width: 40px;
+  color: #858585;
+  padding-top: 8px;
+}
+
+.minimap {
+  max-width: 120px;
+  font-size: 2px;
+  opacity: 0.5;
+}
+
+.editor-wrapper {
+  font-family: 'Fira Code', 'Consolas', monospace;
+}

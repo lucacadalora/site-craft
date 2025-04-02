@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, toast as showToast } from "@/hooks/use-toast";
+import { CodeEditor } from "@/components/ui/code-editor";
 import { Button } from "@/components/ui/button";
 import { ApiConfig } from "@shared/schema";
 import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
@@ -324,8 +325,8 @@ export default function Editor({
   }, [activeTab, isMobile, htmlContent]);
 
   // Handle HTML editor changes
-  const handleHtmlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setHtmlContent(e.target.value);
+  const handleHtmlChange = (newCode: string) => {
+    setHtmlContent(newCode);
   };
 
   // Handle generation with typewriter streaming effect
@@ -774,13 +775,17 @@ export default function Editor({
             {!isGenerating ? (
               <>
                 <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
-                <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
                   <textarea
-                    className="w-full p-3 bg-[#1e293b] text-white border-0 text-sm focus:outline-none"
+                    className="w-full p-3 bg-[#1e293b] text-white border-0 text-sm focus:outline-none resize-none"
                     placeholder="Describe the landing page you want to generate..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={isMobile ? 3 : 4}
+                    style={{
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      lineHeight: '1.5',
+                    }}
                   />
                 </div>
                 <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
@@ -858,12 +863,10 @@ export default function Editor({
               </div>
             </div>
             <div className="relative w-full h-[calc(100%-32px)]">
-              <textarea
-                ref={editorRef}
-                className="w-full h-full p-3 bg-[#111827] text-gray-300 font-mono text-sm leading-tight focus:outline-none resize-none"
+              <CodeEditor
                 value={htmlContent}
                 onChange={handleHtmlChange}
-                spellCheck={false}
+                isGenerating={isGenerating}
               />
               {isGenerating && (
                 <div className="absolute right-3 bottom-3 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">

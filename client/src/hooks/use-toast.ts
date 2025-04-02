@@ -5,14 +5,16 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 5
+// Toast will be automatically removed after 5 seconds
+const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  duration?: number // Time in ms before auto-dismissal (set to Infinity or 0 to disable)
 }
 
 const actionTypes = {
@@ -149,6 +151,9 @@ function toast({ ...props }: Toast) {
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
+  // Auto-dismiss toasts after delay unless specified not to
+  const shouldAutoDismiss = props.duration !== Infinity && props.duration !== 0;
+  
   dispatch({
     type: "ADD_TOAST",
     toast: {
@@ -160,6 +165,13 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+  
+  // Auto-dismiss toast after delay
+  if (shouldAutoDismiss) {
+    setTimeout(() => {
+      dismiss();
+    }, props.duration || TOAST_REMOVE_DELAY);
+  }
 
   return {
     id: id,
