@@ -334,8 +334,8 @@ export default function Editor({
     window.generationStartTime = Date.now();
     // We'll use this to store total tokens for performance calculation
     window.totalTokenCount = 0;
-    // Make sure this is set to display in the UI
-    window.displayPerformanceMetrics = false; // Will be set to true when generation completes
+    // Enable performance metrics display in the UI
+    window.displayPerformanceMetrics = true;
     
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
     
@@ -497,6 +497,15 @@ export default function Editor({
                   // Add the chunk to our collected HTML
                   collectedHtml += contentChunk;
                   totalContent += contentChunk;
+                  
+                  // Update token count during streaming (rough estimate: 4 chars ≈ 1 token)
+                  const currentTokenCount = Math.round(collectedHtml.length / 4);
+                  window.totalTokenCount = currentTokenCount;
+                  
+                  // Make sure generation start time is recorded for metrics 
+                  if (!window.generationStartTime) {
+                    window.generationStartTime = Date.now();
+                  }
                   
                   // Update editor content with cursor effect
                   const contentToShow = addCursorToText(collectedHtml, collectedHtml.length);
@@ -1073,13 +1082,15 @@ export default function Editor({
                 )}
               </div>
               <div className="flex items-center space-x-2">
-                <div className="text-xs text-blue-300 mr-1">
+                <div className="text-sm font-medium mr-1">
                   {htmlContent.length > 0 ? (
                     <div className="flex items-center space-x-2">
-                      <span>{Math.round(htmlContent.length / 4)} tokens</span>
-                      {window.displayPerformanceMetrics && window.totalTokenCount && window.generationStartTime ? (
-                        <span className="text-green-400">
-                          | 🚀 {(window.totalTokenCount / ((Date.now() - window.generationStartTime) / 1000)).toFixed(2)} t/s
+                      <span className="text-blue-300 bg-[#0f172a] px-2 py-0.5 rounded">
+                        {Math.round(htmlContent.length / 4)} tokens
+                      </span>
+                      {!isGenerating && window.totalTokenCount && window.generationStartTime ? (
+                        <span className="text-green-400 bg-[#0f172a] px-2 py-0.5 rounded">
+                          🚀 {(window.totalTokenCount / ((Date.now() - window.generationStartTime) / 1000)).toFixed(2)} t/s
                           | ⏱️ {((Date.now() - window.generationStartTime) / 1000).toFixed(2)}s
                         </span>
                       ) : null}
