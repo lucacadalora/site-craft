@@ -14,6 +14,8 @@ declare global {
   interface Window {
     expectedContentLength?: number;
     inTypingPhase?: boolean;
+    generationStartTime?: number;
+    totalTokenCount?: number;
   }
 }
 import { 
@@ -327,6 +329,11 @@ export default function Editor({
     // We will use this to control visibility of status during typing
     window.inTypingPhase = false;
     
+    // Record the start time for performance metrics
+    window.generationStartTime = Date.now();
+    // We'll use this to store total tokens for performance calculation
+    window.totalTokenCount = 0;
+    
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
     
     // Clear any existing HTML content and prepare for streaming visualization
@@ -554,9 +561,24 @@ export default function Editor({
                     // Update expected length for final progress calculation
                     window.expectedContentLength = collectedHtml.length;
                     
-                    // Update status
+                    // Update status with performance metrics
+                    // Calculate token count - rough estimate based on 4 chars per token
+                    const tokenCount = Math.round(collectedHtml.length / 4);
+                    window.totalTokenCount = tokenCount;
+                    
+                    // Calculate generation time in seconds
+                    const endTime = Date.now();
+                    const generationTime = (endTime - (window.generationStartTime || endTime)) / 1000;
+                    
+                    // Calculate tokens per second
+                    const tokensPerSecond = tokenCount / Math.max(generationTime, 0.1); // Avoid division by zero
+                    
                     if (event.source === "api") {
+                      // Add completion message with performance metrics
                       setStreamingOutput(prev => [...prev, "Generation complete! ✅"]);
+                      setStreamingOutput(prev => [...prev, 
+                        `🚀 ${tokensPerSecond.toFixed(2)} t/s | ⏱️ ${generationTime.toFixed(2)}s total | ${tokenCount} tokens`
+                      ]);
                     } else if (event.source === "fallback") {
                       setStreamingOutput(prev => [
                         ...prev,
