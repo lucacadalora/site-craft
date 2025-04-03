@@ -16,6 +16,7 @@ declare global {
     inTypingPhase?: boolean;
     generationStartTime?: number;
     totalTokenCount?: number;
+    displayPerformanceMetrics?: boolean;
   }
 }
 import { 
@@ -333,6 +334,8 @@ export default function Editor({
     window.generationStartTime = Date.now();
     // We'll use this to store total tokens for performance calculation
     window.totalTokenCount = 0;
+    // Make sure this is set to display in the UI
+    window.displayPerformanceMetrics = false; // Will be set to true when generation completes
     
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
     
@@ -572,6 +575,12 @@ export default function Editor({
                     
                     // Calculate tokens per second
                     const tokensPerSecond = tokenCount / Math.max(generationTime, 0.1); // Avoid division by zero
+                    
+                    // Make metrics persistent for display in UI
+                    // These will be shown in the editor header
+                    window.totalTokenCount = tokenCount;
+                    window.generationStartTime = (window.generationStartTime || endTime);
+                    window.displayPerformanceMetrics = true; // Enable display of performance metrics
                     
                     if (event.source === "api") {
                       // Add completion message with performance metrics
@@ -1064,7 +1073,19 @@ export default function Editor({
                 )}
               </div>
               <div className="flex items-center space-x-2">
-                <div className="text-xs text-blue-300 mr-1">{htmlContent.length > 0 ? `${Math.round(htmlContent.length / 4)} tokens` : ""}</div>
+                <div className="text-xs text-blue-300 mr-1">
+                  {htmlContent.length > 0 ? (
+                    <div className="flex items-center space-x-2">
+                      <span>{Math.round(htmlContent.length / 4)} tokens</span>
+                      {window.displayPerformanceMetrics && window.totalTokenCount && window.generationStartTime ? (
+                        <span className="text-green-400">
+                          | 🚀 {(window.totalTokenCount / ((Date.now() - window.generationStartTime) / 1000)).toFixed(2)} t/s
+                          | ⏱️ {((Date.now() - window.generationStartTime) / 1000).toFixed(2)}s
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : ""}
+                </div>
                 <div className="flex space-x-1">
                   <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
                   <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
