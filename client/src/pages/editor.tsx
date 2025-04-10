@@ -385,12 +385,22 @@ export default function Editor({
       }
       
       // Create fetch request to streaming endpoint
-      const response = await fetch('/api/sambanova/generate-stream', {
+      // Get the base URL for API calls (will work on both custom domain and Replit domain)
+      const baseUrl = window.location.origin;
+      console.log("Using base URL for streaming API:", baseUrl);
+      
+      const response = await fetch(`${baseUrl}/api/sambanova/generate-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, apiConfig }),
+        body: JSON.stringify({ 
+          prompt, 
+          apiConfig: {
+            ...apiConfig,
+            apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
+          }
+        }),
       });
       
       if (!response.ok) {

@@ -40,7 +40,11 @@ export async function generateDeepSite(
     
     // Make a real API call to our backend endpoint
     try {
-      const response = await fetch('/api/sambanova/deepsite', {
+      // Get the base URL for API calls (will work on both custom domain and Replit domain)
+      const baseUrl = window.location.origin;
+      console.log("Using base URL for API calls:", baseUrl);
+      
+      const response = await fetch(`${baseUrl}/api/sambanova/deepsite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +56,7 @@ export async function generateDeepSite(
           contentDepth,
           apiConfig: {
             apiKey,
-            provider: "SambaNova (DeepSeek-V3-0324)"
+            provider: "AI Accelerate (DeepSeek-V3-0324)"
           }
         }),
       });
@@ -676,7 +680,11 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
     
     // Call the server endpoint to validate the API key
     try {
-      const response = await fetch('/api/sambanova/validate', {
+      // Get the base URL for API calls (will work on both custom domain and Replit domain)
+      const baseUrl = window.location.origin;
+      console.log("Using base URL for API validation:", baseUrl);
+      
+      const response = await fetch(`${baseUrl}/api/sambanova/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
