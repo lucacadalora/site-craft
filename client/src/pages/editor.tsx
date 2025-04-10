@@ -336,6 +336,13 @@ export default function Editor({
     // Enable performance metrics display in the UI
     window.displayPerformanceMetrics = true;
     
+    // Track total estimated generation time to adjust progress accordingly
+    const estimatedGenerationTime = 15000; // 15 seconds base generation time estimate
+    
+    // Initial expected content length (will be adjusted later based on actual content)
+    window.expectedContentLength = 5000; // Initial guess, will be refined
+    
+    // Reset messages and show initial status
     setStreamingOutput(["Starting AI Accelerate LLM generation..."]);
     
     // Clear any existing HTML content and prepare for streaming visualization
@@ -345,17 +352,20 @@ export default function Editor({
       // Set up SSE (Server-Sent Events) for real-time streaming
       // This provides a direct streaming connection to the server
       
-      // Update the user with initial feedback - keep it minimal with just one starting message
-      setStreamingOutput(prev => [...prev, "Starting AI Accelerate LLM generation..."]);
-      setStreamingOutput(prev => [...prev, "Analyzing prompt..."]);
-      
-      // Show only one processing message with the main prompt topic
-      const mainKeywords = prompt.split(' ').slice(0, 3).join(' ');
-      if (mainKeywords.length > 0) {
-        setStreamingOutput(prev => [...prev, `Processing: ${mainKeywords}`]);
-      }
-      
-      setStreamingOutput(prev => [...prev, "Generating HTML with AI Accelerate..."]);
+      // Update the user with initial feedback in sequence
+      setTimeout(() => {
+        setStreamingOutput(prev => [...prev, "Analyzing prompt..."]);
+        
+        // Show only one processing message with the main prompt topic
+        const mainKeywords = prompt.split(' ').slice(0, 3).join(' ');
+        if (mainKeywords.length > 0) {
+          setStreamingOutput(prev => [...prev, `Processing: ${mainKeywords}`]);
+        }
+        
+        setTimeout(() => {
+          setStreamingOutput(prev => [...prev, "Generating HTML with AI Accelerate..."]);
+        }, 1500);
+      }, 1000);
       
       // Initialize HTML content
       let collectedHtml = "";
@@ -421,38 +431,62 @@ export default function Editor({
       let isCompleted = false;
       let totalContent = "";
       
-      // Handle received progress updates and update editor content
-      // We'll update progress as part of content processing, not in a separate interval
-      // This avoids duplicate messages and ensures more accurate progress tracking
+      // Create a more natural progress update based on both time and content
+      // This creates a gradual increase that better reflects real API response times
       let lastProgressPercent = 0;
+      let startTime = Date.now();
+      let lastUpdateTime = startTime;
+      let progressIncrement = 0;
+      
       const progressInterval = setInterval(() => {
         if (isCompleted) {
           clearInterval(progressInterval);
           return;
         }
         
-        // Calculate progress based on expected and current content
-        if (window.expectedContentLength && collectedHtml.length > 0) {
-          const percent = Math.min(Math.floor((collectedHtml.length / window.expectedContentLength) * 100), 99);
-          
-          // Only update if we have a significant change in percentage (>= 5%)
-          if (percent - lastProgressPercent >= 5) {
-            lastProgressPercent = percent;
-            setStreamingOutput(prev => {
-              // Replace last line if it has percentage, otherwise don't add a percentage yet
-              const lastLine = prev[prev.length - 1];
-              if (lastLine && lastLine.includes("Building HTML")) {
-                return [
-                  ...prev.slice(0, -1), 
-                  `Building HTML... ${percent}% complete`
-                ];
-              }
-              // Don't add a new line here, we'll add it when content generation is confirmed
-              return prev;
-            });
-          }
+        const currentTime = Date.now();
+        const elapsedSeconds = (currentTime - startTime) / 1000;
+        const timeSinceLastUpdate = (currentTime - lastUpdateTime) / 1000;
+        
+        // Calculate time-based progress component 
+        // This ensures progress increases gradually even without content
+        const timeProgress = Math.min(Math.floor((elapsedSeconds / 20) * 70), 70);
+        
+        // Calculate content-based progress component
+        const contentProgress = window.expectedContentLength && collectedHtml.length > 0
+          ? Math.min(Math.floor((collectedHtml.length / window.expectedContentLength) * 30), 25)
+          : Math.min(Math.floor(elapsedSeconds * 2), 25);
+        
+        // Combined progress (max 95% until complete)
+        const combinedPercent = Math.min(timeProgress + contentProgress, 95);
+        
+        // Add small random fluctuations to make progress look more natural
+        // But only if enough time has passed since the last update
+        if (timeSinceLastUpdate > 1) {
+          progressIncrement = Math.random() > 0.5 ? 1 : 0;
+          lastUpdateTime = currentTime;
         }
-      }, 1000);
+        
+        // Final percent with the small random fluctuation
+        const percent = Math.min(combinedPercent + progressIncrement, 95);
+        
+        // Only update if we have a meaningful change in percentage
+        if (Math.abs(percent - lastProgressPercent) >= 3) {
+          lastProgressPercent = percent;
+          setStreamingOutput(prev => {
+            // Replace last line if it has percentage, otherwise don't add a percentage yet
+            const lastLine = prev[prev.length - 1];
+            if (lastLine && lastLine.includes("Building HTML")) {
+              return [
+                ...prev.slice(0, -1), 
+                `Building HTML... ${percent}% complete`
+              ];
+            }
+            // Don't add a new line here, we'll add it when content generation is confirmed
+            return prev;
+          });
+        }
+      }, 800);
       
       // Main loop to process stream data
       while (!done) {
@@ -493,12 +527,24 @@ export default function Editor({
                   
                   if (event.isHtml && !isHtmlStarted) {
                     isHtmlStarted = true;
-                    setStreamingOutput(prev => [...prev, `✅ Content successfully generated by AI Accelerate LLM!`]);
                     
-                    // Start a progress indicator once we confirm HTML generation
-                    // This provides a cleaner status display without unnecessary steps
-                    if (window.expectedContentLength && collectedHtml.length > 0) {
-                      const percent = Math.min(Math.floor((collectedHtml.length / window.expectedContentLength) * 100), 99);
+                    // Instead of immediately showing success, wait for some content first
+                    // This creates a more realistic progress experience 
+                    if (collectedHtml.length > 200) {
+                      setStreamingOutput(prev => [...prev, `✅ Content successfully generated by AI Accelerate LLM!`]);
+                      
+                      // Calculate a more realistic progress (never 100% until complete)
+                      // This makes the progress bar more meaningful
+                      const generationTime = (Date.now() - (window.generationStartTime || Date.now())) / 1000;
+                      const elapsedPercent = Math.min(Math.floor((generationTime / 15) * 100), 60);
+                      
+                      // Use a combination of time and content metrics for a smoother experience
+                      // This ensures progress doesn't jump to 100% immediately
+                      const percent = Math.min(
+                        Math.floor((collectedHtml.length / (window.expectedContentLength || 5000)) * 40) + elapsedPercent, 
+                        95
+                      );
+                      
                       setStreamingOutput(prev => [...prev, `Building HTML... ${percent}% complete`]);
                     }
                   }

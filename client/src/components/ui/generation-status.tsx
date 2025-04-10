@@ -14,7 +14,35 @@ export function GenerationStatus({
   // Keep status component visible for at least some time even if percentComplete reaches 100%
   const [showProgress, setShowProgress] = useState(true);
   
-  // When percentComplete changes to 100, delay hiding the progress bar
+  // Used for smoother progress animation
+  const [displayedPercent, setDisplayedPercent] = useState(0);
+  
+  // When percentComplete changes, animate the progress smoothly
+  useEffect(() => {
+    // If we have a valid percent value
+    if (typeof percentComplete === 'number') {
+      // If the new percent is significantly different, animate to it
+      if (Math.abs(percentComplete - displayedPercent) > 3) {
+        // Small increments for smoother animation
+        const step = percentComplete > displayedPercent ? 3 : -3;
+        const timer = setTimeout(() => {
+          setDisplayedPercent(prev => {
+            // Move toward the target percentComplete
+            const next = prev + step;
+            // Make sure we don't overshoot the target
+            if (step > 0) {
+              return Math.min(next, percentComplete);
+            } else {
+              return Math.max(next, percentComplete);
+            }
+          });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [percentComplete, displayedPercent]);
+  
+  // When percentComplete reaches 100, delay hiding the progress bar
   useEffect(() => {
     if (percentComplete && percentComplete >= 100) {
       // Keep showing progress bar for a while even after reaching 100%
@@ -26,6 +54,15 @@ export function GenerationStatus({
       setShowProgress(true);
     }
   }, [percentComplete]);
+
+  // Filter out duplicate status messages
+  const uniqueStatus = status.reduce((acc, current, index) => {
+    // Skip if this message is identical to the previous message
+    if (index > 0 && current === status[index - 1]) {
+      return acc;
+    }
+    return [...acc, current];
+  }, [] as string[]);
 
   return (
     <div className="bg-blue-950 text-gray-200 rounded-lg p-4 text-sm font-mono overflow-hidden">
@@ -43,7 +80,7 @@ export function GenerationStatus({
         </div>
       )}
       
-      {status.map((line, index) => {
+      {uniqueStatus.map((line, index) => {
         // Check if the line contains a checkmark or success message
         const isSuccess = line.includes('✅') || line.toLowerCase().includes('success');
         // Check if the line contains an error or warning
@@ -64,12 +101,12 @@ export function GenerationStatus({
         <div className="flex items-center">
           <div className="h-2 bg-blue-900 rounded-full w-full">
             <div 
-              className="h-2 bg-blue-400 rounded-full transition-all duration-300 ease-in-out" 
-              style={{ width: `${Math.min(percentComplete || 0, 100)}%` }}
+              className="h-2 bg-blue-400 rounded-full transition-all duration-500 ease-out" 
+              style={{ width: `${Math.min(displayedPercent, 100)}%` }}
             ></div>
           </div>
           <span className="ml-2 text-blue-300 min-w-[4rem] text-right">
-            {Math.min(Math.round(percentComplete || 0), 100)}% 
+            {Math.min(Math.round(displayedPercent), 100)}% 
           </span>
         </div>
       </div>
