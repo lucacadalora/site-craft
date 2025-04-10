@@ -353,8 +353,8 @@ export function generateFallbackHtml(title: string, prompt: string): string {
     </header>
     
     <div class="error-box">
-      <h2>SambaNova API Error</h2>
-      <p>We were unable to generate a landing page using the SambaNova API. This is likely due to an API connection issue or an invalid API key.</p>
+      <h2>AI Accelerate Inference API Error</h2>
+      <p>We were unable to generate a landing page using the AI Accelerate Inference API. This is likely due to an API connection issue or service limitation.</p>
     </div>
     
     <div class="prompt-preview">
@@ -365,10 +365,10 @@ export function generateFallbackHtml(title: string, prompt: string): string {
     <div class="instructions">
       <h2>Troubleshooting Steps:</h2>
       <ol>
-        <li>Check that you've entered your SambaNova API key correctly in the settings.</li>
-        <li>Verify that your API key is valid by clicking the "Validate" button in the API settings panel.</li>
-        <li>Make sure your API key has the necessary permissions to use the SambaNova models.</li>
+        <li>The AI Inference service may be experiencing high load. Please try again in a few minutes.</li>
+        <li>Try refreshing the page or restarting your browser.</li>
         <li>Try a different, simpler prompt to see if that works.</li>
+        <li>Check your internet connection and ensure you can access <a href="https://inference.aiccelerate.id/" style="color: #1e40af; text-decoration: underline;">inference.aiccelerate.id</a>.</li>
       </ol>
     </div>
     
