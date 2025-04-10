@@ -11,7 +11,10 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User>;
+  updateUserTokenUsage(id: number, tokenCount: number): Promise<User>;
 
   // Template methods
   getTemplate(id: string): Promise<Template | undefined>;
@@ -24,6 +27,7 @@ export interface IStorage {
   // Project methods
   getProject(id: number): Promise<Project | undefined>;
   getAllProjects(): Promise<Project[]>;
+  getUserProjects(userId: number): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<Project>): Promise<Project>;
   deleteProject(id: number): Promise<void>;
@@ -58,11 +62,53 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email
+    );
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      tokenUsage: 0,
+      generationCount: 0,
+      createdAt: new Date(),
+      lastLogin: null
+    };
     this.users.set(id, user);
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+
+    const updatedUser: User = {
+      ...user,
+      ...userData,
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserTokenUsage(id: number, tokenCount: number): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+
+    const updatedUser: User = {
+      ...user,
+      tokenUsage: (user.tokenUsage || 0) + tokenCount,
+      generationCount: (user.generationCount || 0) + 1,
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // Template methods
@@ -83,6 +129,8 @@ export class MemStorage implements IStorage {
   async createTemplate(template: InsertTemplate): Promise<Template> {
     const newTemplate: Template = {
       ...template,
+      description: template.description || null,
+      thumbnail: template.thumbnail || null
     };
     this.templates.set(template.id, newTemplate);
     return newTemplate;
@@ -117,15 +165,26 @@ export class MemStorage implements IStorage {
   async getAllProjects(): Promise<Project[]> {
     return Array.from(this.projects.values());
   }
+  
+  async getUserProjects(userId: number): Promise<Project[]> {
+    return Array.from(this.projects.values()).filter(
+      (project) => project.userId === userId
+    );
+  }
 
   async createProject(project: InsertProject): Promise<Project> {
     const id = this.projectId++;
     const newProject: Project = {
       ...project,
       id,
+      html: null,
+      css: null,
+      description: project.description || null,
+      settings: project.settings || {},
       published: false,
       publishPath: null,
       createdAt: new Date(),
+      userId: project.userId || null
     };
     this.projects.set(id, newProject);
     return newProject;

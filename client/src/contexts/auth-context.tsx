@@ -1,5 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface User {
   id: number;
@@ -17,125 +22,72 @@ interface AuthContextType {
   updateUser: (userData: Partial<User>) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  isLoading: true,
-  login: () => {},
-  logout: () => {},
-  updateUser: () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const TOKEN_KEY = "auth_token";
+const USER_DATA_KEY = "user_data";
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user and token from localStorage on initial render
   useEffect(() => {
-    const loadAuthState = async () => {
-      setIsLoading(true);
-      
-      // Try to get token from localStorage or sessionStorage
-      const savedToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-      const savedUser = localStorage.getItem('user');
-      
-      if (savedToken && savedUser) {
-        try {
-          // Set token and user from storage
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
-          
-          // Verify token by making a request to profile endpoint
-          const response = await fetch('/api/auth/profile', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${savedToken}`,
-            },
-          });
-          
-          if (response.ok) {
-            // Update user data with most recent from server
-            const userData = await response.json();
-            setUser(userData);
-            localStorage.setItem('user', JSON.stringify(userData));
-          } else {
-            // If token is invalid, clear authentication state
-            localStorage.removeItem('authToken');
-            sessionStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            setToken(null);
-            setUser(null);
-          }
-        } catch (error) {
-          // Network error or other exception
-          console.error('Error verifying authentication:', error);
-          toast({
-            title: 'Authentication Error',
-            description: 'Please log in again.',
-            variant: 'destructive',
-          });
-          
-          // Clear auth state
-          localStorage.removeItem('authToken');
-          sessionStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
-        }
+    // Load user session from localStorage on initial render
+    const storedToken = localStorage.getItem(TOKEN_KEY);
+    const storedUserData = localStorage.getItem(USER_DATA_KEY);
+
+    if (storedToken && storedUserData) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUserData));
+      } catch (error) {
+        console.error("Error parsing stored user data:", error);
+        // Clear invalid data
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_DATA_KEY);
       }
-      
-      setIsLoading(false);
-    };
+    }
     
-    loadAuthState();
-  }, [toast]);
+    setIsLoading(false);
+  }, []);
 
   const login = (newToken: string, userData: User) => {
     setToken(newToken);
     setUser(userData);
+    
+    // Store auth data in localStorage for persistence
+    localStorage.setItem(TOKEN_KEY, newToken);
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
   };
 
   const logout = () => {
-    // Clear authentication data from storage
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    
-    // Reset state
     setToken(null);
     setUser(null);
     
-    toast({
-      title: 'Logged out',
-      description: 'You have been logged out successfully.',
-    });
+    // Clear stored auth data
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_DATA_KEY);
   };
 
   const updateUser = (userData: Partial<User>) => {
-    if (!user) return;
-    
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem(USER_DATA_KEY, JSON.stringify(updatedUser));
+    }
   };
-
-  // Compute authentication status
-  const isAuthenticated = !!token && !!user;
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
-        isAuthenticated,
+        isAuthenticated: !!token,
         isLoading,
         login,
         logout,
@@ -147,4 +99,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};

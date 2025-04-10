@@ -1,143 +1,136 @@
-import { Router, Response } from 'express';
-import { PgStorage } from '../db/pg-storage';
+import express, { Request, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { insertProjectSchema } from '@shared/schema';
+import { storage } from '../storage';
 
-const router = Router();
-const storage = new PgStorage();
+const router = express.Router();
 
-// Get all user projects
+// Get all projects for the authenticated user
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    const projects = await storage.getUserProjects(req.user.id);
-    return res.json(projects);
+    const projects = await storage.getUserProjects(req.user!.id);
+    res.status(200).json(projects);
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching projects' });
   }
 });
 
 // Get a specific project
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
     const projectId = parseInt(req.params.id);
     if (isNaN(projectId)) {
       return res.status(400).json({ message: 'Invalid project ID' });
     }
 
     const project = await storage.getProject(projectId);
+    
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
-
-    // Check if the project belongs to the user
-    if (project.userId !== req.user.id) {
-      return res.status(403).json({ message: 'You do not have permission to access this project' });
+    
+    // Check if the project belongs to the authenticated user
+    if (project.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
     }
-
-    return res.json(project);
+    
+    res.status(200).json(project);
   } catch (error) {
     console.error('Error fetching project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error fetching project' });
   }
 });
 
 // Create a new project
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    // Validate request body
-    const validation = insertProjectSchema.safeParse(req.body);
-    if (!validation.success) {
+    const { name, prompt, templateId, category, settings } = req.body;
+    
+    if (!name || !prompt || !templateId || !category) {
       return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: validation.error.format() 
+        message: 'Missing required fields. Please provide name, prompt, templateId and category.'
       });
     }
-
-    // Create project with user ID
+    
     const project = await storage.createProject({
-      ...validation.data,
-      userId: req.user.id,
+      name,
+      prompt,
+      templateId,
+      category,
+      description: req.body.description,
+      settings: settings || {},
+      userId: req.user!.id,
     });
-
-    return res.status(201).json(project);
+    
+    res.status(201).json(project);
   } catch (error) {
     console.error('Error creating project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error creating project' });
   }
 });
 
 // Update a project
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
     const projectId = parseInt(req.params.id);
     if (isNaN(projectId)) {
       return res.status(400).json({ message: 'Invalid project ID' });
     }
-
-    // Check if project exists and belongs to user
-    const existingProject = await storage.getProject(projectId);
-    if (!existingProject) {
+    
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
-
-    if (existingProject.userId !== req.user.id) {
-      return res.status(403).json({ message: 'You do not have permission to update this project' });
+    
+    // Check if the project belongs to the authenticated user
+    if (project.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
     }
-
-    // Update project
-    const updatedProject = await storage.updateProject(projectId, req.body);
-    return res.json(updatedProject);
+    
+    // Fields allowed to be updated
+    const { name, html, css, published, settings } = req.body;
+    
+    const updatedProject = await storage.updateProject(projectId, {
+      ...(name !== undefined && { name }),
+      ...(html !== undefined && { html }),
+      ...(css !== undefined && { css }),
+      ...(published !== undefined && { published }),
+      ...(settings !== undefined && { settings }),
+    });
+    
+    res.status(200).json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error updating project' });
   }
 });
 
 // Delete a project
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
     const projectId = parseInt(req.params.id);
     if (isNaN(projectId)) {
       return res.status(400).json({ message: 'Invalid project ID' });
     }
-
-    // Check if project exists and belongs to user
-    const existingProject = await storage.getProject(projectId);
-    if (!existingProject) {
+    
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
-
-    if (existingProject.userId !== req.user.id) {
-      return res.status(403).json({ message: 'You do not have permission to delete this project' });
+    
+    // Check if the project belongs to the authenticated user
+    if (project.userId !== req.user!.id) {
+      return res.status(403).json({ message: 'Access denied' });
     }
-
-    // Delete project
+    
     await storage.deleteProject(projectId);
-    return res.status(204).send();
+    
+    res.status(204).send();
   } catch (error) {
     console.error('Error deleting project:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error deleting project' });
   }
 });
 
