@@ -1,84 +1,84 @@
-import { eq } from 'drizzle-orm';
-import bcrypt from 'bcrypt';
-import { 
-  InsertProject, 
-  Project, 
-  InsertTemplate, 
-  Template, 
-  InsertUser, 
-  User,
-  projects,
-  templates,
-  users
-} from "@shared/schema";
-import { IStorage } from '../storage';
 import { db } from './index';
+import bcrypt from 'bcrypt';
+import { eq, and } from 'drizzle-orm';
+import { users, templates, projects } from '@shared/schema';
+import type { User, Template, Project, InsertUser, InsertTemplate, InsertProject } from '@shared/schema';
+import { IStorage } from '../storage';
 
 export class PgStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
-    return result.length > 0 ? result[0] : undefined;
+    const results = await db.select().from(users).where(eq(users.id, id));
+    return results[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
-    return result.length > 0 ? result[0] : undefined;
+    const results = await db.select().from(users).where(eq(users.username, username));
+    return results[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.email, email));
-    return result.length > 0 ? result[0] : undefined;
+    const results = await db.select().from(users).where(eq(users.email, email));
+    return results[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(insertUser.password, 10);
-    
-    // Insert the user with the hashed password
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(insertUser.password, salt);
+
+    // Insert user with hashed password
     const result = await db.insert(users).values({
       ...insertUser,
       password: hashedPassword,
+      tokenUsage: 0,
+      generationCount: 0,
+      createdAt: new Date(),
     }).returning();
-    
+
     return result[0];
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
     // If password is being updated, hash it
     if (userData.password) {
-      userData.password = await bcrypt.hash(userData.password, 10);
+      const salt = await bcrypt.genSalt(10);
+      userData.password = await bcrypt.hash(userData.password, salt);
     }
-    
-    const result = await db.update(users)
+
+    const result = await db
+      .update(users)
       .set(userData)
       .where(eq(users.id, id))
       .returning();
-    
+
     return result[0];
   }
 
   async updateUserTokenUsage(id: number, tokenCount: number): Promise<User> {
+    // Get current user
     const user = await this.getUser(id);
     if (!user) {
       throw new Error(`User with ID ${id} not found`);
     }
-    
-    const result = await db.update(users)
-      .set({ 
+
+    // Update token usage and generation count
+    const result = await db
+      .update(users)
+      .set({
         tokenUsage: (user.tokenUsage || 0) + tokenCount,
-        generationCount: (user.generationCount || 0) + 1 
+        generationCount: (user.generationCount || 0) + 1,
       })
       .where(eq(users.id, id))
       .returning();
-    
+
     return result[0];
   }
 
   // Template methods
   async getTemplate(id: string): Promise<Template | undefined> {
-    const result = await db.select().from(templates).where(eq(templates.id, id));
-    return result.length > 0 ? result[0] : undefined;
+    const results = await db.select().from(templates).where(eq(templates.id, id));
+    return results[0];
   }
 
   async getTemplatesByCategory(category: string): Promise<Template[]> {
@@ -90,20 +90,21 @@ export class PgStorage implements IStorage {
   }
 
   async createTemplate(template: InsertTemplate): Promise<Template> {
-    const result = await db.insert(templates).values(template).returning();
+    const result = await db.insert(templates).values({
+      ...template,
+      createdAt: new Date(),
+    }).returning();
+
     return result[0];
   }
 
   async updateTemplate(id: string, templateUpdate: Partial<Template>): Promise<Template> {
-    const result = await db.update(templates)
+    const result = await db
+      .update(templates)
       .set(templateUpdate)
       .where(eq(templates.id, id))
       .returning();
-    
-    if (result.length === 0) {
-      throw new Error(`Template with ID ${id} not found`);
-    }
-    
+
     return result[0];
   }
 
@@ -113,8 +114,8 @@ export class PgStorage implements IStorage {
 
   // Project methods
   async getProject(id: number): Promise<Project | undefined> {
-    const result = await db.select().from(projects).where(eq(projects.id, id));
-    return result.length > 0 ? result[0] : undefined;
+    const results = await db.select().from(projects).where(eq(projects.id, id));
+    return results[0];
   }
 
   async getAllProjects(): Promise<Project[]> {
@@ -126,20 +127,26 @@ export class PgStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
-    const result = await db.insert(projects).values(project).returning();
+    const result = await db.insert(projects).values({
+      ...project,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+
     return result[0];
   }
 
   async updateProject(id: number, projectUpdate: Partial<Project>): Promise<Project> {
-    const result = await db.update(projects)
-      .set(projectUpdate)
+    // Always update the updatedAt field
+    const result = await db
+      .update(projects)
+      .set({
+        ...projectUpdate,
+        updatedAt: new Date(),
+      })
       .where(eq(projects.id, id))
       .returning();
-    
-    if (result.length === 0) {
-      throw new Error(`Project with ID ${id} not found`);
-    }
-    
+
     return result[0];
   }
 

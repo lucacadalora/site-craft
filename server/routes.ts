@@ -4,9 +4,28 @@ import { apiConfigSchema } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import { generateLandingPageHtml, generateFallbackHtml, validateSambanovaApiKey } from './lib/sambanova';
+import authRoutes from './routes/auth';
+import projectRoutes from './routes/projects';
+import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
+import { PgStorage } from './db/pg-storage';
+import { MemStorage } from './storage';
+
+// Initialize the database schema and tables
+import './db/migrate';
+
+// Create storage instances
+const pgStorage = new PgStorage();
+// Keep memStorage for backward compatibility
+const memStorage = new MemStorage();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
+  
+  // Register authentication routes
+  app.use('/api/auth', authRoutes);
+  
+  // Register project routes
+  app.use('/api/projects', projectRoutes);
 
   // Simple template categories endpoint that returns static data
   const CATEGORIES = [
@@ -82,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SambaNova API integration for DeepSite generation with true streaming
-  app.post("/api/sambanova/generate-stream", async (req, res) => {
+  app.post("/api/sambanova/generate-stream", optionalAuth, async (req: AuthRequest, res) => {
     try {
       const { prompt, apiConfig } = req.body;
       
@@ -91,6 +110,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Missing required field: prompt."
         });
       }
+      
+      // Estimate token usage
+      const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
+      
+      // If user is authenticated, we'll track token usage later
       
       // Enable streaming HTTP response
       res.setHeader('Content-Type', 'text/event-stream');
@@ -230,6 +254,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           source: 'api'
         })}\n\n`);
         
+        // Track usage if user is authenticated
+        if (req.user) {
+          try {
+            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+            console.log(`Updated token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
+          } catch (error) {
+            console.error('Error updating token usage:', error);
+          }
+        }
       } catch (error) {
         console.error("Error streaming from AI Accelerate Inference API:", error);
         
@@ -265,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Keep the regular non-streaming endpoint for backward compatibility
-  app.post("/api/sambanova/deepsite", async (req, res) => {
+  app.post("/api/sambanova/deepsite", optionalAuth, async (req: AuthRequest, res) => {
     try {
       const { prompt, category, sections, contentDepth, apiConfig } = req.body;
       
@@ -275,10 +308,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Estimate token usage
+      const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
+      
       // Call the AI Accelerate Inference API
       const result = await generateLandingPageHtml(prompt, apiConfig);
       
       if (result.success) {
+        // Track usage if user is authenticated
+        if (req.user) {
+          try {
+            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+            console.log(`Updated token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
+          } catch (error) {
+            console.error('Error updating token usage:', error);
+          }
+        }
+        
         // Return the generated HTML as both HTML and CSS for backward compatibility
         return res.json({ 
           html: result.html,

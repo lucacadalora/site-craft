@@ -1,13 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PgStorage } from '../db/pg-storage';
 
-// Environment variable for JWT secret
+// JWT secret key - should be in environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Create storage instance
-const storage = new PgStorage();
-
+// Extended request interface with user data
 export interface AuthRequest extends Request {
   user?: {
     id: number;
@@ -19,30 +16,22 @@ export interface AuthRequest extends Request {
 // Middleware to authenticate requests
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from Authorization header
+    // Get token from header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // Verify the token
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
     
-    // Get user from database
-    const user = await storage.getUser(decoded.id);
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-    
-    // Attach user to request
-    req.user = {
-      id: user.id,
-      email: user.email,
-      username: user.username
-    };
-    
+    // Add user data to request object
+    req.user = decoded;
     next();
   } catch (error) {
     console.error('Authentication error:', error);
@@ -52,41 +41,34 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
 // Generate JWT token
 export const generateToken = (user: { id: number; email: string; username: string }) => {
-  return jwt.sign(
-    { id: user.id, email: user.email, username: user.username },
-    JWT_SECRET,
-    { expiresIn: '30d' }
-  );
+  return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Optional authentication middleware - doesn't fail if no token
+// Optional authentication middleware that doesn't reject requests without a token
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from Authorization header
+    // Get token from header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Continue without authentication
       return next();
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // Verify the token
+    if (!token) {
+      // Continue without authentication
+      return next();
+    }
+
+    // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
     
-    // Get user from database
-    const user = await storage.getUser(decoded.id);
-    if (user) {
-      // Attach user to request
-      req.user = {
-        id: user.id,
-        email: user.email,
-        username: user.username
-      };
-    }
-    
+    // Add user data to request object
+    req.user = decoded;
     next();
   } catch (error) {
-    // Just continue without authentication
+    // If token verification fails, just continue without authentication
+    console.error('Optional auth error:', error);
     next();
   }
 };
