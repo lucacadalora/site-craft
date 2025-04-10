@@ -308,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Validate SambaNova API key
+  // Validate AI Accelerate API key
   app.post("/api/sambanova/validate", async (req, res) => {
     try {
       const { apiKey } = req.body;

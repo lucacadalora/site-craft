@@ -230,7 +230,7 @@ export async function validateSambanovaApiKey(apiKey: string): Promise<boolean> 
     // If we get a 200 OK, the key is valid
     return response.ok;
   } catch (error) {
-    console.error("Error validating SambaNova API key:", error);
+    console.error("Error validating AI Accelerate Inference API key:", error);
     return false;
   }
 }
