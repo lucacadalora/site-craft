@@ -6,9 +6,32 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add CORS headers for custom domains
+app.use((req, res, next) => {
+  // Allow requests from any origin
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Enhanced logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  const host = req.headers.host || 'unknown';
+  const origin = req.headers.origin || 'unknown';
+  const referer = req.headers.referer || 'unknown';
+  
+  // Log request info for debugging
+  log(`REQUEST: ${req.method} ${path} from host=${host} origin=${origin} referer=${referer}`);
+  
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -19,18 +42,17 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    // Log all requests for debugging
+    let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms from ${host}`;
+    if (capturedJsonResponse && path.startsWith("/api")) {
+      logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      
+      if (logLine.length > 100) {
+        logLine = logLine.slice(0, 99) + "…";
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
     }
+
+    log(logLine);
   });
 
   next();
