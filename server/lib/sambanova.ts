@@ -20,7 +20,7 @@ interface GenerationResult {
 }
 
 /**
- * Generate HTML content using SambaNova's DeepSeek-V3-0324 model
+ * Generate HTML content using AI Accelerate's DeepSeek-V3-0324 model
  */
 export async function generateLandingPageHtml(
   prompt: string,
@@ -32,11 +32,11 @@ export async function generateLandingPageHtml(
       return {
         html: "",
         success: false,
-        error: "SambaNova API key is required"
+        error: "AI Accelerate Inference API key is required"
       };
     }
     
-    console.log("Generating HTML with SambaNova API using prompt:", prompt.substring(0, 50) + "...");
+    console.log("Generating HTML with AI Accelerate Inference API using prompt:", prompt.substring(0, 50) + "...");
     
     // Prepare the system prompt and user message using DeepSite style
     const systemMessage: Message = {
@@ -56,7 +56,7 @@ export async function generateLandingPageHtml(
     };
     
     // Log API request for debugging
-    console.log("Calling SambaNova API with options:", {
+    console.log("Calling AI Accelerate Inference API with options:", {
       model: completionOptions.model,
       stream: completionOptions.stream,
       messages: [
@@ -77,7 +77,7 @@ export async function generateLandingPageHtml(
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("SambaNova API error:", response.status, errorText);
+      console.error("AI Accelerate Inference API error:", response.status, errorText);
       console.log("Using fallback HTML generation due to API error:", `API error: ${response.status} - ${errorText}`);
       return {
         html: generateFallbackHtml(`${prompt.substring(0, 20)}...`, prompt),
@@ -88,7 +88,7 @@ export async function generateLandingPageHtml(
     
     // For streamed responses, we need to read the chunks and collect them
     try {
-      console.log("SambaNova API response received successfully");
+      console.log("AI Accelerate Inference API response received successfully");
       
       // Since we're using streaming mode, we need to collect the response differently
       if (completionOptions.stream) {
@@ -213,7 +213,7 @@ export async function generateLandingPageHtml(
 }
 
 /**
- * Validate a SambaNova API key
+ * Validate an AI Accelerate Inference API key
  */
 export async function validateSambanovaApiKey(apiKey: string): Promise<boolean> {
   try {

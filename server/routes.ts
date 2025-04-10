@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messages: [systemMessage, userMessage]
         };
         
-        // Call the SambaNova API with streaming
+        // Call the AI Accelerate Inference API with streaming
         const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -256,12 +256,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.end();
       
     } catch (error) {
-      console.error("Critical error with SambaNova API streaming:", error);
+      console.error("Critical error with AI Accelerate Inference API streaming:", error);
       
       // If we reach this, we can't use the streaming response anymore
       if (!res.headersSent) {
         return res.status(500).json({ 
-          message: error instanceof Error ? error.message : "Failed to generate content with SambaNova API" 
+          message: error instanceof Error ? error.message : "Failed to generate content with AI Accelerate Inference API" 
         });
       } else {
         return res.end();
@@ -280,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Call the SambaNova API
+      // Call the AI Accelerate Inference API
       const result = await generateLandingPageHtml(prompt, apiConfig);
       
       if (result.success) {
