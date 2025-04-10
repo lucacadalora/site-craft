@@ -124,7 +124,7 @@ export default function Editor({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [isResizing, setIsResizing] = useState<boolean>(false);
-  const [showSettings, setShowSettings] = useState<boolean>(false);
+  // Settings panel removed - using fixed API key
   // Using tab-based navigation for mobile instead of fullscreen
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>(isMobile ? 'editor' : 'preview');
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
@@ -313,14 +313,13 @@ export default function Editor({
       return;
     }
 
+    // If no API key is provided, use the default one from environment
     if (!apiConfig.apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please provide an AI Accelerate API key in the settings",
-        variant: "destructive",
+      // Set the default API key from App.tsx (9f5d2696-9a9f-43a6-9778-ebe727cd2968)
+      setApiConfig({
+        ...apiConfig,
+        apiKey: "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
       });
-      setShowSettings(true);
-      return;
     }
 
     // Mark that we're generating content - this controls showing the status component
