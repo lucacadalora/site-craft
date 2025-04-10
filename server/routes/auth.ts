@@ -1,35 +1,34 @@
-import { Router, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { PgStorage } from '../db/pg-storage';
-import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 import { loginSchema, registerSchema } from '@shared/schema';
+import { storage } from '../storage';
+import { generateToken, AuthRequest, authenticate } from '../middleware/auth';
 
-const router = Router();
-const storage = new PgStorage();
+const router = express.Router();
 
 // Register a new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
     // Validate request body
-    const validation = registerSchema.safeParse(req.body);
-    if (!validation.success) {
+    const validationResult = registerSchema.safeParse(req.body);
+    if (!validationResult.success) {
       return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: validation.error.format() 
+        message: 'Validation error', 
+        errors: validationResult.error.errors 
       });
     }
 
-    const { username, email, password } = validation.data;
+    const { username, email, password } = req.body;
 
     // Check if user already exists
-    const existingUserByUsername = await storage.getUserByUsername(username);
-    if (existingUserByUsername) {
-      return res.status(400).json({ message: 'Username already exists' });
-    }
-
     const existingUserByEmail = await storage.getUserByEmail(email);
     if (existingUserByEmail) {
       return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    const existingUserByUsername = await storage.getUserByUsername(username);
+    if (existingUserByUsername) {
+      return res.status(400).json({ message: 'Username already taken' });
     }
 
     // Create user
@@ -39,23 +38,23 @@ router.post('/register', async (req: Request, res: Response) => {
       password,
     });
 
-    // Generate token
+    // Generate JWT token
     const token = generateToken({
       id: user.id,
       email: user.email,
       username: user.username
     });
 
-    // Return user data and token
-    return res.status(201).json({
+    // Return user info and token
+    res.status(201).json({
       id: user.id,
       username: user.username,
       email: user.email,
-      token,
+      token
     });
   } catch (error) {
     console.error('Registration error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error registering user' });
   }
 });
 
@@ -63,15 +62,15 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   try {
     // Validate request body
-    const validation = loginSchema.safeParse(req.body);
-    if (!validation.success) {
+    const validationResult = loginSchema.safeParse(req.body);
+    if (!validationResult.success) {
       return res.status(400).json({ 
-        message: 'Validation failed', 
-        errors: validation.error.format() 
+        message: 'Validation error', 
+        errors: validationResult.error.errors 
       });
     }
 
-    const { email, password } = validation.data;
+    const { email, password } = req.body;
 
     // Find user by email
     const user = await storage.getUserByEmail(email);
@@ -79,87 +78,74 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    // Verify password
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Update last login time
+    // Update last login timestamp
     await storage.updateUser(user.id, { lastLogin: new Date() });
 
-    // Generate token
+    // Generate JWT token
     const token = generateToken({
       id: user.id,
       email: user.email,
       username: user.username
     });
 
-    // Return user data and token
-    return res.json({
+    // Return user info and token
+    res.status(200).json({
       id: user.id,
       username: user.username,
       email: user.email,
-      token,
+      token
     });
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Error logging in' });
   }
 });
 
 // Get user profile
 router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    const user = await storage.getUser(req.user.id);
+    const user = await storage.getUser(req.user!.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Return user data (excluding sensitive info)
-    return res.json({
+    res.status(200).json({
       id: user.id,
       username: user.username,
       email: user.email,
       tokenUsage: user.tokenUsage,
       generationCount: user.generationCount,
       createdAt: user.createdAt,
+      lastLogin: user.lastLogin
     });
   } catch (error) {
-    console.error('Profile retrieval error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Profile error:', error);
+    res.status(500).json({ message: 'Error fetching profile' });
   }
 });
 
 // Get user stats
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    const user = await storage.getUser(req.user.id);
+    const user = await storage.getUser(req.user!.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get user projects
-    const projects = await storage.getUserProjects(user.id);
-
-    // Return user stats
-    return res.json({
+    res.status(200).json({
       tokenUsage: user.tokenUsage || 0,
       generationCount: user.generationCount || 0,
-      projectCount: projects.length,
-      publishedProjects: projects.filter(p => p.published).length,
+      lastLogin: user.lastLogin
     });
   } catch (error) {
-    console.error('Stats retrieval error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('Stats error:', error);
+    res.status(500).json({ message: 'Error fetching user stats' });
   }
 });
 

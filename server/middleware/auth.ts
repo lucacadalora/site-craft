@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// JWT secret key - should be in environment variables in production
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// Secret key for JWT signing/verification
+const JWT_SECRET = process.env.JWT_SECRET || 'landingcraft-secret-key';
 
-// Extended request interface with user data
+// Extend Request type to include user
 export interface AuthRequest extends Request {
   user?: {
     id: number;
@@ -13,62 +13,84 @@ export interface AuthRequest extends Request {
   };
 }
 
-// Middleware to authenticate requests
+// Middleware to authenticate JWT token
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from header
+    // Get token from Authorization header
     const authHeader = req.headers.authorization;
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authentication required' });
     }
-
+    
     const token = authHeader.split(' ')[1];
+    
     if (!token) {
       return res.status(401).json({ message: 'Authentication required' });
     }
-
+    
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
     
-    // Add user data to request object
-    req.user = decoded;
+    // Set user info in request
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      username: decoded.username
+    };
+    
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    return res.status(401).json({ message: 'Invalid or expired token' });
+    
+    // Check for specific JWT errors
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    
+    return res.status(500).json({ message: 'Authentication error' });
   }
 };
 
 // Generate JWT token
 export const generateToken = (user: { id: number; email: string; username: string }) => {
+  // Create token with 7-day expiry
   return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Optional authentication middleware that doesn't reject requests without a token
+// Optional authentication middleware - doesn't reject if no token, but sets user if token exists
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from header
+    // Get token from Authorization header
     const authHeader = req.headers.authorization;
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // Continue without authentication
-      return next();
+      return next(); // Continue without authentication
     }
-
+    
     const token = authHeader.split(' ')[1];
+    
     if (!token) {
-      // Continue without authentication
-      return next();
+      return next(); // Continue without authentication
     }
-
+    
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
     
-    // Add user data to request object
-    req.user = decoded;
+    // Set user info in request
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      username: decoded.username
+    };
+    
     next();
   } catch (error) {
-    // If token verification fails, just continue without authentication
-    console.error('Optional auth error:', error);
+    // On any error, just continue without authentication
     next();
   }
 };

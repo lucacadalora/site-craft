@@ -25,6 +25,14 @@ export default function Home() {
             </nav>
           )}
           <div className="flex items-center space-x-4">
+            <Link href="/login">
+              <Button 
+                variant="outline" 
+                className="border-gray-300 text-gray-700 rounded-md"
+              >
+                Login
+              </Button>
+            </Link>
             <Link href="/editor">
               <Button 
                 variant="default" 

@@ -33,7 +33,7 @@ export class PgStorage implements IStorage {
       password: hashedPassword,
       tokenUsage: 0,
       generationCount: 0,
-      createdAt: new Date(),
+      // createdAt is handled by defaultNow()
     }).returning();
 
     return result[0];
@@ -90,9 +90,9 @@ export class PgStorage implements IStorage {
   }
 
   async createTemplate(template: InsertTemplate): Promise<Template> {
+    // Don't manually add createdAt as it's handled by defaultNow()
     const result = await db.insert(templates).values({
       ...template,
-      createdAt: new Date(),
     }).returning();
 
     return result[0];
@@ -127,23 +127,20 @@ export class PgStorage implements IStorage {
   }
 
   async createProject(project: InsertProject): Promise<Project> {
+    // Note: createdAt and updatedAt are handled by defaultNow() in the schema
     const result = await db.insert(projects).values({
-      ...project,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      ...project
     }).returning();
 
     return result[0];
   }
 
   async updateProject(id: number, projectUpdate: Partial<Project>): Promise<Project> {
-    // Always update the updatedAt field
+    // Note: for updatedAt, you'd typically use a trigger in the database
+    // For this implementation, we'll only update the fields provided
     const result = await db
       .update(projects)
-      .set({
-        ...projectUpdate,
-        updatedAt: new Date(),
-      })
+      .set(projectUpdate)
       .where(eq(projects.id, id))
       .returning();
 
