@@ -6,7 +6,9 @@ import { useState } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Editor from "@/pages/editor";
+import Login from "@/pages/login";
 import { ApiConfig } from "@shared/schema";
+import { AuthProvider } from "@/contexts/auth-context";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
@@ -19,6 +21,7 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
       <Route path="/editor">
         {() => <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
       </Route>
@@ -60,10 +63,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen flex flex-col">
-        <Router apiConfig={apiConfig} updateApiConfig={updateApiConfig} />
-        <Toaster />
-      </div>
+      <AuthProvider>
+        <div className="min-h-screen flex flex-col">
+          <Router apiConfig={apiConfig} updateApiConfig={updateApiConfig} />
+          <Toaster />
+        </div>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

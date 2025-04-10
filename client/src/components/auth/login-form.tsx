@@ -43,23 +43,36 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const responseData = await response.json();
 
       // Store token in localStorage or sessionStorage based on remember me
       if (data.rememberMe) {
-        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('authToken', responseData.token);
       } else {
-        sessionStorage.setItem('authToken', response.token);
+        sessionStorage.setItem('authToken', responseData.token);
       }
 
       // Store user data
       localStorage.setItem('user', JSON.stringify({
-        id: response.id,
-        username: response.username,
-        email: response.email,
+        id: responseData.id,
+        username: responseData.username,
+        email: responseData.email,
       }));
 
       toast({
@@ -68,7 +81,7 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
       });
 
       if (onSuccess) {
-        onSuccess(response);
+        onSuccess(responseData);
       }
     } catch (error) {
       toast({

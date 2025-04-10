@@ -47,19 +47,33 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const responseData = await response.json();
+
       // Store token in localStorage
-      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('authToken', responseData.token);
 
       // Store user data
       localStorage.setItem('user', JSON.stringify({
-        id: response.id,
-        username: response.username,
-        email: response.email,
+        id: responseData.id,
+        username: responseData.username,
+        email: responseData.email,
       }));
 
       toast({
@@ -68,7 +82,7 @@ export function RegisterForm({ onSuccess, onLoginClick }: RegisterFormProps) {
       });
 
       if (onSuccess) {
-        onSuccess(response);
+        onSuccess(responseData);
       }
     } catch (error) {
       toast({
