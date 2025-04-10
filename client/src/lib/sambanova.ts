@@ -29,12 +29,12 @@ export async function generateDeepSite(
   try {
     console.log("Generating with SambaNova DeepSeek-V3-0324...");
     
-    // Check for the environment variable first
-    const apiKey = apiConfig?.apiKey || import.meta.env.VITE_SAMBANOVA_API_KEY;
+    // Always use the API key from the config (which is now hardcoded in App.tsx)
+    const apiKey = apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
     
     // Check if we have an API key
     if (!apiKey) {
-      console.log("VITE_SAMBANOVA_API_KEY environment variable is NOT available");
+      console.log("API key is not available");
       console.log("Using fallback generation...");
       
       // Wait a bit to simulate API call

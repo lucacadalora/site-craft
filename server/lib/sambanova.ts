@@ -27,14 +27,8 @@ export async function generateLandingPageHtml(
   apiConfig: ApiConfig
 ): Promise<GenerationResult> {
   try {
-    const apiKey = apiConfig?.apiKey || process.env.SAMBANOVA_API_KEY;
-    if (!apiKey) {
-      return {
-        html: "",
-        success: false,
-        error: "AI Accelerate Inference API key is required"
-      };
-    }
+    // Always use the API key from the config or the hardcoded default
+    const apiKey = apiConfig?.apiKey || process.env.SAMBANOVA_API_KEY || "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
     
     console.log("Generating HTML with AI Accelerate Inference API using prompt:", prompt.substring(0, 50) + "...");
     
