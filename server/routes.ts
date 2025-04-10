@@ -101,9 +101,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
       
       try {
-        // Always use the API key from the config or the hardcoded default
-        const apiKey = apiConfig?.apiKey || process.env.SAMBANOVA_API_KEY || "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
-        // We don't need to check if the API key is missing anymore since we have a hardcoded default
+        // ALWAYS use the hardcoded API key directly for maximum reliability
+        // This ensures it works on all domains including custom domains
+        const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
+        // Using a hardcoded key prevents any issues with environment variables not being passed properly
         
         console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
