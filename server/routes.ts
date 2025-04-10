@@ -106,12 +106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Send error as a stream event
           res.write(`data: ${JSON.stringify({ 
             event: 'error', 
-            message: 'SambaNova API key is required'
+            message: 'AI Accelerate API key is required'
           })}\n\n`);
           return res.end();
         }
         
-        console.log("Generating HTML with SambaNova API using streaming for prompt:", prompt.substring(0, 50) + "...");
+        console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
         // Prepare the system prompt and user message
         const systemMessage = {
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (!apiResponse.ok) {
           const errorText = await apiResponse.text();
-          console.error("SambaNova API error:", apiResponse.status, errorText);
+          console.error("AI Accelerate Inference API error:", apiResponse.status, errorText);
           
           // Send error and then fallback content as a stream event
           res.write(`data: ${JSON.stringify({ 
@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Initialize for processing HTML chunks
-        console.log("SambaNova API response received, streaming to client");
+        console.log("AI Accelerate Inference API response received, streaming to client");
         const reader = apiResponse.body?.getReader();
         if (!reader) {
           throw new Error("Response body is not readable");
@@ -236,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })}\n\n`);
         
       } catch (error) {
-        console.error("Error streaming from SambaNova API:", error);
+        console.error("Error streaming from AI Accelerate Inference API:", error);
         
         // Send error as a stream event
         res.write(`data: ${JSON.stringify({ 
