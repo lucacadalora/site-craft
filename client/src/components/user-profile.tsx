@@ -26,14 +26,16 @@ export function UserProfile() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Function to refresh user stats
-  const refreshUserStats = useCallback(() => {
-    if (isAuthenticated && user && token) {
+  // Simple function to fetch user stats
+  const fetchUserStats = () => {
+    if (isAuthenticated && user) {
       setIsLoading(true);
+      
+      const token = localStorage.getItem('auth_token');
       
       fetch('/api/auth/stats', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token || ''}`,
         },
       })
         .then(res => {
@@ -46,12 +48,6 @@ export function UserProfile() {
             tokenUsage: data.tokenUsage || 0,
             generationCount: data.generationCount || 0,
             lastLogin: data.lastLogin
-          });
-          
-          // Also update the user context with latest usage data
-          updateUser({
-            tokenUsage: data.tokenUsage,
-            generationCount: data.generationCount
           });
         })
         .catch(err => {
@@ -67,19 +63,23 @@ export function UserProfile() {
           setIsLoading(false);
         });
     }
-  }, [isAuthenticated, user, token, updateUser]);
+  };
   
   // Fetch stats on initial load and when auth state changes
   useEffect(() => {
-    refreshUserStats();
+    fetchUserStats();
     
-    // Add event listener to refresh stats after generation
-    window.addEventListener('landing-page-generated', refreshUserStats);
+    // Add event listener for custom generation events
+    const handleGeneration = () => {
+      setTimeout(fetchUserStats, 1000); // Small delay to ensure DB has updated
+    };
+    
+    window.addEventListener('landing-page-generated', handleGeneration);
     
     return () => {
-      window.removeEventListener('landing-page-generated', refreshUserStats);
+      window.removeEventListener('landing-page-generated', handleGeneration);
     };
-  }, [refreshUserStats]);
+  }, [isAuthenticated, user]);
 
   const handleLogout = () => {
     logout();
