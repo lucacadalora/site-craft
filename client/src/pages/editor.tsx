@@ -810,9 +810,25 @@ export default function Editor({
         window.inTypingPhase = false;
         setIsGenerating(false);
         
+        // Get the actual token count displayed in the UI
+        const tokenCountElement = document.querySelector('.token-count');
+        const displayedTokenCount = tokenCountElement ? 
+          parseInt(tokenCountElement.textContent?.replace(/[^\d]/g, '') || '0') : 
+          Math.round(htmlContent.length / 4);
+        
+        console.log(`Detected token count: ${displayedTokenCount}`);
+        
+        // Record the token usage using our manual tracking method
+        if (displayedTokenCount > 0 && (window as any).recordTokenUsage) {
+          console.log(`Recording token usage of ${displayedTokenCount} tokens`);
+          (window as any).recordTokenUsage(displayedTokenCount);
+        }
+        
         // Dispatch custom event to notify token usage has been updated
-        window.dispatchEvent(new CustomEvent('landing-page-generated'));
-        console.log('Dispatched landing-page-generated event');
+        window.dispatchEvent(new CustomEvent('landing-page-generated', { 
+          detail: { tokenCount: displayedTokenCount }
+        }));
+        console.log('Dispatched landing-page-generated event with token count:', displayedTokenCount);
         
         // Show a toast notification with completion message
         // This will appear after the generation status popup disappears
