@@ -6,9 +6,16 @@ async function runMigration() {
   try {
     console.log('Starting database migration...');
     
-    // This function will create tables based on our schema defined in shared/schema.ts
-    await db.execute(
-      `
+    // Drop and recreate tables - be careful with this in production!
+    await db.execute(`
+      -- Drop existing tables if they exist
+      DROP TABLE IF EXISTS projects;
+      DROP TABLE IF EXISTS templates;
+      DROP TABLE IF EXISTS users;
+    `);
+    
+    // Create tables based on our latest schema
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
@@ -23,25 +30,29 @@ async function runMigration() {
       CREATE TABLE IF NOT EXISTS projects (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        prompt TEXT,
+        description TEXT,
+        prompt TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        category TEXT NOT NULL,
         html TEXT,
         css TEXT,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        settings JSON,
         published BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        publish_path TEXT,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
       CREATE TABLE IF NOT EXISTS templates (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
-        category TEXT,
-        content TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        category TEXT NOT NULL,
+        thumbnail TEXT,
+        html TEXT NOT NULL,
+        css TEXT NOT NULL
       );
-      `
-    );
+    `);
     
     console.log('Database migration completed successfully');
   } catch (error) {
