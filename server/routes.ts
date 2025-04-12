@@ -291,6 +291,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // Estimate token usage based on response length
+        const estimatedTokens = Math.ceil(fullContent.length / 4);
+        
+        // Track usage if user is authenticated
+        if (req.user) {
+          console.log(`Tracking token usage for user ${req.user.id} with ${estimatedTokens} tokens before sending completion`);
+          try {
+            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+            
+            // Send token usage update event
+            res.write(`data: ${JSON.stringify({ 
+              event: 'token-usage-updated',
+              tokenUsage: estimatedTokens, 
+              generationCount: 1
+            })}\n\n`);
+          } catch (error) {
+            console.error(`Error updating token usage for user ${req.user.id}:`, error);
+          }
+        }
+        
         // Send completion event
         console.log("Streaming completed, sending final event");
         res.write(`data: ${JSON.stringify({ 
@@ -298,11 +318,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           html: fullContent,
           source: 'api'
         })}\n\n`);
-        
-        // Track usage if user is authenticated
-        if (req.user) {
-          await trackTokenUsage(req.user.id, estimatedTokens, res);
-        }
       } catch (error) {
         console.error("Error streaming from AI Accelerate Inference API:", error);
         
