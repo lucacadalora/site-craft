@@ -51,23 +51,45 @@ export class PgStorage implements IStorage {
   }
 
   async updateUserTokenUsage(id: number, tokenCount: number): Promise<User> {
-    // Get current user
-    const user = await this.getUser(id);
-    if (!user) {
-      throw new Error(`User with ID ${id} not found`);
+    try {
+      console.log(`Updating token usage for user ${id} with ${tokenCount} tokens`);
+      
+      // Get current user
+      const user = await this.getUser(id);
+      if (!user) {
+        console.error(`User with ID ${id} not found for token usage update`);
+        throw new Error(`User with ID ${id} not found`);
+      }
+      
+      console.log(`Current token usage for user ${id}: ${user.tokenUsage || 0}, generations: ${user.generationCount || 0}`);
+
+      // Calculate new values
+      const newTokenUsage = (user.tokenUsage || 0) + tokenCount;
+      const newGenerationCount = (user.generationCount || 0) + 1;
+      
+      console.log(`New token usage will be: ${newTokenUsage}, new generation count: ${newGenerationCount}`);
+
+      // Update token usage and generation count
+      const result = await db
+        .update(users)
+        .set({
+          tokenUsage: newTokenUsage,
+          generationCount: newGenerationCount,
+        })
+        .where(eq(users.id, id))
+        .returning();
+
+      if (!result || result.length === 0) {
+        console.error(`Failed to update token usage for user ${id}`);
+        throw new Error(`Failed to update token usage for user ${id}`);
+      }
+
+      console.log(`Successfully updated token usage for user ${id}`);
+      return result[0];
+    } catch (error) {
+      console.error(`Error in updateUserTokenUsage:`, error);
+      throw error; // Re-throw to allow caller to handle
     }
-
-    // Update token usage and generation count
-    const result = await db
-      .update(users)
-      .set({
-        tokenUsage: (user.tokenUsage || 0) + tokenCount,
-        generationCount: (user.generationCount || 0) + 1,
-      })
-      .where(eq(users.id, id))
-      .returning();
-
-    return result[0];
   }
 
   // Template methods
