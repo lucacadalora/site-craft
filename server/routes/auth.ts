@@ -4,6 +4,9 @@ import { loginSchema, registerSchema } from '@shared/schema';
 import { storage } from '../storage';
 import { generateToken, AuthRequest, authenticate } from '../middleware/auth';
 
+// Enable debugging for authentication routes
+console.log('Loading auth routes module');
+
 const router = express.Router();
 
 // Register a new user
@@ -155,6 +158,7 @@ router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => 
 // Get user stats
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('Stats endpoint called with user ID:', req.user?.id);
     const user = await storage.getUser(req.user!.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -169,6 +173,12 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     console.error('Stats error:', error);
     res.status(500).json({ message: 'Error fetching user stats' });
   }
+});
+
+// Test endpoint to check if auth routes are working 
+router.get('/test', (req: Request, res: Response) => {
+  console.log('Auth test endpoint called');
+  res.status(200).json({ message: 'Auth routes are working' });
 });
 
 export default router;
