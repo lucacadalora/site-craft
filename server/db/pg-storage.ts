@@ -8,8 +8,21 @@ import { IStorage } from '../storage';
 export class PgStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const results = await db.select().from(users).where(eq(users.id, id));
-    return results[0];
+    try {
+      console.log(`Getting user with ID: ${id}`);
+      const results = await db.select().from(users).where(eq(users.id, id));
+      
+      if (!results || results.length === 0) {
+        console.error(`No user found with ID: ${id}`);
+        return undefined;
+      }
+      
+      console.log(`Found user: ${results[0].id}, ${results[0].username}, tokenUsage: ${results[0].tokenUsage}, generationCount: ${results[0].generationCount}`);
+      return results[0];
+    } catch (error) {
+      console.error(`Error in getUser(${id}):`, error);
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
