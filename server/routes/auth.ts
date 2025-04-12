@@ -12,11 +12,14 @@ const router = express.Router();
 // Register a new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
+    console.log('Register attempt with:', JSON.stringify(req.body, null, 2));
+    
     // Extract userData without confirmPassword
     const { confirmPassword, ...userData } = req.body;
     
     // Validate request body with basic validation
     if (!userData.username || !userData.email || !userData.password) {
+      console.log('Registration missing required fields');
       return res.status(400).json({ 
         message: 'Validation error', 
         errors: [{ message: 'Username, email, and password are required' }]
@@ -25,6 +28,7 @@ router.post('/register', async (req: Request, res: Response) => {
     
     // Validate email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+      console.log('Invalid email format:', userData.email);
       return res.status(400).json({
         message: 'Validation error',
         errors: [{ message: 'Invalid email format' }]
@@ -33,6 +37,7 @@ router.post('/register', async (req: Request, res: Response) => {
     
     // Validate password length
     if (userData.password.length < 6) {
+      console.log('Password too short');
       return res.status(400).json({
         message: 'Validation error',
         errors: [{ message: 'Password must be at least 6 characters' }]
@@ -40,21 +45,26 @@ router.post('/register', async (req: Request, res: Response) => {
     }
 
     const { username, email, password } = userData;
+    console.log('Processing registration for:', email, 'with username:', username);
 
     // Check if user already exists
     const existingUserByEmail = await storage.getUserByEmail(email);
     if (existingUserByEmail) {
+      console.log('Email already exists:', email);
       return res.status(400).json({ message: 'Email already in use' });
     }
 
     const existingUserByUsername = await storage.getUserByUsername(username);
     if (existingUserByUsername) {
+      console.log('Username already exists:', username);
       return res.status(400).json({ message: 'Username already taken' });
     }
 
     // Hash the password
     const saltRounds = 10;
+    console.log('Hashing password...');
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log('Password hashed successfully');
 
     // Create user with hashed password
     const user = await storage.createUser({
@@ -86,9 +96,12 @@ router.post('/register', async (req: Request, res: Response) => {
 // Login user
 router.post('/login', async (req: Request, res: Response) => {
   try {
+    console.log('Login attempt with:', JSON.stringify(req.body, null, 2));
+    
     // Validate request body
     const validationResult = loginSchema.safeParse(req.body);
     if (!validationResult.success) {
+      console.log('Login validation failed:', validationResult.error.errors);
       return res.status(400).json({ 
         message: 'Validation error', 
         errors: validationResult.error.errors 
@@ -96,16 +109,22 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
 
     // Find user by email
     const user = await storage.getUserByEmail(email);
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    console.log('User found:', user.id, user.username);
 
     // Verify password
+    console.log('Comparing password hash...');
     const passwordMatches = await bcrypt.compare(password, user.password);
+    console.log('Password match result:', passwordMatches);
     if (!passwordMatches) {
+      console.log('Password does not match for user:', user.id);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

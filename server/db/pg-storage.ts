@@ -23,28 +23,22 @@ export class PgStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(insertUser.password, salt);
-
-    // Insert user with hashed password
+    // Password should already be hashed by the route handler
+    // Insert user with the provided (already hashed) password
     const result = await db.insert(users).values({
       ...insertUser,
-      password: hashedPassword,
       tokenUsage: 0,
       generationCount: 0,
       // createdAt is handled by defaultNow()
     }).returning();
 
+    console.log('User created in database with ID:', result[0].id);
     return result[0];
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
-    // If password is being updated, hash it
-    if (userData.password) {
-      const salt = await bcrypt.genSalt(10);
-      userData.password = await bcrypt.hash(userData.password, salt);
-    }
+    // Password should already be hashed by the route handler if it's included
+    // No need to rehash passwords here
 
     const result = await db
       .update(users)
@@ -52,6 +46,7 @@ export class PgStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
 
+    console.log('User updated in database:', id);
     return result[0];
   }
 
