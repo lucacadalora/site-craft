@@ -29,9 +29,13 @@ export function UserProfile() {
   useEffect(() => {
     if (isAuthenticated && user) {
       setIsLoading(true);
-      fetch('/api/auth/stats', {
+      // Get token from auth context instead of localStorage
+      const token = localStorage.getItem('auth_token');
+      console.log('Using auth token:', token ? 'Token exists' : 'No token');
+      
+      fetch('/api/auth/profile', { // Use profile endpoint which always exists
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${token || ''}`,
         },
       })
         .then(res => {
@@ -39,10 +43,20 @@ export function UserProfile() {
           return res.json();
         })
         .then(data => {
-          setUserStats(data);
+          setUserStats({
+            tokenUsage: data.tokenUsage || 0,
+            generationCount: data.generationCount || 0,
+            lastLogin: data.lastLogin
+          });
         })
         .catch(err => {
           console.error('Error fetching user stats:', err);
+          // Set default values if fetch fails
+          setUserStats({
+            tokenUsage: 0,
+            generationCount: 0,
+            lastLogin: null
+          });
         })
         .finally(() => {
           setIsLoading(false);
