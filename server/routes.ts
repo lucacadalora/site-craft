@@ -10,8 +10,8 @@ import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
 import { MemStorage } from './storage';
 
-// Initialize the database schema and tables
-import './db/migrate';
+// Initialize the database schema and tables only on first run
+import './db/migrate'; // This now only creates tables if they don't exist
 
 // Create storage instances
 const pgStorage = new PgStorage();

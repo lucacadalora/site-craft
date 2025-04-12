@@ -6,13 +6,9 @@ async function runMigration() {
   try {
     console.log('Starting database migration...');
     
-    // Drop and recreate tables - be careful with this in production!
-    await db.execute(`
-      -- Drop existing tables if they exist
-      DROP TABLE IF EXISTS projects;
-      DROP TABLE IF EXISTS templates;
-      DROP TABLE IF EXISTS users;
-    `);
+    // DO NOT drop tables in production or when users have data!
+    // We'll only create tables if they don't exist
+    console.log('Checking if database tables exist...');
     
     // Create tables based on our latest schema
     await db.execute(`
