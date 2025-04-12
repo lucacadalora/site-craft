@@ -655,6 +655,18 @@ export default function Editor({
                   setStreamingOutput(prev => [...prev, `⚠️ Error: ${event.message}`]);
                   break;
                   
+                case 'token-usage-updated':
+                  console.log("Token usage updated:", event);
+                  // Dispatch a custom event for components listening for token usage updates
+                  const tokenUpdateEvent = new CustomEvent('token-usage-updated', { 
+                    detail: {
+                      tokenUsage: event.tokenUsage,
+                      generationCount: event.generationCount
+                    }
+                  });
+                  document.dispatchEvent(tokenUpdateEvent);
+                  break;
+                  
                 case 'complete':
                   console.log("Stream complete");
                   isCompleted = true;
