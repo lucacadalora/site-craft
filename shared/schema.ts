@@ -2,23 +2,28 @@ import { pgTable, text, serial, integer, boolean, json, timestamp, date } from "
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Enhanced User schema with email and token tracking
+// Enhanced User schema with email as main identifier and token tracking
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull().unique(), // Email is now the primary identifier
   password: text("password").notNull(),
+  displayName: text("display_name"), // Optional display name instead of username
   tokenUsage: integer("token_usage").default(0),
   generationCount: integer("generation_count").default(0),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
+  
+  // Keep username for backward compatibility, but mark as optional
+  username: text("username").unique(),
 });
 
 // For regular registration we pick required fields
 export const baseInsertUserSchema = createInsertSchema(users).pick({
-  username: true,
   email: true,
   password: true,
+}).extend({
+  displayName: z.string().optional(),
+  username: z.string().optional(), // Now optional
 });
 
 // For token usage recovery or system ops we allow ID and token fields
@@ -41,10 +46,10 @@ export const loginSchema = z.object({
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+  displayName: z.string().optional(), // Optional display name
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
