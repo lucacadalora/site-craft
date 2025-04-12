@@ -26,29 +26,41 @@ export function UserProfile() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Simple function to fetch user stats
+  // Function to fetch user stats either via stats endpoint or fallback to profile
   const fetchUserStats = () => {
     if (isAuthenticated && user) {
       setIsLoading(true);
       
       const token = localStorage.getItem('auth_token');
       
+      // First try the stats endpoint
       fetch('/api/auth/stats', {
         headers: {
           'Authorization': `Bearer ${token || ''}`,
         },
       })
         .then(res => {
-          if (!res.ok) throw new Error('Failed to fetch user stats');
+          if (!res.ok) {
+            // If stats endpoint fails, try the profile endpoint as fallback
+            return fetch('/api/auth/profile', {
+              headers: {
+                'Authorization': `Bearer ${token || ''}`,
+              },
+            }).then(profileRes => {
+              if (!profileRes.ok) throw new Error('Failed to fetch user profile');
+              return profileRes.json();
+            });
+          }
           return res.json();
         })
         .then(data => {
-          // Update user stats from profile data
+          // Update user stats from the data
           setUserStats({
             tokenUsage: data.tokenUsage || 0,
             generationCount: data.generationCount || 0,
             lastLogin: data.lastLogin
           });
+          console.log('Updated user stats:', data.tokenUsage, data.generationCount);
         })
         .catch(err => {
           console.error('Error fetching user stats:', err);

@@ -798,6 +798,10 @@ export default function Editor({
         window.inTypingPhase = false;
         setIsGenerating(false);
         
+        // Dispatch custom event to notify token usage has been updated
+        window.dispatchEvent(new CustomEvent('landing-page-generated'));
+        console.log('Dispatched landing-page-generated event');
+        
         // Show a toast notification with completion message
         // This will appear after the generation status popup disappears
         toast({
