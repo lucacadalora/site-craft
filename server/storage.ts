@@ -76,7 +76,9 @@ export class MemStorage implements IStorage {
       tokenUsage: 0,
       generationCount: 0,
       createdAt: new Date(),
-      lastLogin: null
+      lastLogin: null,
+      displayName: insertUser.displayName || null,
+      username: insertUser.username || null
     };
     this.users.set(id, user);
     return user;
