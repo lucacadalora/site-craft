@@ -32,28 +32,40 @@ export function UserProfile() {
       setIsLoading(true);
       
       const token = localStorage.getItem('auth_token');
+      console.log('Fetching user stats with token:', token ? 'Token available' : 'No token');
       
       // First try the stats endpoint
       fetch('/api/auth/stats', {
         headers: {
           'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
       })
         .then(res => {
+          console.log('Stats endpoint response status:', res.status);
           if (!res.ok) {
+            console.log('Stats endpoint failed, trying profile endpoint');
             // If stats endpoint fails, try the profile endpoint as fallback
             return fetch('/api/auth/profile', {
               headers: {
                 'Authorization': `Bearer ${token || ''}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
               },
             }).then(profileRes => {
-              if (!profileRes.ok) throw new Error('Failed to fetch user profile');
+              console.log('Profile endpoint response status:', profileRes.status);
+              if (!profileRes.ok) {
+                console.error('Failed to fetch user profile, status:', profileRes.status);
+                throw new Error('Failed to fetch user profile');
+              }
               return profileRes.json();
             });
           }
           return res.json();
         })
         .then(data => {
+          console.log('Received user stats data:', data);
           // Update user stats from the data
           setUserStats({
             tokenUsage: data.tokenUsage || 0,
@@ -61,15 +73,30 @@ export function UserProfile() {
             lastLogin: data.lastLogin
           });
           console.log('Updated user stats:', data.tokenUsage, data.generationCount);
+          
+          // Store last response for fallbacks
+          (window as any).lastUserStatsResponse = data;
         })
         .catch(err => {
           console.error('Error fetching user stats:', err);
-          // Set default values if fetch fails
-          setUserStats({
-            tokenUsage: 0,
-            generationCount: 0,
-            lastLogin: null
-          });
+          
+          // Check if we have a stored response from previous successful fetch
+          const lastStats = (window as any).lastUserStatsResponse;
+          if (lastStats) {
+            console.log('Using cached stats data:', lastStats);
+            setUserStats({
+              tokenUsage: lastStats.tokenUsage || 0,
+              generationCount: lastStats.generationCount || 0,
+              lastLogin: lastStats.lastLogin
+            });
+          } else {
+            // Set default values if fetch fails
+            setUserStats({
+              tokenUsage: 0,
+              generationCount: 0,
+              lastLogin: null
+            });
+          }
         })
         .finally(() => {
           setIsLoading(false);

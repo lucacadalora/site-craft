@@ -296,27 +296,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Estimate token usage based on response length
+        // Check for actual token count in the content (like "1687 tokens" shown in the UI)
+        let actualTokens = 0;
+        const tokenMatch = fullContent.match(/(\d+)\s+tokens/);
+        if (tokenMatch && tokenMatch[1]) {
+          actualTokens = parseInt(tokenMatch[1]);
+          console.log(`Found actual token count in content: ${actualTokens}`);
+        }
+
+        // Estimate token usage based on response length as fallback
         const estimatedTokens = Math.ceil(fullContent.length / 4);
+        
+        // Use the actual token count if found, otherwise use the estimated value
+        const tokensToUse = actualTokens > 0 ? actualTokens : estimatedTokens;
+        console.log(`Using token count: ${tokensToUse} (actual: ${actualTokens}, estimated: ${estimatedTokens})`);
         
         // Track usage if user is authenticated
         if (req.user) {
-          console.log(`Tracking token usage for user ${req.user.id} with ${estimatedTokens} tokens before sending completion`);
+          console.log(`Tracking token usage for user ${req.user.id} with ${tokensToUse} tokens before sending completion`);
           try {
-            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+            await pgStorage.updateUserTokenUsage(req.user.id, tokensToUse);
             
-            // Get the updated user info with correct counts
+            // Get the updated user info with correct counts after the update
             const updatedUser = await pgStorage.getUser(req.user.id);
             
-            // Send token usage update event with correct values
-            res.write(`data: ${JSON.stringify({ 
-              event: 'token-usage-updated',
-              tokenUsage: updatedUser?.tokenUsage || estimatedTokens, 
-              generationCount: updatedUser?.generationCount || 1
-            })}\n\n`);
+            if (!updatedUser) {
+              console.error(`User not found after updating token usage for ID: ${req.user.id}`);
+            } else {
+              console.log(`Successfully retrieved updated user ${updatedUser.id} with token usage: ${updatedUser.tokenUsage}`);
             
-            // Log the values being sent for debugging
-            console.log(`Sending token usage update event with tokenUsage:${updatedUser?.tokenUsage}, generationCount:${updatedUser?.generationCount}`);
+              // Send token usage update event with correct values
+              res.write(`data: ${JSON.stringify({ 
+                event: 'token-usage-updated',
+                tokenUsage: updatedUser.tokenUsage || tokensToUse, 
+                generationCount: updatedUser.generationCount || 1
+              })}\n\n`);
+              
+              // Log the values being sent for debugging
+              console.log(`Sending token usage update event with tokenUsage:${updatedUser.tokenUsage}, generationCount:${updatedUser.generationCount}`);
+            }
           } catch (error) {
             console.error(`Error updating token usage for user ${req.user.id}:`, error);
           }
@@ -360,6 +378,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         return res.end();
       }
+    }
+  });
+  
+  // Add a specific endpoint for updating token usage manually
+  app.post("/api/usage/record", authenticate, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { tokenCount } = req.body;
+      if (!tokenCount || typeof tokenCount !== 'number') {
+        return res.status(400).json({ message: "Token count is required and must be a number" });
+      }
+      
+      console.log(`Manually recording token usage for user ${req.user.id}: ${tokenCount} tokens`);
+      
+      // Update user token usage in the database
+      const updatedUser = await pgStorage.updateUserTokenUsage(req.user.id, tokenCount);
+      
+      return res.status(200).json({
+        message: "Token usage recorded successfully",
+        tokenUsage: updatedUser.tokenUsage,
+        generationCount: updatedUser.generationCount
+      });
+    } catch (error) {
+      console.error("Error recording token usage:", error);
+      return res.status(500).json({ message: "Failed to record token usage" });
     }
   });
   
