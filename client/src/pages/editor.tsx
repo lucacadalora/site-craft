@@ -349,7 +349,7 @@ export default function Editor({
   // Handle generation with typewriter streaming effect
   const handleGenerate = async () => {
     // Store interval reference outside try/catch scope for cleanup
-    let progressInterval: NodeJS.Timeout | null = null;
+    let progressInterval: NodeJS.Timeout | undefined;
     if (!prompt) {
       toast({
         title: "Missing Information",
@@ -512,7 +512,10 @@ export default function Editor({
               return prev;
             });
           }
-          clearInterval(progressInterval);
+          if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = undefined;
+          }
           return;
         }
         
@@ -943,6 +946,7 @@ export default function Editor({
       // Clear any intervals we may have set
       if (progressInterval) {
         clearInterval(progressInterval);
+        progressInterval = undefined;
       }
     }
   };
