@@ -158,6 +158,54 @@ document.addEventListener('complete', () => {
   console.log('Current user stats:', userStats);
   fetchUserStats();
 };
+
+// Add a method to manually record token usage from the UI
+(window as any).recordTokenUsage = (tokenCount: number) => {
+  if (!isAuthenticated) {
+    console.error('Cannot record token usage: User not authenticated');
+    return;
+  }
+  
+  console.log(`Recording token usage manually: ${tokenCount}`);
+  const token = localStorage.getItem('auth_token');
+  
+  fetch('/api/usage/record', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token || ''}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ tokenCount })
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error(`Failed to record token usage: ${res.status}`);
+    }
+    return res.json();
+  })
+  .then(data => {
+    console.log('Token usage recorded successfully:', data);
+    // Update local state
+    setUserStats({
+      tokenUsage: data.tokenUsage || 0,
+      generationCount: data.generationCount || 0,
+      lastLogin: userStats?.lastLogin || null
+    });
+    // Show success message
+    toast({
+      title: 'Token usage updated',
+      description: `Recorded ${tokenCount} tokens. New total: ${data.tokenUsage}`,
+    });
+  })
+  .catch(error => {
+    console.error('Error recording token usage:', error);
+    toast({
+      title: 'Error recording token usage',
+      description: error.message,
+      variant: 'destructive'
+    });
+  });
+};
     
     return () => {
       // Clean up all event listeners
@@ -169,6 +217,7 @@ document.addEventListener('complete', () => {
       // Remove debug methods
       delete (window as any).refreshUserStats;
       delete (window as any).debugUserStats;
+      delete (window as any).recordTokenUsage;
     };
   }, [isAuthenticated, user]);
 
