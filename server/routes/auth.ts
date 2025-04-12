@@ -9,16 +9,34 @@ const router = express.Router();
 // Register a new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    // Validate request body
-    const validationResult = registerSchema.safeParse(req.body);
-    if (!validationResult.success) {
+    // Extract userData without confirmPassword
+    const { confirmPassword, ...userData } = req.body;
+    
+    // Validate request body with basic validation
+    if (!userData.username || !userData.email || !userData.password) {
       return res.status(400).json({ 
         message: 'Validation error', 
-        errors: validationResult.error.errors 
+        errors: [{ message: 'Username, email, and password are required' }]
+      });
+    }
+    
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: [{ message: 'Invalid email format' }]
+      });
+    }
+    
+    // Validate password length
+    if (userData.password.length < 6) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: [{ message: 'Password must be at least 6 characters' }]
       });
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password } = userData;
 
     // Check if user already exists
     const existingUserByEmail = await storage.getUserByEmail(email);
@@ -31,11 +49,15 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
-    // Create user
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user with hashed password
     const user = await storage.createUser({
       username,
       email,
-      password,
+      password: hashedPassword,
     });
 
     // Generate JWT token
