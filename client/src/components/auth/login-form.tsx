@@ -68,10 +68,22 @@ export function LoginForm() {
         });
         
         // Use a timeout to ensure the auth context is updated before redirecting
+        console.log('Login successful, redirecting to editor in 250ms...');
+        
+        // Force navigation to editor after login using a longer timeout
+        // This ensures the auth context has time to update
         setTimeout(() => {
-          console.log('Redirecting to editor after login...');
-          setLocation("/editor");
-        }, 100);
+          console.log('Executing redirect to editor now');
+          // First update the auth context directly for immediate auth state
+          login(token, {
+            id: userData.id,
+            username: userData.username,
+            email: userData.email,
+          });
+          
+          // Then navigate to editor
+          window.location.href = "/editor";
+        }, 250);
       } else {
         const errorData = await response.json();
         toast({
