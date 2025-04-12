@@ -9,7 +9,7 @@ console.log('Loading auth routes module');
 
 const router = express.Router();
 
-// Register a new user
+// Register a new user using email-based authentication
 router.post('/register', async (req: Request, res: Response) => {
   try {
     console.log('Register attempt with:', JSON.stringify(req.body, null, 2));
@@ -17,12 +17,12 @@ router.post('/register', async (req: Request, res: Response) => {
     // Extract userData without confirmPassword
     const { confirmPassword, ...userData } = req.body;
     
-    // Validate request body with basic validation
-    if (!userData.username || !userData.email || !userData.password) {
+    // Validate required fields: email and password
+    if (!userData.email || !userData.password) {
       console.log('Registration missing required fields');
       return res.status(400).json({ 
         message: 'Validation error', 
-        errors: [{ message: 'Username, email, and password are required' }]
+        errors: [{ message: 'Email and password are required' }]
       });
     }
     
@@ -44,20 +44,14 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
-    const { username, email, password } = userData;
-    console.log('Processing registration for:', email, 'with username:', username);
+    const { email, password, displayName } = userData;
+    console.log('Processing registration for:', email, 'with display name:', displayName || '(none)');
 
-    // Check if user already exists
+    // Check if email already exists
     const existingUserByEmail = await storage.getUserByEmail(email);
     if (existingUserByEmail) {
       console.log('Email already exists:', email);
       return res.status(400).json({ message: 'Email already in use' });
-    }
-
-    const existingUserByUsername = await storage.getUserByUsername(username);
-    if (existingUserByUsername) {
-      console.log('Username already exists:', username);
-      return res.status(400).json({ message: 'Username already taken' });
     }
 
     // Hash the password
@@ -66,18 +60,18 @@ router.post('/register', async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log('Password hashed successfully');
 
-    // Create user with hashed password
+    // Create user with hashed password and optional displayName
     const user = await storage.createUser({
-      username,
       email,
       password: hashedPassword,
+      displayName, // Optional field
     });
 
-    // Generate JWT token
+    // Generate JWT token (using email as the main identifier)
     const token = generateToken({
       id: user.id,
       email: user.email,
-      username: user.username
+      username: user.displayName || user.email.split('@')[0] // Fallback to part of email
     });
 
     // Return user info and token
@@ -131,18 +125,19 @@ router.post('/login', async (req: Request, res: Response) => {
     // Update last login timestamp
     await storage.updateUser(user.id, { lastLogin: new Date() });
 
-    // Generate JWT token
+    // Generate JWT token (using email as identifier)
     const token = generateToken({
       id: user.id,
       email: user.email,
-      username: user.username
+      username: user.displayName || user.email.split('@')[0] // Use display name or email username part
     });
 
-    // Return user info and token
+    // Return user info and token 
     res.status(200).json({
       id: user.id,
-      username: user.username,
+      username: user.displayName || user.email.split('@')[0], // Use displayName or email username part
       email: user.email,
+      displayName: user.displayName,
       token
     });
   } catch (error) {

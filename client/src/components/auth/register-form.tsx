@@ -19,8 +19,8 @@ import { Button } from "@/components/ui/button";
 
 // Simple register schema that matches the server-side schema
 const formSchema = z.object({
-  username: z.string().min(3, { message: "Username must be at least 3 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
+  displayName: z.string().optional(),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -39,8 +39,8 @@ export function RegisterForm() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
       email: "",
+      displayName: "",
       password: "",
       confirmPassword: "",
     },
@@ -55,8 +55,8 @@ export function RegisterForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: data.username,
           email: data.email,
+          displayName: data.displayName,
           password: data.password,
         }),
       });
@@ -100,12 +100,12 @@ export function RegisterForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="username"
+          name="displayName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Display Name (optional)</FormLabel>
               <FormControl>
-                <Input placeholder="username" {...field} />
+                <Input placeholder="Your full name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

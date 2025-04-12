@@ -9,7 +9,8 @@ export interface AuthRequest extends Request {
   user?: {
     id: number;
     email: string;
-    username: string;
+    username?: string; // Username is now optional
+    displayName?: string; // Added displayName
   };
 }
 
@@ -76,7 +77,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 };
 
 // Generate JWT token
-export const generateToken = (user: { id: number; email: string; username: string }) => {
+export const generateToken = (user: { id: number; email: string; username?: string; displayName?: string }) => {
   // Create token with 7-day expiry
   return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 };
