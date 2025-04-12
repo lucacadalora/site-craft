@@ -102,7 +102,11 @@ export function UserProfile() {
     window.addEventListener('landing-page-generated', handleGeneration);
     
     // Listen for the new custom event
-    document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
+    // Listen for token events on multiple targets to ensure we catch it
+document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
+window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
+// Also add a direct dispatch method to the window for testing
+(window as any).refreshUserStats = fetchUserStats;
     
     return () => {
       window.removeEventListener('landing-page-generated', handleGeneration);

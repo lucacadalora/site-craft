@@ -74,14 +74,7 @@ export function LoginForm() {
         // This ensures the auth context has time to update
         setTimeout(() => {
           console.log('Executing redirect to editor now');
-          // First update the auth context directly for immediate auth state
-          login(token, {
-            id: userData.id,
-            username: userData.username,
-            email: userData.email,
-          });
-          
-          // Then navigate to editor
+          // We've already logged in above, but ensure we're in the editor
           window.location.href = "/editor";
         }, 250);
       } else {
