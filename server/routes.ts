@@ -18,6 +18,45 @@ const pgStorage = new PgStorage();
 // Keep memStorage for backward compatibility
 const memStorage = new MemStorage();
 
+// Helper function to track token usage
+async function trackTokenUsage(userId: number, tokenCount: number, res?: any): Promise<void> {
+  if (!userId) {
+    console.log('No user ID provided, skipping token usage tracking');
+    return;
+  }
+  
+  try {
+    console.log(`Starting token usage tracking for user ${userId} with ${tokenCount} tokens`);
+    
+    // Get the user to verify they exist
+    const user = await pgStorage.getUser(userId);
+    if (!user) {
+      console.error(`Cannot update token usage: User ${userId} not found in database`);
+      return;
+    }
+    
+    // Update token usage
+    const updatedUser = await pgStorage.updateUserTokenUsage(userId, tokenCount);
+    console.log(`Token usage successfully updated for user ${userId}. New count: ${updatedUser.tokenUsage}, generations: ${updatedUser.generationCount}`);
+    
+    // If this is a streaming response and we have a response object, send an event
+    if (res && typeof res.write === 'function') {
+      try {
+        res.write(`data: ${JSON.stringify({ 
+          event: 'token-usage-updated', 
+          tokenUsage: updatedUser.tokenUsage,
+          generationCount: updatedUser.generationCount
+        })}\n\n`);
+      } catch (writeError) {
+        console.error('Error sending token-usage-updated event:', writeError);
+      }
+    }
+  } catch (error) {
+    console.error('Error updating token usage:', error);
+    console.error(`Token tracking stack: ${error instanceof Error ? error.stack : 'Unknown error'}`);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
   
@@ -262,12 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Track usage if user is authenticated
         if (req.user) {
-          try {
-            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
-            console.log(`Updated token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
-          } catch (error) {
-            console.error('Error updating token usage:', error);
-          }
+          await trackTokenUsage(req.user.id, estimatedTokens, res);
         }
       } catch (error) {
         console.error("Error streaming from AI Accelerate Inference API:", error);
@@ -323,12 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success) {
         // Track usage if user is authenticated
         if (req.user) {
-          try {
-            await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
-            console.log(`Updated token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
-          } catch (error) {
-            console.error('Error updating token usage:', error);
-          }
+          await trackTokenUsage(req.user.id, estimatedTokens, null);
         }
         
         // Return the generated HTML as both HTML and CSS for backward compatibility
