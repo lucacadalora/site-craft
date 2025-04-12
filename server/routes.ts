@@ -305,12 +305,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
             
-            // Send token usage update event
+            // Get the updated user info with correct counts
+            const updatedUser = await pgStorage.getUser(req.user.id);
+            
+            // Send token usage update event with correct values
             res.write(`data: ${JSON.stringify({ 
               event: 'token-usage-updated',
-              tokenUsage: estimatedTokens, 
-              generationCount: 1
+              tokenUsage: updatedUser?.tokenUsage || estimatedTokens, 
+              generationCount: updatedUser?.generationCount || 1
             })}\n\n`);
+            
+            // Log the values being sent for debugging
+            console.log(`Sending token usage update event with tokenUsage:${updatedUser?.tokenUsage}, generationCount:${updatedUser?.generationCount}`);
           } catch (error) {
             console.error(`Error updating token usage for user ${req.user.id}:`, error);
           }
@@ -377,7 +383,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success) {
         // Track usage if user is authenticated
         if (req.user) {
-          await trackTokenUsage(req.user.id, estimatedTokens, null);
+          console.log(`Non-streaming API: Tracking token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
+          await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+          
+          // Get updated stats for logging
+          const updatedUser = await pgStorage.getUser(req.user.id);
+          console.log(`Non-streaming API: Updated user stats: tokenUsage=${updatedUser?.tokenUsage}, generationCount=${updatedUser?.generationCount}`);
         }
         
         // Return the generated HTML as both HTML and CSS for backward compatibility

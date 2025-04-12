@@ -86,15 +86,28 @@ export function UserProfile() {
       setTimeout(fetchUserStats, 1000); // Small delay to ensure DB has updated
     };
     
-    // Add event listener for token-usage-updated custom event
+    // Add event handler for token-usage-updated custom event
     const handleTokenUpdate = (event: CustomEvent) => {
       console.log('User profile received token-usage-updated event:', event.detail);
       if (event.detail) {
-        setUserStats(prevStats => ({
-          tokenUsage: event.detail.tokenUsage ?? prevStats?.tokenUsage ?? 0,
-          generationCount: event.detail.generationCount ?? prevStats?.generationCount ?? 0,
-          lastLogin: prevStats?.lastLogin ?? null
-        }));
+        // First update local state
+        const newStats = {
+          tokenUsage: event.detail.tokenUsage ?? userStats?.tokenUsage ?? 0,
+          generationCount: event.detail.generationCount ?? userStats?.generationCount ?? 0,
+          lastLogin: userStats?.lastLogin ?? null
+        };
+        
+        console.log('Updating stats from event to:', newStats);
+        setUserStats(newStats);
+        
+        // Also force a fresh fetch after a brief delay
+        setTimeout(() => {
+          console.log('Refreshing stats after token update event');
+          fetchUserStats();
+        }, 2000);
+      } else {
+        // If there's no detail, just refresh the stats
+        fetchUserStats();
       }
     };
     
@@ -105,12 +118,30 @@ export function UserProfile() {
     // Listen for token events on multiple targets to ensure we catch it
 document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
 window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
-// Also add a direct dispatch method to the window for testing
+
+// Force the browser to manually fetch stats after generation
+document.addEventListener('complete', () => {
+  console.log('Generation complete event detected, updating user stats');
+  setTimeout(fetchUserStats, 1000);
+});
+
+// Add direct dispatch and debug methods to the window for testing
 (window as any).refreshUserStats = fetchUserStats;
+(window as any).debugUserStats = () => {
+  console.log('Current user stats:', userStats);
+  fetchUserStats();
+};
     
     return () => {
+      // Clean up all event listeners
       window.removeEventListener('landing-page-generated', handleGeneration);
       document.removeEventListener('token-usage-updated', handleTokenUpdate as EventListener);
+      window.removeEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
+      document.removeEventListener('complete', () => {});
+      
+      // Remove debug methods
+      delete (window as any).refreshUserStats;
+      delete (window as any).debugUserStats;
     };
   }, [isAuthenticated, user]);
 
