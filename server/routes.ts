@@ -408,14 +408,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Manually recording token usage for user ${req.user.id}: ${tokenCount} tokens`);
       
-      // Update user token usage in the database
-      const updatedUser = await pgStorage.updateUserTokenUsage(req.user.id, tokenCount);
+      // Check if user exists first
+      let user = await pgStorage.getUser(req.user.id);
       
-      return res.status(200).json({
-        message: "Token usage recorded successfully",
-        tokenUsage: updatedUser.tokenUsage,
-        generationCount: updatedUser.generationCount
-      });
+      // If user doesn't exist, create a new user record from the auth data
+      if (!user) {
+        console.log(`Creating new user record for user ${req.user.id} (${req.user.username}) as it doesn't exist in database`);
+        try {
+          // Calculate a secure password hash for the new user (they can reset it later)
+          const bcrypt = await import('bcrypt');
+          const passwordHash = await bcrypt.hash('temporary-password-' + Date.now(), 10);
+          
+          // Create new user record based on JWT data
+          user = await pgStorage.createUser({
+            id: req.user.id,
+            username: req.user.username,
+            email: req.user.email,
+            password: passwordHash,
+            tokenUsage: 0,
+            generationCount: 0
+          });
+          console.log(`Created user record for ${req.user.id} successfully`);
+        } catch (createError) {
+          console.error('Error creating user record:', createError);
+          return res.status(500).json({ 
+            message: "Failed to create user record",
+            error: createError instanceof Error ? createError.message : 'Unknown error' 
+          });
+        }
+      }
+      
+      try {
+        // Update user token usage in the database
+        const updatedUser = await pgStorage.updateUserTokenUsage(req.user.id, tokenCount);
+        
+        return res.status(200).json({
+          message: "Token usage recorded successfully",
+          tokenUsage: updatedUser.tokenUsage,
+          generationCount: updatedUser.generationCount
+        });
+      } catch (updateError) {
+        console.error("Error updating token usage:", updateError);
+        return res.status(500).json({ 
+          message: "Failed to update token usage",
+          error: updateError instanceof Error ? updateError.message : 'Unknown error'
+        });
+      }
     } catch (error) {
       console.error("Error recording token usage:", error);
       return res.status(500).json({ message: "Failed to record token usage" });

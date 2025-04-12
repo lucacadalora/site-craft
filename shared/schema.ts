@@ -14,10 +14,18 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
+// For regular registration we pick required fields
+export const baseInsertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
+});
+
+// For token usage recovery or system ops we allow ID and token fields
+export const insertUserSchema = baseInsertUserSchema.extend({
+  id: z.number().optional(),
+  tokenUsage: z.number().optional(),
+  generationCount: z.number().optional()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

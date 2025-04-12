@@ -38,15 +38,30 @@ export class PgStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     // Password should already be hashed by the route handler
     // Insert user with the provided (already hashed) password
-    const result = await db.insert(users).values({
+    
+    // Set default values for new user if not provided
+    const userToInsert = {
       ...insertUser,
-      tokenUsage: 0,
-      generationCount: 0,
+      tokenUsage: insertUser.tokenUsage ?? 0,
+      generationCount: insertUser.generationCount ?? 0,
       // createdAt is handled by defaultNow()
-    }).returning();
-
-    console.log('User created in database with ID:', result[0].id);
-    return result[0];
+    };
+    
+    console.log('Creating user with data:', { 
+      ...userToInsert, 
+      password: '***REDACTED***' // Don't log password hash
+    });
+    
+    try {
+      // If an ID is provided, use it (useful for recovering token usage data)
+      const result = await db.insert(users).values(userToInsert).returning();
+      
+      console.log('User created in database with ID:', result[0].id);
+      return result[0];
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
