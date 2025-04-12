@@ -33,6 +33,21 @@ async function runMigration() {
         
         // Check if we need to add any new columns to existing tables
         // This would be the place to add ALTER TABLE statements for schema evolution
+        
+        // Add display_name column if it doesn't exist in users table
+        await db.execute(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_schema = 'public' 
+              AND table_name = 'users' 
+              AND column_name = 'display_name'
+            ) THEN
+              ALTER TABLE users ADD COLUMN display_name TEXT;
+            END IF;
+          END $$;
+        `);
       } else {
         console.log('Found users table but it has no records. Creating initial schema...');
       }
@@ -44,13 +59,14 @@ async function runMigration() {
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        username TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
+        display_name TEXT,
         token_usage INTEGER DEFAULT 0,
         generation_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP
+        last_login TIMESTAMP,
+        username TEXT UNIQUE
       );
       
       CREATE TABLE IF NOT EXISTS projects (

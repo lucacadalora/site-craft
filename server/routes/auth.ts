@@ -77,8 +77,9 @@ router.post('/register', async (req: Request, res: Response) => {
     // Return user info and token
     res.status(201).json({
       id: user.id,
-      username: user.username,
+      username: user.displayName || user.email.split('@')[0], // Use displayName or first part of email
       email: user.email,
+      displayName: user.displayName,
       token
     });
   } catch (error) {
@@ -156,8 +157,9 @@ router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => 
 
     res.status(200).json({
       id: user.id,
-      username: user.username,
+      username: user.displayName || user.email.split('@')[0], // Use displayName or email username part
       email: user.email,
+      displayName: user.displayName,
       tokenUsage: user.tokenUsage,
       generationCount: user.generationCount,
       createdAt: user.createdAt,

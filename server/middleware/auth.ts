@@ -25,11 +25,12 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       const tokenFromQuery = req.query.token as string;
       if (tokenFromQuery) {
         try {
-          const decoded = jwt.verify(tokenFromQuery, JWT_SECRET) as { id: number; email: string; username: string };
+          const decoded = jwt.verify(tokenFromQuery, JWT_SECRET) as { id: number; email: string; username?: string; displayName?: string };
           req.user = {
             id: decoded.id,
             email: decoded.email,
-            username: decoded.username
+            username: decoded.username,
+            displayName: decoded.displayName
           };
           console.log('Authenticated via query token:', req.user.id);
           return next();
@@ -49,16 +50,17 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     }
     
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username?: string; displayName?: string };
     
     // Set user info in request
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      username: decoded.username
+      username: decoded.username,
+      displayName: decoded.displayName
     };
     
-    console.log('Authenticated user:', req.user.id, req.user.username);
+    console.log('Authenticated user:', req.user.id, req.user.email);
     next();
   } catch (error) {
     console.error('Authentication error:', error);
@@ -99,13 +101,14 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
     }
     
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username?: string; displayName?: string };
     
     // Set user info in request
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      username: decoded.username
+      username: decoded.username,
+      displayName: decoded.displayName
     };
     
     next();
