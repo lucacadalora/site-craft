@@ -305,6 +305,34 @@ export default function Editor({
   const handleHtmlChange = (newCode: string) => {
     setHtmlContent(newCode);
   };
+  
+  // Handle stopping generation
+  const handleStopGeneration = () => {
+    // Check if we have an active AbortController
+    if (streamControllerRef.current) {
+      console.log("Stopping generation...");
+      
+      // Abort the fetch request
+      streamControllerRef.current.abort();
+      streamControllerRef.current = null;
+      
+      // Update the status message
+      setStreamingOutput(prev => [...prev, "⏹️ Generation stopped by user"]);
+      
+      // Set a timeout to clean up the UI
+      setTimeout(() => {
+        // Mark generation as complete so we can hide the progress bar
+        setIsGenerating(false);
+        
+        // Notify user that generation was stopped early
+        toast({
+          title: "Generation Stopped",
+          description: "Landing page generation was stopped. You can edit the partially generated content or generate a new page.",
+          variant: "default",
+        });
+      }, 1000);
+    }
+  };
 
   // Handle generation with typewriter streaming effect
   const handleGenerate = async () => {
@@ -878,13 +906,30 @@ export default function Editor({
       }
     } catch (error) {
       console.error('Error setting up generation:', error);
-      toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
-      setStreamingOutput(prev => [...prev, "Error: Generation failed"]);
+      
+      // Check if this is an AbortError (from manually stopping generation)
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.log('Generation was stopped by user');
+        // No need to show error toast, already handled in handleStopGeneration
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive",
+        });
+        setStreamingOutput(prev => [...prev, "Error: Generation failed"]);
+      }
+      
+      // Always clean up
       setIsGenerating(false);
+      
+      // Reset the controller reference
+      streamControllerRef.current = null;
+    } finally {
+      // Clear any intervals we may have set
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
     }
   };
 
@@ -1126,6 +1171,7 @@ export default function Editor({
                     ? Math.floor((htmlContent.length / window.expectedContentLength) * 100)
                     : 0
                 } 
+                onStop={handleStopGeneration}
               />
             ) : (
               <>
