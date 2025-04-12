@@ -20,12 +20,30 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Check for token in query params (for convenience/testing)
+      const tokenFromQuery = req.query.token as string;
+      if (tokenFromQuery) {
+        try {
+          const decoded = jwt.verify(tokenFromQuery, JWT_SECRET) as { id: number; email: string; username: string };
+          req.user = {
+            id: decoded.id,
+            email: decoded.email,
+            username: decoded.username
+          };
+          console.log('Authenticated via query token:', req.user.id);
+          return next();
+        } catch (err) {
+          // Fall through to regular auth failure
+        }
+      }
+      console.log('Authentication required - no Authorization header or token query param');
       return res.status(401).json({ message: 'Authentication required' });
     }
     
     const token = authHeader.split(' ')[1];
     
     if (!token) {
+      console.log('Authentication required - Bearer token empty');
       return res.status(401).json({ message: 'Authentication required' });
     }
     
@@ -39,6 +57,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       username: decoded.username
     };
     
+    console.log('Authenticated user:', req.user.id, req.user.username);
     next();
   } catch (error) {
     console.error('Authentication error:', error);

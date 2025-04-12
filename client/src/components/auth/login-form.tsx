@@ -67,7 +67,11 @@ export function LoginForm() {
           description: "You have been logged in successfully.",
         });
         
-        setLocation("/editor");
+        // Use a timeout to ensure the auth context is updated before redirecting
+        setTimeout(() => {
+          console.log('Redirecting to editor after login...');
+          setLocation("/editor");
+        }, 100);
       } else {
         const errorData = await response.json();
         toast({

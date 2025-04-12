@@ -60,10 +60,15 @@ async function trackTokenUsage(userId: number, tokenCount: number, res?: any): P
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes - prefix all routes with /api
   
-  // Register authentication routes
-  app.use('/api/auth', authRoutes);
+  // Register authentication routes with more debugging
+  console.log('Registering auth routes at /api/auth');
+  app.use('/api/auth', (req, res, next) => {
+    console.log(`Auth route called: ${req.method} ${req.url}`);
+    next();
+  }, authRoutes);
   
   // Register project routes
+  console.log('Registering project routes at /api/projects');
   app.use('/api/projects', projectRoutes);
 
   // Simple template categories endpoint that returns static data
