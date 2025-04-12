@@ -340,12 +340,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Send completion event
+        // Send completion event with token information
         console.log("Streaming completed, sending final event");
+        
+        // Calculate token estimate for client reference
+        const tokenEstimate = Math.round(fullContent.length / 4);
+        
         res.write(`data: ${JSON.stringify({ 
           event: 'complete', 
           html: fullContent,
-          source: 'api'
+          source: 'api',
+          tokenCount: tokenEstimate,
+          // Include stats to help UI understand processing
+          stats: {
+            tokens: tokenEstimate,
+            characters: fullContent.length,
+            // If we tracked user info, include that too
+            userId: req.user?.id || null,
+            generationCount: req.user ? 1 : 0
+          }
         })}\n\n`);
       } catch (error) {
         console.error("Error streaming from AI Accelerate Inference API:", error);

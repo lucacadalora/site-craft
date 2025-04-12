@@ -141,10 +141,22 @@ export function UserProfile() {
     // Listen for legacy event
     window.addEventListener('landing-page-generated', handleGeneration);
     
-    // Listen for the new custom event
-    // Listen for token events on multiple targets to ensure we catch it
-document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
-window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
+    // Listen for the new direct token count detection event
+    const handleTokenCountDetected = (event: any) => {
+      if (event.detail && event.detail.tokenCount) {
+        console.log('Token count detected:', event.detail.tokenCount);
+        // Directly record the token count
+        if ((window as any).recordTokenUsage) {
+          console.log('Recording token usage from detected event:', event.detail.tokenCount);
+          (window as any).recordTokenUsage(event.detail.tokenCount);
+        }
+      }
+    };
+    window.addEventListener('token-count-detected', handleTokenCountDetected);
+    
+    // Listen for the existing token-usage-updated events
+    document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
+    window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
 
 // Force the browser to manually fetch stats after generation
 document.addEventListener('complete', () => {
@@ -210,6 +222,7 @@ document.addEventListener('complete', () => {
     return () => {
       // Clean up all event listeners
       window.removeEventListener('landing-page-generated', handleGeneration);
+      window.removeEventListener('token-count-detected', handleTokenCountDetected);
       document.removeEventListener('token-usage-updated', handleTokenUpdate as EventListener);
       window.removeEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
       document.removeEventListener('complete', () => {});

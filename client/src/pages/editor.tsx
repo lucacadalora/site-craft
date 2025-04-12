@@ -668,8 +668,29 @@ export default function Editor({
                   break;
                   
                 case 'complete':
-                  console.log("Stream complete");
+                  console.log("Stream complete", event);
                   isCompleted = true;
+                  
+                  // Record token usage if available in the complete event
+                  if (event.tokenCount && (window as any).recordTokenUsage) {
+                    console.log(`Recording token usage from complete event: ${event.tokenCount} tokens`);
+                    (window as any).recordTokenUsage(event.tokenCount);
+                  }
+                  
+                  // Store stats for UI reference
+                  if (event.stats) {
+                    window.totalTokenCount = event.stats.tokens;
+                    console.log(`Complete event includes ${event.stats.tokens} tokens`);
+                    
+                    // Set the token count in a global property for other components to access
+                    (window as any).lastGenerationTokens = event.stats.tokens;
+                    
+                    // Dispatch a custom event for token usage
+                    const tokenEvent = new CustomEvent('token-count-detected', { 
+                      detail: { tokenCount: event.stats.tokens }
+                    });
+                    window.dispatchEvent(tokenEvent);
+                  }
                   
                   // If we got HTML in the completion event, use it
                   if (event.html) {
@@ -1156,11 +1177,11 @@ export default function Editor({
                 <div className="text-sm font-medium mr-1">
                   {htmlContent.length > 0 ? (
                     <div className="flex items-center space-x-2">
-                      <span className="text-blue-300 bg-[#0f172a] px-2 py-0.5 rounded">
+                      <span className="text-blue-300 bg-[#0f172a] px-2 py-0.5 rounded token-count">
                         {Math.round(htmlContent.length / 4)} tokens
                       </span>
                       {!isGenerating && window.totalTokenCount && window.generationStartTime ? (
-                        <span className="text-green-400 bg-[#0f172a] px-2 py-0.5 rounded">
+                        <span className="text-green-400 bg-[#0f172a] px-2 py-0.5 rounded generation-stats">
                           🚀 {(window.totalTokenCount / ((Date.now() - window.generationStartTime) / 1000)).toFixed(2)} t/s
                           | ⏱️ {((Date.now() - window.generationStartTime) / 1000).toFixed(2)}s
                         </span>
