@@ -324,6 +324,18 @@ export default function Editor({
         // Mark generation as complete so we can hide the progress bar
         setIsGenerating(false);
         
+        // Record partial token usage - estimate tokens based on current HTML length
+        if (htmlContent.length > 0) {
+          const estimatedTokens = Math.round(htmlContent.length / 4);
+          console.log(`Recording partial token usage after stopping: ~${estimatedTokens} tokens`);
+          
+          // This will trigger token usage recording through the custom event listener
+          const tokenEvent = new CustomEvent('token-count-detected', { 
+            detail: { tokenCount: estimatedTokens }
+          });
+          window.dispatchEvent(tokenEvent);
+        }
+        
         // Notify user that generation was stopped early
         toast({
           title: "Generation Stopped",
@@ -336,6 +348,8 @@ export default function Editor({
 
   // Handle generation with typewriter streaming effect
   const handleGenerate = async () => {
+    // Store interval reference outside try/catch scope for cleanup
+    let progressInterval: NodeJS.Timeout | null = null;
     if (!prompt) {
       toast({
         title: "Missing Information",
@@ -480,7 +494,7 @@ export default function Editor({
       let contentNearlyComplete = false;
       let contentCompleteTime: number | null = null;
       
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         if (isCompleted) {
           // When completed, ensure progress shows 100%
           if (lastProgressPercent < 100) {
