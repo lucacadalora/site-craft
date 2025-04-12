@@ -18,24 +18,30 @@ const pgStorage = new PgStorage();
 // Keep memStorage for backward compatibility
 const memStorage = new MemStorage();
 
-// Helper function to track token usage
+// Helper function to track token usage - WITH DATA PROTECTION
 async function trackTokenUsage(userId: number, tokenCount: number, res?: any): Promise<void> {
   if (!userId) {
     console.log('No user ID provided, skipping token usage tracking');
     return;
   }
   
+  // SAFETY CHECK: Ensure tokenCount is valid to prevent accidental data corruption
+  if (typeof tokenCount !== 'number' || isNaN(tokenCount) || tokenCount < 0) {
+    console.error(`Invalid token count value: ${tokenCount}. Must be a positive number. Skipping update.`);
+    return;
+  }
+  
   try {
     console.log(`Starting token usage tracking for user ${userId} with ${tokenCount} tokens`);
     
-    // Get the user to verify they exist
+    // Get the user to verify they exist - NEVER create or delete user records here
     const user = await pgStorage.getUser(userId);
     if (!user) {
-      console.error(`Cannot update token usage: User ${userId} not found in database`);
+      console.error(`DATA INTEGRITY: Cannot update token usage: User ${userId} not found in database`);
       return;
     }
     
-    // Update token usage
+    // Update token usage - limited to just incrementing counters, never deleting data
     const updatedUser = await pgStorage.updateUserTokenUsage(userId, tokenCount);
     console.log(`Token usage successfully updated for user ${userId}. New count: ${updatedUser.tokenUsage}, generations: ${updatedUser.generationCount}`);
     
@@ -394,7 +400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Add a specific endpoint for updating token usage manually
+  // Add a specific endpoint for updating token usage manually - WITH DATA PROTECTION
   app.post("/api/usage/record", authenticate, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
@@ -402,50 +408,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { tokenCount } = req.body;
-      if (!tokenCount || typeof tokenCount !== 'number') {
-        return res.status(400).json({ message: "Token count is required and must be a number" });
+      
+      // SAFETY CHECK: Enhanced validation for tokenCount
+      if (typeof tokenCount !== 'number' || isNaN(tokenCount) || tokenCount < 0 || tokenCount > 100000) {
+        console.error(`DATA INTEGRITY: Invalid token count value: ${tokenCount}`);
+        return res.status(400).json({ 
+          message: "Token count is required and must be a positive number less than 100,000" 
+        });
       }
       
       console.log(`Manually recording token usage for user ${req.user.id}: ${tokenCount} tokens`);
       
-      // Check if user exists first
+      // Check if user exists first - NEVER create sensitive records without explicit user action
       let user = await pgStorage.getUser(req.user.id);
       
-      // If user doesn't exist, create a new user record from the auth data
       if (!user) {
-        console.log(`Creating new user record for user ${req.user.id} (${req.user.username}) as it doesn't exist in database`);
-        try {
-          // Calculate a secure password hash for the new user (they can reset it later)
-          const bcrypt = await import('bcrypt');
-          const passwordHash = await bcrypt.hash('temporary-password-' + Date.now(), 10);
-          
-          // Create new user record based on JWT data
-          user = await pgStorage.createUser({
-            id: req.user.id,
-            username: req.user.username,
-            email: req.user.email,
-            password: passwordHash,
-            tokenUsage: 0,
-            generationCount: 0
-          });
-          console.log(`Created user record for ${req.user.id} successfully`);
-        } catch (createError) {
-          console.error('Error creating user record:', createError);
-          return res.status(500).json({ 
-            message: "Failed to create user record",
-            error: createError instanceof Error ? createError.message : 'Unknown error' 
-          });
-        }
+        // DATA PROTECTION: Log but don't automatically create user records
+        // This could indicate an authentication issue that should be resolved properly
+        console.error(`DATA INTEGRITY PROTECTION: User ${req.user.id} not found in database. Token usage not recorded.`);
+        return res.status(404).json({ 
+          message: "User account not found in database. Please log out and register again." 
+        });
       }
       
       try {
-        // Update user token usage in the database
-        const updatedUser = await pgStorage.updateUserTokenUsage(req.user.id, tokenCount);
+        // Update user token usage in the database using our protected helper function
+        await trackTokenUsage(req.user.id, tokenCount);
+        
+        // Get updated user to return the current values
+        const updatedUser = await pgStorage.getUser(req.user.id);
         
         return res.status(200).json({
           message: "Token usage recorded successfully",
-          tokenUsage: updatedUser.tokenUsage,
-          generationCount: updatedUser.generationCount
+          tokenUsage: updatedUser?.tokenUsage || 0,
+          generationCount: updatedUser?.generationCount || 0
         });
       } catch (updateError) {
         console.error("Error updating token usage:", updateError);

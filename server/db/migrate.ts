@@ -1,16 +1,46 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { db } from './index';
 
-// Run migrations
+// Run migrations - WITH PROTECTION FOR USER DATA
 async function runMigration() {
   try {
-    console.log('Starting database migration...');
+    console.log('Starting database migration check...');
     
-    // DO NOT drop tables in production or when users have data!
-    // We'll only create tables if they don't exist
-    console.log('Checking if database tables exist...');
+    // SAFETY CHECK: First verify if users table exists and has data
+    const checkUsersResult = await db.execute(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      );
+    `);
     
-    // Create tables based on our latest schema
+    const usersTableExists = checkUsersResult.rows[0].exists;
+    
+    if (usersTableExists) {
+      // Check if users table has data
+      const userCountResult = await db.execute('SELECT COUNT(*) as user_count FROM users;');
+      // Safely handle type conversion with fallback to 0
+      const countValue = userCountResult.rows[0]?.user_count;
+      const userCount = typeof countValue === 'number' ? countValue : 
+                       (typeof countValue === 'string' ? parseInt(countValue, 10) : 0);
+      
+      if (userCount > 0) {
+        console.log(`PROTECTED: Found existing users table with ${userCount} users. Preserving user data.`);
+        
+        // Only create tables that don't exist, NEVER drop existing tables
+        console.log('Creating any missing tables without affecting existing data...');
+        
+        // Check if we need to add any new columns to existing tables
+        // This would be the place to add ALTER TABLE statements for schema evolution
+      } else {
+        console.log('Found users table but it has no records. Creating initial schema...');
+      }
+    } else {
+      console.log('No users table found. Creating initial database schema...');
+    }
+    
+    // ALWAYS use CREATE TABLE IF NOT EXISTS to protect existing data
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -50,7 +80,7 @@ async function runMigration() {
       );
     `);
     
-    console.log('Database migration completed successfully');
+    console.log('Database migration completed successfully - user data is preserved');
   } catch (error) {
     console.error('Error during database migration:', error);
   }
