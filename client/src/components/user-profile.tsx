@@ -86,10 +86,41 @@ export function UserProfile() {
       setTimeout(fetchUserStats, 1000); // Small delay to ensure DB has updated
     };
     
+    // Listen for legacy event
     window.addEventListener('landing-page-generated', handleGeneration);
+    
+    // Set up event source listener for streaming token updates
+    const setupTokenUsageEventListener = () => {
+      const eventHandler = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === 'token-usage-updated') {
+            console.log('Received token-usage-updated event:', data);
+            // Directly update stats from the event data
+            setUserStats(prevStats => ({
+              tokenUsage: data.tokenUsage ?? prevStats?.tokenUsage ?? 0,
+              generationCount: data.generationCount ?? prevStats?.generationCount ?? 0,
+              lastLogin: prevStats?.lastLogin ?? null
+            }));
+          }
+        } catch (error) {
+          console.error('Error parsing token usage event:', error);
+        }
+      };
+      
+      // Add listener to any existing event source
+      document.addEventListener('message', eventHandler as EventListener);
+      
+      return () => {
+        document.removeEventListener('message', eventHandler as EventListener);
+      };
+    };
+    
+    const cleanup = setupTokenUsageEventListener();
     
     return () => {
       window.removeEventListener('landing-page-generated', handleGeneration);
+      if (cleanup) cleanup();
     };
   }, [isAuthenticated, user]);
 
