@@ -26,16 +26,14 @@ export function UserProfile() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
+  // Function to refresh user stats
+  const refreshUserStats = useCallback(() => {
+    if (isAuthenticated && user && token) {
       setIsLoading(true);
-      // Get token from auth context instead of localStorage
-      const token = localStorage.getItem('auth_token');
-      console.log('Using auth token:', token ? 'Token exists' : 'No token');
       
-      fetch('/api/auth/profile', { // Use profile endpoint which always exists
+      fetch('/api/auth/stats', {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       })
         .then(res => {
@@ -43,10 +41,17 @@ export function UserProfile() {
           return res.json();
         })
         .then(data => {
+          // Update user stats from profile data
           setUserStats({
             tokenUsage: data.tokenUsage || 0,
             generationCount: data.generationCount || 0,
             lastLogin: data.lastLogin
+          });
+          
+          // Also update the user context with latest usage data
+          updateUser({
+            tokenUsage: data.tokenUsage,
+            generationCount: data.generationCount
           });
         })
         .catch(err => {
@@ -62,7 +67,19 @@ export function UserProfile() {
           setIsLoading(false);
         });
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, token, updateUser]);
+  
+  // Fetch stats on initial load and when auth state changes
+  useEffect(() => {
+    refreshUserStats();
+    
+    // Add event listener to refresh stats after generation
+    window.addEventListener('landing-page-generated', refreshUserStats);
+    
+    return () => {
+      window.removeEventListener('landing-page-generated', refreshUserStats);
+    };
+  }, [refreshUserStats]);
 
   const handleLogout = () => {
     logout();
