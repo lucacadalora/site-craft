@@ -8,6 +8,8 @@ import { estimateTokenUsage, validateApiKey } from "@/lib/sambanova";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GenerationStatus } from "@/components/ui/generation-status";
+import { UserProfile } from "@/components/user-profile";
+import { useAuth } from "@/contexts/auth-context";
 
 // Extend the Window interface to include our custom property
 declare global {

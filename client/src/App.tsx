@@ -17,16 +17,26 @@ const defaultApiConfig: ApiConfig = {
   saveToken: true
 };
 
+import { ProtectedRoute } from "@/components/protected-route";
+
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/editor">
-        {() => <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
+        {() => (
+          <ProtectedRoute>
+            <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
       </Route>
       <Route path="/editor/:id">
-        {(params) => <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />}
+        {(params) => (
+          <ProtectedRoute>
+            <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
       </Route>
       <Route component={NotFound} />
     </Switch>
