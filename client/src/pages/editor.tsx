@@ -133,6 +133,8 @@ export default function Editor({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   // Add ref for editor wrapper to avoid repeated DOM queries
   const editorWrapperRef = useRef<HTMLDivElement | null>(null);
+  // Reference to the current stream controller for stop functionality
+  const streamControllerRef = useRef<AbortController | null>(null);
   
   // API config for AI Accelerate
   const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfig || {
@@ -401,6 +403,11 @@ export default function Editor({
       const baseUrl = window.location.origin;
       console.log("Using base URL for streaming API:", baseUrl);
       
+      // Create an AbortController to allow stopping the stream
+      const controller = new AbortController();
+      // Save reference to allow stopping from stop button
+      streamControllerRef.current = controller;
+      
       const response = await fetch(`${baseUrl}/api/sambanova/generate-stream`, {
         method: 'POST',
         headers: {
@@ -413,6 +420,7 @@ export default function Editor({
             apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
           }
         }),
+        signal: controller.signal, // Add the abort signal to the fetch request
       });
       
       if (!response.ok) {

@@ -4,12 +4,14 @@ interface GenerationStatusProps {
   status: string[];
   processingItem?: string;
   percentComplete?: number;
+  onStop?: () => void;
 }
 
 export function GenerationStatus({ 
   status, 
   processingItem, 
-  percentComplete 
+  percentComplete,
+  onStop 
 }: GenerationStatusProps) {
   // Keep status component visible for at least some time even if percentComplete reaches 100%
   const [showProgress, setShowProgress] = useState(true);
@@ -139,6 +141,32 @@ export function GenerationStatus({
           </span>
         </div>
       </div>
+      
+      {/* Stop Generation Button */}
+      {onStop && displayedPercent < 100 && (
+        <div className="mt-3 flex justify-center">
+          <button
+            onClick={() => {
+              if (onStop) onStop();
+            }}
+            className="px-4 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-md flex items-center justify-center transition-colors duration-200 font-medium text-sm"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-4 w-4 mr-1.5" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            </svg>
+            Stop Generation
+          </button>
+        </div>
+      )}
     </div>
   );
 }
