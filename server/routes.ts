@@ -111,6 +111,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Get authenticated user if available
+      let userId = null;
+      if (req.user) {
+        userId = req.user.id;
+      }
+      
       // Estimate token usage
       const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
       

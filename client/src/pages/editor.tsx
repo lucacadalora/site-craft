@@ -987,6 +987,11 @@ export default function Editor({
             <PlusCircle className="h-4 w-4 md:mr-1" />
             <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>New</span>
           </Button>
+          
+          {/* User Profile with token usage tracking */}
+          <div className="ml-2 border-l border-gray-700 pl-2">
+            <UserProfile />
+          </div>
           {/* Settings button removed as we're using a fixed API key */}
         </div>
       </div>
