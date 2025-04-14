@@ -321,7 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.user) {
           console.log(`Tracking token usage for user ${req.user.id} with ${tokensToUse} tokens before sending completion`);
           try {
-            await pgStorage.updateUserTokenUsage(req.user.id, tokensToUse);
+            // Set incrementGenerationCount to true for the streaming endpoint - this is the main token usage tracking
+            await pgStorage.updateUserTokenUsage(req.user.id, tokensToUse, true);
             
             // Get the updated user info with correct counts after the update
             const updatedUser = await pgStorage.getUser(req.user.id);
@@ -433,7 +434,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Update user token usage in the database using our protected helper function
-        await trackTokenUsage(req.user.id, tokenCount);
+        // Don't increment generation count for manual tracking (false)
+        await trackTokenUsage(req.user.id, tokenCount, false);
         
         // Get updated user to return the current values
         const updatedUser = await pgStorage.getUser(req.user.id);
@@ -477,7 +479,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Track usage if user is authenticated
         if (req.user) {
           console.log(`Non-streaming API: Tracking token usage for user ${req.user.id} with ${estimatedTokens} tokens`);
-          await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens);
+          // Set incrementGenerationCount to true here since this is a primary generation endpoint
+          await pgStorage.updateUserTokenUsage(req.user.id, estimatedTokens, true);
           
           // Get updated stats for logging
           const updatedUser = await pgStorage.getUser(req.user.id);
