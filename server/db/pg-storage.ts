@@ -78,9 +78,9 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
-  async updateUserTokenUsage(id: number, tokenCount: number): Promise<User> {
+  async updateUserTokenUsage(id: number, tokenCount: number, incrementGenerationCount: boolean = false): Promise<User> {
     try {
-      console.log(`Updating token usage for user ${id} with ${tokenCount} tokens`);
+      console.log(`Updating token usage for user ${id} with ${tokenCount} tokens, incrementGenerationCount: ${incrementGenerationCount}`);
       
       // Get current user
       const user = await this.getUser(id);
@@ -93,7 +93,11 @@ export class PgStorage implements IStorage {
 
       // Calculate new values
       const newTokenUsage = (user.tokenUsage || 0) + tokenCount;
-      const newGenerationCount = (user.generationCount || 0) + 1;
+      
+      // Only increment generation count if specified
+      const newGenerationCount = incrementGenerationCount 
+        ? (user.generationCount || 0) + 1 
+        : (user.generationCount || 0);
       
       console.log(`New token usage will be: ${newTokenUsage}, new generation count: ${newGenerationCount}`);
 

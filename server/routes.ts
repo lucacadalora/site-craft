@@ -19,7 +19,7 @@ const pgStorage = new PgStorage();
 const memStorage = new MemStorage();
 
 // Helper function to track token usage - WITH DATA PROTECTION
-async function trackTokenUsage(userId: number, tokenCount: number, res?: any): Promise<void> {
+async function trackTokenUsage(userId: number, tokenCount: number, incrementGenerationCount: boolean = false, res?: any): Promise<void> {
   if (!userId) {
     console.log('No user ID provided, skipping token usage tracking');
     return;
@@ -32,7 +32,7 @@ async function trackTokenUsage(userId: number, tokenCount: number, res?: any): P
   }
   
   try {
-    console.log(`Starting token usage tracking for user ${userId} with ${tokenCount} tokens`);
+    console.log(`Starting token usage tracking for user ${userId} with ${tokenCount} tokens, incrementGenerationCount: ${incrementGenerationCount}`);
     
     // Get the user to verify they exist - NEVER create or delete user records here
     const user = await pgStorage.getUser(userId);
@@ -42,7 +42,7 @@ async function trackTokenUsage(userId: number, tokenCount: number, res?: any): P
     }
     
     // Update token usage - limited to just incrementing counters, never deleting data
-    const updatedUser = await pgStorage.updateUserTokenUsage(userId, tokenCount);
+    const updatedUser = await pgStorage.updateUserTokenUsage(userId, tokenCount, incrementGenerationCount);
     console.log(`Token usage successfully updated for user ${userId}. New count: ${updatedUser.tokenUsage}, generations: ${updatedUser.generationCount}`);
     
     // If this is a streaming response and we have a response object, send an event
