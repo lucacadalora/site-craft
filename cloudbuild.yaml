@@ -1,0 +1,32 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/ai-landing-page-generator:$COMMIT_SHA', '.']
+  
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/ai-landing-page-generator:$COMMIT_SHA']
+  
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ai-landing-page-generator'
+      - '--image=gcr.io/$PROJECT_ID/ai-landing-page-generator:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=5000'
+      - '--set-env-vars=DATABASE_URL=${_DATABASE_URL}'
+      # Add any other required environment variables here with --set-env-vars
+
+images:
+  - 'gcr.io/$PROJECT_ID/ai-landing-page-generator:$COMMIT_SHA'
+
+substitutions:
+  _DATABASE_URL: # This value will need to be set in the Cloud Build trigger
+  
+options:
+  logging: CLOUD_LOGGING_ONLY
