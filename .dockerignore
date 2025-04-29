@@ -1,4 +1,9 @@
-# Dependency directories
+# Version control
+.git/
+.gitignore
+.github/
+
+# Dependencies
 node_modules/
 npm-debug.log
 yarn-debug.log
@@ -8,40 +13,39 @@ yarn-error.log
 dist/
 build/
 
-# Environment variables
+# Environment and configuration
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Version control
-.git/
-.gitignore
-
-# IDE specific files
+# Editor specific files
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Logs and databases
+# Logs
 *.log
-*.sql
-*.sqlite
 
 # OS specific files
 .DS_Store
 Thumbs.db
 
-# Test coverage
-coverage/
-
-# Temporary files
-tmp/
-temp/
-
-# Docker related
+# Docker files
 Dockerfile*
 docker-compose*
 .dockerignore
+
+# Documentation
+README.md
+DOCKER-GCP-DEPLOYMENT.md
+GCP-DEPLOYMENT-GUIDE.md
+LICENSE
+*.md
+
+# Test files
+__tests__/
+*.test.js
+*.spec.js
