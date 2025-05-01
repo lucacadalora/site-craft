@@ -54,23 +54,41 @@ export class DeploymentsStorage {
    * Create a new deployment
    */
   async createDeployment(deployment: InsertDeployment): Promise<Deployment> {
-    // Ensure we have all required fields with proper types
-    const deploymentData = {
-      slug: deployment.slug,
-      html: deployment.html,
-      css: deployment.css === undefined ? null : deployment.css,
-      projectId: deployment.projectId === undefined ? null : deployment.projectId,
-      userId: deployment.userId === undefined ? null : deployment.userId,
-      isActive: deployment.isActive === undefined ? true : deployment.isActive,
-      visitCount: 0
-    };
+    console.log(`Creating new deployment with slug '${deployment.slug}'`);
     
-    const [newDeployment] = await db
-      .insert(deployments)
-      .values(deploymentData)
-      .returning();
-    
-    return newDeployment;
+    try {
+      // Ensure we have all required fields with proper types
+      const deploymentData = {
+        slug: deployment.slug,
+        html: deployment.html,
+        css: deployment.css === undefined ? null : deployment.css,
+        projectId: deployment.projectId === undefined ? null : deployment.projectId,
+        userId: deployment.userId === undefined ? null : deployment.userId,
+        isActive: deployment.isActive === undefined ? true : deployment.isActive,
+        visitCount: 0
+      };
+      
+      console.log(`Deployment data prepared, inserting into database: projectId=${deploymentData.projectId}, userId=${deploymentData.userId}`);
+      
+      const [newDeployment] = await db
+        .insert(deployments)
+        .values(deploymentData)
+        .returning();
+      
+      console.log(`Successfully created deployment with ID ${newDeployment.id}`);
+      return newDeployment;
+    } catch (error) {
+      console.error(`Error creating deployment with slug '${deployment.slug}':`, error);
+      // Add details about the insertion attempt to help diagnose the issue
+      console.error(`Deployment insertion failed with data:`, JSON.stringify({
+        slug: deployment.slug,
+        hasHtml: !!deployment.html,
+        hasCss: !!deployment.css,
+        projectId: deployment.projectId,
+        userId: deployment.userId
+      }));
+      throw error; // Re-throw to be caught by the caller
+    }
   }
 
   /**
@@ -127,13 +145,20 @@ export class DeploymentsStorage {
    * Check if a slug is available
    */
   async isSlugAvailable(slug: string): Promise<boolean> {
-    const [existingDeployment] = await db
-      .select({ id: deployments.id })
-      .from(deployments)
-      .where(eq(deployments.slug, slug))
-      .limit(1);
-    
-    return !existingDeployment;
+    console.log(`Checking if slug '${slug}' is available in deployments table`);
+    try {
+      const [existingDeployment] = await db
+        .select({ id: deployments.id })
+        .from(deployments)
+        .where(eq(deployments.slug, slug))
+        .limit(1);
+      
+      console.log(`Slug availability check result: ${!existingDeployment ? 'Available' : 'Not available'}`);
+      return !existingDeployment;
+    } catch (error) {
+      console.error(`Error checking slug availability in deployments table:`, error);
+      throw error; // Re-throw to be caught by the caller
+    }
   }
   
   /**

@@ -199,8 +199,24 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
     } catch (error) {
       console.error('Error deploying page:', error);
       
+      // Try to get more detailed error information
+      let errorMessage = 'Failed to deploy page';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('Error details:', error.stack);
+      }
+      
+      // Log the deployment parameters for debugging
+      console.log('Deployment attempt details:', {
+        slug,
+        htmlLength: html?.length || 0,
+        cssLength: css?.length || 0,
+        projectId
+      });
+      
       // Try the old deployment endpoint as fallback
       try {
+        console.log('Attempting legacy deployment method');
         const legacyResponse = await fetch('/api/deploy', {
           method: 'POST',
           headers: {
@@ -215,7 +231,17 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
         });
         
         if (!legacyResponse.ok) {
-          throw new Error('Legacy deployment also failed');
+          // Try to get detailed error from response
+          let legacyErrorMessage = 'Legacy deployment also failed';
+          try {
+            const errorData = await legacyResponse.json();
+            if (errorData.error) {
+              legacyErrorMessage = errorData.error;
+            }
+          } catch (e) {
+            console.error('Could not parse error response from legacy endpoint');
+          }
+          throw new Error(legacyErrorMessage);
         }
         
         const legacyData = await legacyResponse.json();
@@ -230,9 +256,14 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
         });
       } catch (fallbackError) {
         // Both deployment methods failed
+        console.error('Both deployment methods failed:', fallbackError);
+        
+        let fallbackErrorMessage = fallbackError instanceof Error ? 
+          fallbackError.message : 'Legacy deployment also failed';
+          
         toast({
           title: 'Deployment Failed',
-          description: error instanceof Error ? error.message : 'Failed to deploy page',
+          description: `${errorMessage}. Fallback also failed: ${fallbackErrorMessage}`,
           variant: 'destructive',
         });
       }
