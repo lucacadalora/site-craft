@@ -145,10 +145,12 @@ export function UserProfile() {
     const handleTokenCountDetected = (event: any) => {
       if (event.detail && event.detail.tokenCount) {
         console.log('Token count detected:', event.detail.tokenCount);
-        // Directly record the token count
+        // Directly record the token count - works for both authenticated and anonymous users
         if ((window as any).recordTokenUsage) {
           console.log('Recording token usage from detected event:', event.detail.tokenCount);
           (window as any).recordTokenUsage(event.detail.tokenCount);
+        } else {
+          console.warn('recordTokenUsage function not available yet - token count detection will be ignored');
         }
       }
     };
@@ -173,20 +175,22 @@ document.addEventListener('complete', () => {
 
 // Add a method to manually record token usage from the UI
 (window as any).recordTokenUsage = (tokenCount: number) => {
-  if (!isAuthenticated) {
-    console.error('Cannot record token usage: User not authenticated');
-    return;
-  }
-  
   console.log(`Recording token usage manually: ${tokenCount}`);
   const token = localStorage.getItem('auth_token');
   
+  // Headers for the request - include auth token if available
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Only add Authorization header if user is authenticated
+  if (isAuthenticated && token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   fetch('/api/usage/record', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token || ''}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({ tokenCount })
   })
   .then(res => {
@@ -197,25 +201,46 @@ document.addEventListener('complete', () => {
   })
   .then(data => {
     console.log('Token usage recorded successfully:', data);
-    // Update local state
-    setUserStats({
-      tokenUsage: data.tokenUsage || 0,
-      generationCount: data.generationCount || 0,
-      lastLogin: userStats?.lastLogin || null
-    });
-    // Show success message
-    toast({
-      title: 'Token usage updated',
-      description: `Recorded ${tokenCount} tokens. New total: ${data.tokenUsage}`,
-    });
+    
+    // Only update UI stats if the user is authenticated and data contains stats
+    if (isAuthenticated && data.tokenUsage !== undefined) {
+      // Update local state
+      setUserStats({
+        tokenUsage: data.tokenUsage || 0,
+        generationCount: data.generationCount || 0,
+        lastLogin: userStats?.lastLogin || null
+      });
+      
+      // Show success message for authenticated users
+      toast({
+        title: 'Token usage updated',
+        description: `Recorded ${tokenCount} tokens. New total: ${data.tokenUsage}`,
+      });
+    } else if (data.anonymous) {
+      // For anonymous users, just log the success
+      console.log('Anonymous token usage recorded:', tokenCount);
+      
+      // Optional toast for anonymous users
+      if (data.tokenCount) {
+        toast({
+          title: 'Token usage recorded',
+          description: `Used ${data.tokenCount} tokens in this generation.`,
+          duration: 3000,
+        });
+      }
+    }
   })
   .catch(error => {
     console.error('Error recording token usage:', error);
-    toast({
-      title: 'Error recording token usage',
-      description: error.message,
-      variant: 'destructive'
-    });
+    
+    // Only show error toast for authenticated users
+    if (isAuthenticated) {
+      toast({
+        title: 'Error recording token usage',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   });
 };
     
