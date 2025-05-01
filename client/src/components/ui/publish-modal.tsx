@@ -63,8 +63,13 @@ export function PublishModal({ open, onOpenChange, projectId, onSuccess }: Publi
       return res.json();
     },
     onSuccess: (data) => {
-      const publishedUrl = `https://${slug}.landingcraft.com`;
-      onSuccess(publishedUrl);
+      // Use the actual publishUrl from the API response if available
+      const publishedUrl = data.publishUrl || `/sites/${slug}`;
+      
+      // For custom domain use cases, replace the domain dynamically
+      const fullUrl = window.location.origin + publishedUrl;
+      
+      onSuccess(fullUrl);
       onOpenChange(false);
     },
     onError: (error) => {
@@ -179,7 +184,7 @@ export function PublishModal({ open, onOpenChange, projectId, onSuccess }: Publi
               </div>
             )}
             <p className="text-sm text-gray-500">
-              Your landing page will be published at: <span className="font-medium">{slug ? `https://${slug}.landingcraft.com` : 'https://your-slug.landingcraft.com'}</span>
+              Your landing page will be published at: <span className="font-medium">{slug ? `${window.location.origin}/sites/${slug}` : `${window.location.origin}/sites/your-slug`}</span>
             </p>
           </div>
         </div>
