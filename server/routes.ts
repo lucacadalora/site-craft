@@ -242,29 +242,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Slug parameter is required' });
       }
       
-      // Check if slug is already in use
-      const allProjects = await storage.getAllProjects();
-      const slugExists = allProjects.some((p) => 
-        p.publishPath === slug || 
-        p.publishPath === `/sites/${slug}` || 
-        p.publishPath === `sites/${slug}`
-      );
+      console.log(`Checking availability for slug: ${slug}`);
+      
+      let slugExists = false;
+      
+      // First, check the deployments table
+      try {
+        const isSlugAvailable = await deploymentsStorage.isSlugAvailable(slug);
+        if (!isSlugAvailable) {
+          console.log(`Slug '${slug}' exists in deployments table`);
+          slugExists = true;
+        } else {
+          console.log(`Slug '${slug}' not found in deployments table`);
+        }
+      } catch (dbError) {
+        // If there's an error checking the deployments table, log it but continue with the legacy check
+        console.error(`Error checking deployments table for slug '${slug}':`, dbError);
+      }
+      
+      // If not found in deployments, check legacy projects as a fallback
+      if (!slugExists) {
+        console.log(`Performing legacy check for slug '${slug}'`);
+        const allProjects = await storage.getAllProjects();
+        slugExists = allProjects.some((p) => 
+          p.publishPath === slug || 
+          p.publishPath === `/sites/${slug}` || 
+          p.publishPath === `sites/${slug}`
+        );
+        console.log(`Legacy check result for slug '${slug}': ${slugExists ? 'Exists' : 'Available'}`);
+      }
 
       // Return whether the slug exists or not
-      return res.json({ exists: slugExists });
+      return res.json({ 
+        exists: slugExists,
+        message: slugExists ? 'Slug is already in use' : 'Slug is available' 
+      });
     } catch (error) {
       console.error('Error checking slug:', error);
-      return res.status(500).json({ error: 'Failed to check slug availability' });
+      return res.status(500).json({ 
+        error: 'Failed to check slug availability',
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
   // Direct deploy endpoint that doesn't require authentication
-  app.post('/api/deploy', async (req, res) => {
+  app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
+    console.log('Deploy endpoint called');
     try {
       // Set content type explicitly to application/json
       res.setHeader('Content-Type', 'application/json');
       
-      const { html, css, slug } = req.body;
+      const { html, css, slug, projectId } = req.body;
       
       if (!html) {
         return res.status(400).json({ error: 'HTML content is required' });
@@ -274,6 +303,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Slug is required' });
       }
       
+      // Get the user ID from auth if available
+      const userId = req.user?.id || null;
+      console.log(`Deploy request from user ID: ${userId || 'anonymous'}`);
+      
       // Validate slug format
       if (!/^[a-z0-9-]+$/.test(slug)) {
         return res.status(400).json({ 
@@ -281,83 +314,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Check if slug is already in use
-      const allProjects = await storage.getAllProjects();
-      const slugExists = allProjects.some((p) => 
-        p.publishPath === slug || 
-        p.publishPath === `/sites/${slug}` || 
-        p.publishPath === `sites/${slug}`
-      );
-
-      if (slugExists) {
-        return res.status(409).json({ 
-          error: 'This slug is already in use. Please choose another one.' 
-        });
+      // First check if slug is available in the deployments table
+      let slugAvailable = true;
+      try {
+        console.log(`Checking if slug '${slug}' is available in deployments table`);
+        slugAvailable = await deploymentsStorage.isSlugAvailable(slug);
+        
+        if (!slugAvailable) {
+          console.log(`Slug '${slug}' already exists in deployments table`);
+          return res.status(409).json({ 
+            error: 'This slug is already in use in the deployments system. Please choose another one.' 
+          });
+        }
+      } catch (dbError) {
+        console.error('Error checking slug availability in deployments table:', dbError);
+        // Continue with legacy check even if deployments table check fails
       }
 
+      // As a fallback, also check legacy projects table
+      if (slugAvailable) {
+        try {
+          const allProjects = await storage.getAllProjects();
+          const slugExistsInProjects = allProjects.some((p) => 
+            p.publishPath === slug || 
+            p.publishPath === `/sites/${slug}` || 
+            p.publishPath === `sites/${slug}`
+          );
+
+          if (slugExistsInProjects) {
+            console.log(`Slug '${slug}' already exists in projects table`);
+            return res.status(409).json({ 
+              error: 'This slug is already in use in the legacy system. Please choose another one.' 
+            });
+          }
+        } catch (projectError) {
+          console.error('Error checking slug in projects table:', projectError);
+          // Continue even if project check fails - we'll use the deployments table
+        }
+      }
+
+      // Create deployment in the deployments table
       try {
-        // Create a new project for the deployment
-        const project = await storage.createProject({
-          name: `Deployed Page: ${slug}`,
-          prompt: 'Deployed from editor',
-          templateId: 'default',
-          category: 'deployed',
-          settings: {},
-        });
-
-        // Update the project with the HTML and CSS content
-        const updatedProject = await storage.updateProject(project.id, {
+        console.log(`Creating deployment for slug '${slug}' with userId=${userId}, projectId=${projectId || 'null'}`);
+        
+        const deployment = await deploymentsStorage.createDeployment({
+          slug,
           html,
-          css: css || '',
-          published: true,
-          publishPath: slug
+          css: css || null,
+          userId: userId,
+          projectId: projectId || null,
+          isActive: true
         });
-
+        
+        console.log(`Successfully created deployment with ID ${deployment.id}`);
+        
         // Return success with the published URL
         return res.status(200).json({
           success: true,
           publishUrl: `/sites/${slug}`,
-          project: updatedProject
+          deployment: {
+            id: deployment.id,
+            slug: deployment.slug,
+            createdAt: deployment.createdAt
+          }
         });
-      } catch (dbError) {
-        console.error('Database error in deploy endpoint:', dbError);
+      } catch (deploymentError) {
+        console.error('Error creating deployment in deployments table:', deploymentError);
         
-        // Even if DB operations fail, ensure the landing page is still accessible
-        // by adding a fallback that directly serves the content through the sites router
-        const tempId = Date.now().toString();
-        const fallbackProject = {
-          id: parseInt(tempId),
-          name: `Fallback Page: ${slug}`,
-          html,
-          css: css || '',
-          published: true,
-          publishPath: slug
-        };
-        
+        // Try the legacy fallback with projects if deployments table fails
         try {
-          // Temporarily store the fallback project
-          await storage.createProject({
-            name: `Fallback Page: ${slug}`,
-            prompt: 'Emergency fallback deployment',
+          console.log('Trying legacy fallback with projects table');
+          // Create a new project for the deployment as fallback
+          const project = await storage.createProject({
+            name: `Deployed Page: ${slug}`,
+            prompt: 'Deployed from editor',
             templateId: 'default',
             category: 'deployed',
-            settings: {}
+            settings: {},
+            userId: userId || undefined
           });
+
+          // Update the project with the HTML and CSS content
+          const updatedProject = await storage.updateProject(project.id, {
+            html,
+            css: css || '',
+            published: true,
+            publishPath: slug
+          });
+
+          console.log(`Successfully created fallback project with ID ${project.id}`);
           
           // Return success with the published URL
           return res.status(200).json({
             success: true,
             publishUrl: `/sites/${slug}`,
-            fallback: true
+            project: updatedProject,
+            fallbackUsed: true
           });
         } catch (fallbackError) {
-          // If even the fallback fails, return the original error
-          throw dbError;
+          console.error('Both deployment systems failed:', fallbackError);
+          throw deploymentError; // Re-throw the original error
         }
       }
     } catch (error) {
-      console.error('Error in direct deploy endpoint:', error);
-      return res.status(500).json({ error: 'Failed to deploy page: ' + (error instanceof Error ? error.message : String(error)) });
+      console.error('Error in deploy endpoint:', error);
+      return res.status(500).json({ 
+        error: 'Failed to deploy page', 
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
