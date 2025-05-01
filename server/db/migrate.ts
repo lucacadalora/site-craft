@@ -94,6 +94,20 @@ async function runMigration() {
         html TEXT NOT NULL,
         css TEXT NOT NULL
       );
+      
+      CREATE TABLE IF NOT EXISTS deployments (
+        id SERIAL PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,
+        html TEXT NOT NULL,
+        css TEXT,
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        visit_count INTEGER DEFAULT 0,
+        last_visited_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     
     console.log('Database migration completed successfully - user data is preserved');

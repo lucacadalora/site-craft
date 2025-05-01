@@ -11,6 +11,7 @@ import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
 import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
+import { db } from './db';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -378,6 +379,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/categories", async (req, res) => {
     return res.json(CATEGORIES);
+  });
+
+  // Endpoint to check if the deployments table exists
+  app.get("/api/check-deployment-table", async (req, res) => {
+    try {
+      // Check if the deployments table exists in the database
+      const tableCheckResult = await db.execute(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'deployments'
+        );
+      `);
+      
+      const deploymentsTableExists = tableCheckResult.rows[0].exists;
+      
+      return res.json({ 
+        exists: deploymentsTableExists,
+        message: deploymentsTableExists 
+          ? 'Deployments table exists in the database' 
+          : 'Deployments table does not exist in the database'
+      });
+    } catch (error) {
+      console.error('Error checking deployments table:', error);
+      return res.status(500).json({ 
+        error: 'Failed to check deployments table',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
   });
 
   // Simple token estimation route
