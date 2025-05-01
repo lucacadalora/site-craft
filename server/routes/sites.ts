@@ -221,16 +221,37 @@ router.post('/:slug/check', async (req: Request, res: Response) => {
       });
     }
     
-    // Check if slug is available
-    const isAvailable = await deploymentsStorage.isSlugAvailable(slug);
-    
-    return res.json({
-      success: true,
-      isAvailable,
-      message: isAvailable 
-        ? 'Slug is available' 
-        : 'Slug is already taken'
-    });
+    // Fallback check using projects table since deployments table may not exist yet
+    try {
+      // First try the deployments storage method (if table exists)
+      const isAvailable = await deploymentsStorage.isSlugAvailable(slug);
+      
+      return res.json({
+        success: true,
+        isAvailable,
+        message: isAvailable 
+          ? 'Slug is available' 
+          : 'Slug is already taken'
+      });
+    } catch (dbError) {
+      console.log('Falling back to projects table for slug check');
+      
+      // Fallback to checking projects table
+      const projects = await storage.getAllProjects();
+      const slugExists = projects.some(p => 
+        p.publishPath === slug || 
+        p.publishPath === `/sites/${slug}` || 
+        p.publishPath === `sites/${slug}`
+      );
+
+      return res.json({
+        success: true,
+        isAvailable: !slugExists,
+        message: !slugExists
+          ? 'Slug is available'
+          : 'Slug is already taken'
+      });
+    }
   } catch (error) {
     console.error('Error checking slug availability:', error);
     res.status(500).json({ 

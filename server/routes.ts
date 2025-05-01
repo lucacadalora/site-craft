@@ -104,16 +104,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Check if slug is available
-      const isAvailable = await deploymentsStorage.isSlugAvailable(slug);
-      if (!isAvailable) {
+      // Check if slug is available - using fallback methods if needed
+      let slugAvailable = false;
+      try {
+        // Try to check with deployments table
+        slugAvailable = await deploymentsStorage.isSlugAvailable(slug);
+      } catch (dbError) {
+        // Fallback to projects table
+        console.log('Falling back to projects table for slug check in deploy endpoint');
+        const projects = await storage.getAllProjects();
+        const slugExists = projects.some(p => 
+          p.publishPath === slug || 
+          p.publishPath === `/sites/${slug}` || 
+          p.publishPath === `sites/${slug}`
+        );
+        slugAvailable = !slugExists;
+      }
+      
+      // Verify slug is available
+      if (!slugAvailable) {
         return res.status(400).json({
           success: false,
           message: 'Slug is already taken'
         });
       }
       
-      // Create the deployment
+      // Prepare deployment data
       const deploymentData = {
         slug,
         html,
@@ -123,7 +139,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       };
       
-      const deployment = await deploymentsStorage.createDeployment(deploymentData);
+      // Try to create in deployments table with fallback to projects
+      let deployment;
+      try {
+        deployment = await deploymentsStorage.createDeployment(deploymentData);
+      } catch (dbError) {
+        console.log('Falling back to projects table for deployment creation');
+        // Create a project as fallback
+        const project = await storage.createProject({
+          name: `Deployed Page: ${slug}`,
+          prompt: 'Deployed via editor',
+          templateId: 'default',
+          category: 'deployed',
+          settings: {},
+          userId: req.user?.id || null
+        });
+        
+        // Update the project with HTML/CSS and mark as published
+        deployment = await storage.updateProject(project.id, {
+          html,
+          css: css || '',
+          published: true,
+          publishPath: slug
+        });
+      }
       
       // Track token usage asynchronously if user is authenticated
       if (req.user?.id) {
@@ -182,8 +221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if slug is already in use
-      const allProjects = await pgStorage.getAllProjects();
-      const slugExists = allProjects.some((p: any) => 
+      const allProjects = await storage.getAllProjects();
+      const slugExists = allProjects.some((p) => 
         p.publishPath === slug || 
         p.publishPath === `/sites/${slug}` || 
         p.publishPath === `sites/${slug}`
@@ -221,8 +260,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if slug is already in use
-      const allProjects = await pgStorage.getAllProjects();
-      const slugExists = allProjects.some((p: any) => 
+      const allProjects = await storage.getAllProjects();
+      const slugExists = allProjects.some((p) => 
         p.publishPath === slug || 
         p.publishPath === `/sites/${slug}` || 
         p.publishPath === `sites/${slug}`
@@ -236,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // Create a new project for the deployment
-        const project = await pgStorage.createProject({
+        const project = await storage.createProject({
           name: `Deployed Page: ${slug}`,
           prompt: 'Deployed from editor',
           templateId: 'default',
@@ -245,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Update the project with the HTML and CSS content
-        const updatedProject = await pgStorage.updateProject(project.id, {
+        const updatedProject = await storage.updateProject(project.id, {
           html,
           css: css || '',
           published: true,
@@ -275,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           // Temporarily store the fallback project
-          await pgStorage.createProject({
+          await storage.createProject({
             name: `Fallback Page: ${slug}`,
             prompt: 'Emergency fallback deployment',
             templateId: 'default',
