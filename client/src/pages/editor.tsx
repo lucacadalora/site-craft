@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { GenerationStatus } from "@/components/ui/generation-status";
 import { UserProfile } from "@/components/user-profile";
 import { useAuth } from "@/contexts/auth-context";
+import { DeployButton } from "@/components/deploy-button";
 
 // Extend the Window interface to include our custom property
 declare global {
@@ -1318,6 +1319,14 @@ export default function Editor({
                   <div className="h-2 w-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></div>
                   <span>Live Preview</span>
                 </div>
+              )}
+              
+              {/* Deploy Button - Only show when HTML content exists */}
+              {htmlContent && (
+                <DeployButton 
+                  html={htmlContent} 
+                  projectId={projectId} 
+                />
               )}
               
               {/* Refresh Button - Keep for both mobile and desktop */}

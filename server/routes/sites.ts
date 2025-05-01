@@ -1,19 +1,26 @@
-import express, { Request, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
 
-const router = express.Router();
+const router = Router();
 
-// Serve published sites
+/**
+ * GET /sites/:slug
+ * Serves a published landing page by its slug
+ */
 router.get('/:slug', async (req: Request, res: Response) => {
   try {
-    const slug = req.params.slug;
+    const { slug } = req.params;
     
-    // Find project by publishPath
+    if (!slug) {
+      return res.status(400).send('Slug is required');
+    }
+    
+    // Find projects with this publish path
     const projects = await storage.getAllProjects();
     const project = projects.find(p => 
-      p.published && 
-      p.publishPath && 
-      p.publishPath.toLowerCase() === slug.toLowerCase()
+      p.publishPath === slug || 
+      p.publishPath === `/sites/${slug}` || 
+      p.publishPath === `sites/${slug}`
     );
     
     if (!project || !project.html) {
@@ -21,61 +28,70 @@ router.get('/:slug', async (req: Request, res: Response) => {
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Site Not Found</title>
+            <title>Page Not Found</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              body { 
-                font-family: system-ui, sans-serif; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                height: 100vh; 
-                margin: 0; 
-                background: #f5f5f5;
+              body {
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                background-color: #f9fafb;
+                color: #1f2937;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                padding: 20px;
+                text-align: center;
               }
-              .container { 
-                text-align: center; 
-                padding: 2rem; 
-                background: white; 
-                border-radius: 8px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-                max-width: 90%;
+              .container {
+                max-width: 500px;
+                padding: 40px;
+                background-color: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
               }
-              h1 { color: #333; }
-              p { color: #666; }
+              h1 {
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 12px;
+              }
+              p {
+                color: #6b7280;
+                margin-bottom: 24px;
+              }
+              .back-link {
+                display: inline-block;
+                padding: 10px 16px;
+                background-color: #3b82f6;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+                font-weight: 500;
+                transition: background-color 0.2s;
+              }
+              .back-link:hover {
+                background-color: #2563eb;
+              }
             </style>
           </head>
           <body>
             <div class="container">
-              <h1>Site Not Found</h1>
-              <p>The site you're looking for doesn't exist or hasn't been published yet.</p>
-              <p><a href="/">Return to homepage</a></p>
+              <h1>Page Not Found</h1>
+              <p>The page you're looking for doesn't exist or has been removed.</p>
+              <a href="/" class="back-link">Back to Home</a>
             </div>
           </body>
         </html>
       `);
     }
     
-    // Create a complete HTML document with embedded CSS
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${project.name || 'Generated Site'}</title>
-          <style>${project.css || ''}</style>
-        </head>
-        <body>
-          ${project.html}
-        </body>
-      </html>
-    `;
-    
-    res.setHeader('Content-Type', 'text/html');
-    return res.send(fullHtml);
+    // Serve the HTML content
+    res.send(project.html);
   } catch (error) {
-    console.error("Error serving published site:", error);
-    return res.status(500).send("Error loading site");
+    console.error('Error serving site:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
