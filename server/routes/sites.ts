@@ -140,8 +140,9 @@ router.get('/:slug', async (req: Request, res: Response) => {
       try {
         await storeDeploymentFiles(slug, deployment.html, deployment.css || undefined);
         console.log(`Stored deployment files for slug: ${slug}`);
-      } catch (err) {
-        console.error(`Failed to store deployment files: ${err.message}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to store deployment files: ${errorMessage}`);
       }
       
       // Serve the HTML content from the database
@@ -179,8 +180,9 @@ router.get('/:slug', async (req: Request, res: Response) => {
           // Store in filesystem
           await storeDeploymentFiles(slug, project.html, project.css || undefined);
         }
-      } catch (err) {
-        console.error(`Failed to migrate project to deployment: ${err.message}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`Failed to migrate project to deployment: ${errorMessage}`);
       }
       
       // Serve the HTML content

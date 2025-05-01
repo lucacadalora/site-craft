@@ -10,6 +10,7 @@ import sitesRoutes from './routes/sites';
 import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
 import { MemStorage } from './storage';
+import { deploymentsStorage } from './db/deployments-storage';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -104,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if slug is available
-      const isAvailable = await pgStorage.isSlugAvailable(slug);
+      const isAvailable = await deploymentsStorage.isSlugAvailable(slug);
       if (!isAvailable) {
         return res.status(400).json({
           success: false,
@@ -122,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       };
       
-      const deployment = await pgStorage.createDeployment(deploymentData);
+      const deployment = await deploymentsStorage.createDeployment(deploymentData);
       
       // Track token usage asynchronously if user is authenticated
       if (req.user?.id) {
