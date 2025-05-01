@@ -535,13 +535,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add a specific endpoint for updating token usage manually - WITH DATA PROTECTION
-  app.post("/api/usage/record", authenticate, async (req: AuthRequest, res) => {
+  app.post("/api/usage/record", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
       const { tokenCount } = req.body;
+      
+      // If no user is authenticated, just acknowledge the request without tracking
+      if (!req.user) {
+        console.log('Token usage received from anonymous user:', tokenCount);
+        return res.status(200).json({ 
+          message: "Token usage noted (anonymous user)",
+          anonymous: true,
+          tokenCount
+        });
+      }
       
       // SAFETY CHECK: Enhanced validation for tokenCount
       if (typeof tokenCount !== 'number' || isNaN(tokenCount) || tokenCount < 0 || tokenCount > 100000) {
