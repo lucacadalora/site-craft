@@ -81,6 +81,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register sites routes for published sites
   console.log('Registering published sites routes at /sites');
   app.use('/sites', sitesRoutes);
+  
+  // Deploy a landing page
+  app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
+    try {
+      const { slug, html, css, projectId } = req.body;
+      
+      if (!slug || !html) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Slug and HTML content are required' 
+        });
+      }
+      
+      // Validate slug format
+      const slugRegex = /^[a-z0-9-]+$/;
+      if (!slugRegex.test(slug)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Slug must contain only lowercase letters, numbers, and hyphens'
+        });
+      }
+      
+      // Check if slug is available
+      const isAvailable = await pgStorage.isSlugAvailable(slug);
+      if (!isAvailable) {
+        return res.status(400).json({
+          success: false,
+          message: 'Slug is already taken'
+        });
+      }
+      
+      // Create the deployment
+      const deploymentData = {
+        slug,
+        html,
+        css: css || null,
+        projectId: projectId || null,
+        userId: req.user?.id || null,
+        isActive: true
+      };
+      
+      const deployment = await pgStorage.createDeployment(deploymentData);
+      
+      // Track token usage asynchronously if user is authenticated
+      if (req.user?.id) {
+        trackTokenUsage(req.user.id, 100, true).catch(error => {
+          console.error('Error tracking token usage for deployment:', error);
+        });
+      }
+      
+      // Create deployment directory and store files
+      const DEPLOYMENTS_DIR = path.join(process.cwd(), 'user_deployments');
+      if (!fs.existsSync(DEPLOYMENTS_DIR)) {
+        fs.mkdirSync(DEPLOYMENTS_DIR, { recursive: true });
+      }
+      
+      // Create slug directory if it doesn't exist
+      const slugDir = path.join(DEPLOYMENTS_DIR, slug);
+      if (!fs.existsSync(slugDir)) {
+        fs.mkdirSync(slugDir, { recursive: true });
+      }
+      
+      // Write HTML file
+      const htmlPath = path.join(slugDir, 'index.html');
+      fs.writeFileSync(htmlPath, html);
+      
+      // Write CSS file if provided
+      if (css) {
+        const cssPath = path.join(slugDir, 'styles.css');
+        fs.writeFileSync(cssPath, css);
+      }
+      
+      return res.json({
+        success: true,
+        deployment: {
+          id: deployment.id,
+          slug,
+          url: `/sites/${slug}`
+        },
+        message: 'Deployment created successfully'
+      });
+    } catch (error) {
+      console.error('Error creating deployment:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Failed to create deployment' 
+      });
+    }
+  });
 
   // Endpoint to check if a slug is available (no auth required)
   app.get('/api/check-slug', async (req, res) => {

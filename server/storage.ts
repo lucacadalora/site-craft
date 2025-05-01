@@ -49,15 +49,19 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private templates: Map<string, Template>;
   private projects: Map<number, Project>;
+  private deployments: Map<number, Deployment>;
   private userId: number;
   private projectId: number;
+  private deploymentId: number;
 
   constructor() {
     this.users = new Map();
     this.templates = new Map();
     this.projects = new Map();
+    this.deployments = new Map();
     this.userId = 1;
     this.projectId = 1;
+    this.deploymentId = 1;
 
     // Initialize with sample templates
     this.initializeTemplates();
@@ -223,6 +227,85 @@ export class MemStorage implements IStorage {
       throw new Error(`Project with ID ${id} not found`);
     }
     this.projects.delete(id);
+  }
+  
+  // Deployment methods
+  async getDeploymentBySlug(slug: string): Promise<Deployment | undefined> {
+    return Array.from(this.deployments.values()).find(
+      (deployment) => deployment.slug === slug
+    );
+  }
+
+  async getUserDeployments(userId: number): Promise<Deployment[]> {
+    return Array.from(this.deployments.values()).filter(
+      (deployment) => deployment.userId === userId
+    );
+  }
+
+  async getAllDeployments(): Promise<Deployment[]> {
+    return Array.from(this.deployments.values());
+  }
+
+  async createDeployment(deployment: InsertDeployment): Promise<Deployment> {
+    const id = this.deploymentId++;
+    const now = new Date();
+    
+    const newDeployment: Deployment = {
+      ...deployment,
+      id,
+      visitCount: 0,
+      createdAt: now,
+      updatedAt: now,
+      lastVisitedAt: null
+    };
+    
+    this.deployments.set(id, newDeployment);
+    return newDeployment;
+  }
+
+  async updateDeployment(id: number, deploymentUpdate: Partial<Deployment>): Promise<Deployment> {
+    const deployment = this.deployments.get(id);
+    if (!deployment) {
+      throw new Error(`Deployment with ID ${id} not found`);
+    }
+
+    const updatedDeployment: Deployment = {
+      ...deployment,
+      ...deploymentUpdate,
+      updatedAt: new Date()
+    };
+    
+    this.deployments.set(id, updatedDeployment);
+    return updatedDeployment;
+  }
+
+  async deleteDeployment(id: number): Promise<void> {
+    if (!this.deployments.has(id)) {
+      throw new Error(`Deployment with ID ${id} not found`);
+    }
+    this.deployments.delete(id);
+  }
+
+  async incrementDeploymentVisitCount(id: number): Promise<Deployment> {
+    const deployment = this.deployments.get(id);
+    if (!deployment) {
+      throw new Error(`Deployment with ID ${id} not found`);
+    }
+
+    const updatedDeployment: Deployment = {
+      ...deployment,
+      visitCount: (deployment.visitCount || 0) + 1,
+      lastVisitedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.deployments.set(id, updatedDeployment);
+    return updatedDeployment;
+  }
+
+  async isSlugAvailable(slug: string): Promise<boolean> {
+    const deployment = await this.getDeploymentBySlug(slug);
+    return !deployment;
   }
 
   // Initialize templates
