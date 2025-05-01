@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Editor from "@/pages/editor";
 import Login from "@/pages/login";
+import TestDeployment from "@/pages/test-deployment";
 import { ApiConfig } from "@shared/schema";
 import { AuthProvider } from "@/contexts/auth-context";
 
@@ -35,6 +36,13 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
         {(params) => (
           <ProtectedRoute>
             <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/test-deployment">
+        {() => (
+          <ProtectedRoute>
+            <TestDeployment />
           </ProtectedRoute>
         )}
       </Route>
