@@ -279,18 +279,21 @@ document.addEventListener('complete', () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 bg-blue-600/20 text-white border-blue-400 hover:bg-blue-700/40 hover:text-white"
+        >
           <User className="h-4 w-4" />
-          <span>{user?.username}</span>
+          <span className="truncate max-w-[150px]">{user?.email || user?.username}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+      <DropdownMenuContent className="w-80" align="end">
+        <DropdownMenuLabel className="text-base font-semibold">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            <span>{user?.email}</span>
+          <DropdownMenuItem className="py-2">
+            <User className="mr-2 h-4 w-4 flex-shrink-0" />
+            <span className="text-sm font-medium break-all">{user?.email}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

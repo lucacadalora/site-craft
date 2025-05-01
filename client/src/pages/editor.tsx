@@ -1315,8 +1315,8 @@ export default function Editor({
             
             <div className="flex items-center space-x-2">
               {!isMobile && (
-                <div className="flex items-center h-8 px-2 text-xs text-green-600 bg-green-50 border border-green-200 rounded-md">
-                  <div className="h-2 w-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></div>
+                <div className="flex items-center h-8 px-3 text-xs font-medium text-green-700 bg-green-100 border border-green-300 rounded-md shadow-sm">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
                   <span>Live Preview</span>
                 </div>
               )}
@@ -1333,11 +1333,12 @@ export default function Editor({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 px-1.5 text-xs border-gray-300 text-gray-700" 
+                className="h-8 px-2 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:text-green-800" 
                 onClick={handleRefreshPreview}
                 title="Refresh Preview"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
               
               {/* Fullscreen toggle button */}
@@ -1345,7 +1346,7 @@ export default function Editor({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-1.5 text-xs border-gray-300 text-gray-700"
+                  className="h-8 px-2 text-xs bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                   onClick={() => setIsFullscreen(!isFullscreen)}
                   title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 >
