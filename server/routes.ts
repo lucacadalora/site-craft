@@ -9,7 +9,7 @@ import projectRoutes from './routes/projects';
 import sitesRoutes from './routes/sites';
 import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
-import { MemStorage } from './storage';
+import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
 
 // Initialize the database schema and tables only on first run
@@ -111,9 +111,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         slugAvailable = await deploymentsStorage.isSlugAvailable(slug);
       } catch (dbError) {
         // Fallback to projects table
-        console.log('Falling back to projects table for slug check in deploy endpoint');
+        console.log('Falling back to projects table for slug check in deploy endpoint:', dbError);
         const projects = await storage.getAllProjects();
-        const slugExists = projects.some(p => 
+        const slugExists = projects.some((p: any) => 
           p.publishPath === slug || 
           p.publishPath === `/sites/${slug}` || 
           p.publishPath === `sites/${slug}`
@@ -142,26 +142,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to create in deployments table with fallback to projects
       let deployment;
       try {
+        console.log('Attempting to create deployment in deployments table');
         deployment = await deploymentsStorage.createDeployment(deploymentData);
+        console.log('Successfully created deployment:', deployment.id);
       } catch (dbError) {
+        console.error('Error creating deployment in deployments table:', dbError);
         console.log('Falling back to projects table for deployment creation');
-        // Create a project as fallback
-        const project = await storage.createProject({
-          name: `Deployed Page: ${slug}`,
-          prompt: 'Deployed via editor',
-          templateId: 'default',
-          category: 'deployed',
-          settings: {},
-          userId: req.user?.id || null
-        });
-        
-        // Update the project with HTML/CSS and mark as published
-        deployment = await storage.updateProject(project.id, {
-          html,
-          css: css || '',
-          published: true,
-          publishPath: slug
-        });
+        try {
+          // Create a project as fallback
+          const project = await storage.createProject({
+            name: `Deployed Page: ${slug}`,
+            prompt: 'Deployed via editor',
+            templateId: 'default',
+            category: 'deployed',
+            settings: {},
+            userId: req.user?.id || null
+          });
+          
+          console.log('Successfully created fallback project:', project.id);
+          
+          // Update the project with HTML/CSS and mark as published
+          deployment = await storage.updateProject(project.id, {
+            html,
+            css: css || '',
+            published: true,
+            publishPath: slug
+          });
+          
+          console.log('Successfully updated fallback project with HTML/CSS:', project.id);
+        } catch (fallbackError) {
+          console.error('Error creating fallback project:', fallbackError);
+          throw fallbackError; // Re-throw to be caught by the outer catch block
+        }
       }
       
       // Track token usage asynchronously if user is authenticated
@@ -204,9 +216,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error creating deployment:', error);
+      
+      // Provide more detailed error information
+      let errorMessage = 'Failed to create deployment';
+      if (error instanceof Error) {
+        errorMessage += ': ' + error.message;
+        console.error('Stack trace:', error.stack);
+      }
+      
       return res.status(500).json({ 
         success: false, 
-        message: 'Failed to create deployment' 
+        message: errorMessage,
+        error: error instanceof Error ? error.toString() : String(error)
       });
     }
   });
