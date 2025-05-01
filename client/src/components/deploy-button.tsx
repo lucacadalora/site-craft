@@ -127,6 +127,7 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',  // Explicitly request JSON response
         },
         body: JSON.stringify({
           html,
@@ -136,12 +137,30 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
       });
 
       if (!deployResponse.ok) {
-        const errorData = await deployResponse.json();
-        throw new Error(errorData.error || 'Failed to deploy page');
+        // Handle error without trying to parse JSON if it fails
+        let errorMessage = 'Failed to deploy page';
+        try {
+          const errorData = await deployResponse.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          console.error('Failed to parse error response:', e);
+        }
+        throw new Error(errorMessage);
       }
 
-      const deployData = await deployResponse.json();
-      const url = deployData.publishUrl || `/sites/${slug}`;
+      let url = `/sites/${slug}`;
+      try {
+        const contentType = deployResponse.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const deployData = await deployResponse.json();
+          url = deployData.publishUrl || url;
+        }
+      } catch (e) {
+        console.warn('Failed to parse JSON response, using default URL', e);
+      }
+      
       const fullUrl = window.location.origin + url;
       
       setPublishedUrl(fullUrl);
