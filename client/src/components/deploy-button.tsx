@@ -60,17 +60,30 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
     setIsCheckingSlug(true);
     
     try {
-      // For simplicity in this demo, we'll just simulate checking slug availability
-      // In a real implementation, this would make an API call to check if the slug exists
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Make a real API call to check slug availability
+      const response = await fetch(`/api/check-slug?slug=${slug}`);
+      const data = await response.json();
       
       setSlugChecked(true);
-      setSlugAvailable(true);
+      setSlugAvailable(!data.exists);
+      
+      if (data.exists) {
+        toast({
+          title: 'Slug Unavailable',
+          description: 'This slug is already in use. Please choose another one.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
+      // Fallback to allowing the slug if the check fails
+      console.error('Error checking slug availability:', error);
+      setSlugChecked(true);
+      setSlugAvailable(true);
+      
       toast({
-        title: 'Error',
-        description: 'Failed to check slug availability',
-        variant: 'destructive',
+        title: 'Warning',
+        description: 'Could not verify slug availability. Proceeding anyway.',
+        variant: 'default',
       });
     } finally {
       setIsCheckingSlug(false);
@@ -109,103 +122,29 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
     setIsDeploying(true);
 
     try {
-      // If we have a project ID, we'll use the project update/publish APIs
-      if (projectId) {
-        // First update the project with the HTML and CSS
-        const updateResponse = await fetch(`/api/projects/${projectId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            html,
-            css,
-          }),
-        });
+      // Use the direct deploy API that doesn't require authentication
+      const deployResponse = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          html,
+          css,
+          slug,
+        }),
+      });
 
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update project with HTML content');
-        }
-
-        // Now publish the project with the slug
-        const publishResponse = await fetch(`/api/projects/${projectId}/publish`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            slug,
-          }),
-        });
-
-        if (!publishResponse.ok) {
-          throw new Error('Failed to publish project');
-        }
-
-        const publishData = await publishResponse.json();
-        const url = publishData.publishUrl || `/sites/${slug}`;
-        const fullUrl = window.location.origin + url;
-        
-        setPublishedUrl(fullUrl);
-      } else {
-        // If we don't have a project ID, create a new one first
-        const createResponse = await fetch('/api/projects', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: `Deployed Page: ${slug}`,
-            prompt: 'Deployed from editor',
-            templateId: 'default',
-            category: 'deployed',
-            settings: {},
-          }),
-        });
-
-        if (!createResponse.ok) {
-          throw new Error('Failed to create project');
-        }
-
-        const project = await createResponse.json();
-        
-        // Update the new project with HTML and CSS
-        const updateResponse = await fetch(`/api/projects/${project.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            html,
-            css,
-          }),
-        });
-
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update project with HTML content');
-        }
-
-        // Publish the project with the slug
-        const publishResponse = await fetch(`/api/projects/${project.id}/publish`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            slug,
-          }),
-        });
-
-        if (!publishResponse.ok) {
-          throw new Error('Failed to publish project');
-        }
-
-        const publishData = await publishResponse.json();
-        const url = publishData.publishUrl || `/sites/${slug}`;
-        const fullUrl = window.location.origin + url;
-        
-        setPublishedUrl(fullUrl);
+      if (!deployResponse.ok) {
+        const errorData = await deployResponse.json();
+        throw new Error(errorData.error || 'Failed to deploy page');
       }
+
+      const deployData = await deployResponse.json();
+      const url = deployData.publishUrl || `/sites/${slug}`;
+      const fullUrl = window.location.origin + url;
+      
+      setPublishedUrl(fullUrl);
 
       toast({
         title: 'Success!',

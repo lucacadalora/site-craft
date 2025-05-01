@@ -82,6 +82,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log('Registering published sites routes at /sites');
   app.use('/sites', sitesRoutes);
 
+  // Endpoint to check if a slug is available (no auth required)
+  app.get('/api/check-slug', async (req, res) => {
+    try {
+      const { slug } = req.query;
+      
+      if (!slug || typeof slug !== 'string') {
+        return res.status(400).json({ error: 'Slug parameter is required' });
+      }
+      
+      // Check if slug is already in use
+      const allProjects = await pgStorage.getAllProjects();
+      const slugExists = allProjects.some((p: any) => 
+        p.publishPath === slug || 
+        p.publishPath === `/sites/${slug}` || 
+        p.publishPath === `sites/${slug}`
+      );
+
+      // Return whether the slug exists or not
+      return res.json({ exists: slugExists });
+    } catch (error) {
+      console.error('Error checking slug:', error);
+      return res.status(500).json({ error: 'Failed to check slug availability' });
+    }
+  });
+
+  // Direct deploy endpoint that doesn't require authentication
+  app.post('/api/deploy', async (req, res) => {
+    try {
+      const { html, css, slug } = req.body;
+      
+      if (!html) {
+        return res.status(400).json({ error: 'HTML content is required' });
+      }
+
+      if (!slug) {
+        return res.status(400).json({ error: 'Slug is required' });
+      }
+      
+      // Validate slug format
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        return res.status(400).json({ 
+          error: 'Slug can only contain lowercase letters, numbers, and hyphens'
+        });
+      }
+
+      // Check if slug is already in use
+      const allProjects = await pgStorage.getAllProjects();
+      const slugExists = allProjects.some((p: any) => 
+        p.publishPath === slug || 
+        p.publishPath === `/sites/${slug}` || 
+        p.publishPath === `sites/${slug}`
+      );
+
+      if (slugExists) {
+        return res.status(409).json({ 
+          error: 'This slug is already in use. Please choose another one.' 
+        });
+      }
+
+      // Create a new project for the deployment
+      const project = await pgStorage.createProject({
+        name: `Deployed Page: ${slug}`,
+        prompt: 'Deployed from editor',
+        templateId: 'default',
+        category: 'deployed',
+        settings: {},
+      });
+
+      // Update the project with the HTML and CSS content
+      const updatedProject = await pgStorage.updateProject(project.id, {
+        html,
+        css: css || '',
+        published: true,
+        publishPath: slug
+      });
+
+      // Return success with the published URL
+      res.status(200).json({
+        success: true,
+        publishUrl: `/sites/${slug}`,
+        project: updatedProject
+      });
+    } catch (error) {
+      console.error('Error in direct deploy endpoint:', error);
+      res.status(500).json({ error: 'Failed to deploy page' });
+    }
+  });
+
   // Simple template categories endpoint that returns static data
   const CATEGORIES = [
     { id: "general", name: "General" },
