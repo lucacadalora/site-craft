@@ -60,31 +60,54 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
     setIsCheckingSlug(true);
     
     try {
-      // Make a real API call to check slug availability
-      const response = await fetch(`/api/check-slug?slug=${slug}`);
+      // Make a real API call to check slug availability using the new sites API
+      const response = await fetch(`/sites/${slug}/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
       const data = await response.json();
       
       setSlugChecked(true);
-      setSlugAvailable(!data.exists);
+      setSlugAvailable(data.isAvailable);
       
-      if (data.exists) {
+      if (!data.isAvailable) {
         toast({
           title: 'Slug Unavailable',
-          description: 'This slug is already in use. Please choose another one.',
+          description: data.message || 'This slug is already in use. Please choose another one.',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      // Fallback to allowing the slug if the check fails
-      console.error('Error checking slug availability:', error);
-      setSlugChecked(true);
-      setSlugAvailable(true);
-      
-      toast({
-        title: 'Warning',
-        description: 'Could not verify slug availability. Proceeding anyway.',
-        variant: 'default',
-      });
+      // Fallback to the legacy endpoint if the new one fails
+      try {
+        const legacyResponse = await fetch(`/api/check-slug?slug=${slug}`);
+        const legacyData = await legacyResponse.json();
+        
+        setSlugChecked(true);
+        setSlugAvailable(!legacyData.exists);
+        
+        if (legacyData.exists) {
+          toast({
+            title: 'Slug Unavailable',
+            description: 'This slug is already in use. Please choose another one.',
+            variant: 'destructive',
+          });
+        }
+      } catch (e) {
+        // Fallback to allowing the slug if both checks fail
+        console.error('Error checking slug availability:', error);
+        setSlugChecked(true);
+        setSlugAvailable(true);
+        
+        toast({
+          title: 'Warning',
+          description: 'Could not verify slug availability. Proceeding anyway.',
+          variant: 'default',
+        });
+      }
     } finally {
       setIsCheckingSlug(false);
     }
@@ -122,17 +145,18 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
     setIsDeploying(true);
 
     try {
-      // Use the direct deploy API that doesn't require authentication
+      // Use the new deployment API
       const deployResponse = await fetch('/api/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',  // Explicitly request JSON response
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           html,
           css,
           slug,
+          projectId,
         }),
       });
 
@@ -143,6 +167,8 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
           const errorData = await deployResponse.json();
           if (errorData && errorData.error) {
             errorMessage = errorData.error;
+          } else if (errorData && errorData.message) {
+            errorMessage = errorData.message;
           }
         } catch (e) {
           console.error('Failed to parse error response:', e);
@@ -150,32 +176,66 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
         throw new Error(errorMessage);
       }
 
+      const deployData = await deployResponse.json();
       let url = `/sites/${slug}`;
-      try {
-        const contentType = deployResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const deployData = await deployResponse.json();
-          url = deployData.publishUrl || url;
+      
+      if (deployData.success && deployData.deployment) {
+        if (deployData.deployment.url) {
+          url = deployData.deployment.url;
         }
-      } catch (e) {
-        console.warn('Failed to parse JSON response, using default URL', e);
+        
+        // Show success toast with additional details
+        toast({
+          title: 'Success!',
+          description: deployData.message || 'Your page has been deployed successfully!',
+        });
+      } else {
+        // Fallback to old response format
+        url = deployData.publishUrl || url;
       }
       
       const fullUrl = window.location.origin + url;
-      
       setPublishedUrl(fullUrl);
-
-      toast({
-        title: 'Success!',
-        description: 'Your page has been deployed successfully!',
-      });
     } catch (error) {
       console.error('Error deploying page:', error);
-      toast({
-        title: 'Deployment Failed',
-        description: error instanceof Error ? error.message : 'Failed to deploy page',
-        variant: 'destructive',
-      });
+      
+      // Try the old deployment endpoint as fallback
+      try {
+        const legacyResponse = await fetch('/api/deploy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            html,
+            css,
+            slug,
+          }),
+        });
+        
+        if (!legacyResponse.ok) {
+          throw new Error('Legacy deployment also failed');
+        }
+        
+        const legacyData = await legacyResponse.json();
+        const legacyUrl = legacyData.publishUrl || `/sites/${slug}`;
+        const fullLegacyUrl = window.location.origin + legacyUrl;
+        
+        setPublishedUrl(fullLegacyUrl);
+        
+        toast({
+          title: 'Success!',
+          description: 'Your page has been deployed successfully with the legacy system.',
+        });
+      } catch (fallbackError) {
+        // Both deployment methods failed
+        toast({
+          title: 'Deployment Failed',
+          description: error instanceof Error ? error.message : 'Failed to deploy page',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsDeploying(false);
     }

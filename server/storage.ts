@@ -250,9 +250,15 @@ export class MemStorage implements IStorage {
     const id = this.deploymentId++;
     const now = new Date();
     
+    // Ensure we have all required fields with proper types
     const newDeployment: Deployment = {
-      ...deployment,
       id,
+      slug: deployment.slug,
+      html: deployment.html,
+      css: deployment.css || null,
+      projectId: deployment.projectId || null,
+      userId: deployment.userId || null,
+      isActive: deployment.isActive === undefined ? true : deployment.isActive,
       visitCount: 0,
       createdAt: now,
       updatedAt: now,

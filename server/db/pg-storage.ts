@@ -1,9 +1,19 @@
 import { db } from './index';
 import bcrypt from 'bcrypt';
-import { eq, and } from 'drizzle-orm';
-import { users, templates, projects } from '@shared/schema';
-import type { User, Template, Project, InsertUser, InsertTemplate, InsertProject } from '@shared/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import { users, templates, projects, deployments } from '@shared/schema';
+import type { 
+  User, 
+  Template, 
+  Project, 
+  Deployment,
+  InsertUser, 
+  InsertTemplate, 
+  InsertProject,
+  InsertDeployment
+} from '@shared/schema';
 import { IStorage } from '../storage';
+import { deploymentsStorage } from './deployments-storage';
 
 export class PgStorage implements IStorage {
   // User methods
@@ -198,5 +208,47 @@ export class PgStorage implements IStorage {
 
   async deleteProject(id: number): Promise<void> {
     await db.delete(projects).where(eq(projects.id, id));
+  }
+  
+  // Deployment methods - using the DeploymentsStorage implementation
+  async getDeploymentBySlug(slug: string): Promise<Deployment | undefined> {
+    return deploymentsStorage.getDeploymentBySlug(slug);
+  }
+
+  async getUserDeployments(userId: number): Promise<Deployment[]> {
+    return deploymentsStorage.getUserDeployments(userId);
+  }
+
+  async getAllDeployments(): Promise<Deployment[]> {
+    return deploymentsStorage.getAllDeployments();
+  }
+
+  async createDeployment(deployment: InsertDeployment): Promise<Deployment> {
+    // Ensure css is always string or null, never undefined
+    const deploymentToCreate = {
+      ...deployment,
+      css: deployment.css || null,
+      projectId: deployment.projectId || null,
+      userId: deployment.userId || null,
+      isActive: deployment.isActive !== undefined ? deployment.isActive : true
+    };
+    
+    return deploymentsStorage.createDeployment(deploymentToCreate);
+  }
+
+  async updateDeployment(id: number, deployment: Partial<Deployment>): Promise<Deployment> {
+    return deploymentsStorage.updateDeployment(id, deployment);
+  }
+
+  async deleteDeployment(id: number): Promise<void> {
+    return deploymentsStorage.deleteDeployment(id);
+  }
+
+  async incrementDeploymentVisitCount(id: number): Promise<Deployment> {
+    return deploymentsStorage.incrementDeploymentVisitCount(id);
+  }
+
+  async isSlugAvailable(slug: string): Promise<boolean> {
+    return deploymentsStorage.isSlugAvailable(slug);
   }
 }

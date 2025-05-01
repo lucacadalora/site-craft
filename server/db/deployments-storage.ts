@@ -54,13 +54,20 @@ export class DeploymentsStorage {
    * Create a new deployment
    */
   async createDeployment(deployment: InsertDeployment): Promise<Deployment> {
+    // Ensure we have all required fields with proper types
+    const deploymentData = {
+      slug: deployment.slug,
+      html: deployment.html,
+      css: deployment.css === undefined ? null : deployment.css,
+      projectId: deployment.projectId === undefined ? null : deployment.projectId,
+      userId: deployment.userId === undefined ? null : deployment.userId,
+      isActive: deployment.isActive === undefined ? true : deployment.isActive,
+      visitCount: 0
+    };
+    
     const [newDeployment] = await db
       .insert(deployments)
-      .values({
-        ...deployment,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      .values(deploymentData)
       .returning();
     
     return newDeployment;
