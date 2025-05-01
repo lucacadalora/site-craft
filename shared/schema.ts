@@ -174,3 +174,29 @@ export const publishSchema = z.object({
 });
 
 export type PublishRequest = z.infer<typeof publishSchema>;
+
+// Deployment schema to track user deployments
+export const deployments = pgTable("deployments", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  html: text("html").notNull(),
+  css: text("css"),
+  projectId: integer("project_id").references(() => projects.id),
+  userId: integer("user_id").references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  visitCount: integer("visit_count").default(0),
+  lastVisitedAt: timestamp("last_visited_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDeploymentSchema = createInsertSchema(deployments).omit({
+  id: true,
+  visitCount: true,
+  lastVisitedAt: true,
+  createdAt: true, 
+  updatedAt: true
+});
+
+export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
+export type Deployment = typeof deployments.$inferSelect;

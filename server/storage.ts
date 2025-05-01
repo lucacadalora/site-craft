@@ -4,7 +4,9 @@ import {
   InsertTemplate, 
   Template, 
   InsertUser, 
-  User 
+  User,
+  InsertDeployment,
+  Deployment
 } from "@shared/schema";
 
 export interface IStorage {
@@ -31,6 +33,16 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<Project>): Promise<Project>;
   deleteProject(id: number): Promise<void>;
+  
+  // Deployment methods
+  getDeploymentBySlug(slug: string): Promise<Deployment | undefined>;
+  getUserDeployments(userId: number): Promise<Deployment[]>;
+  getAllDeployments(): Promise<Deployment[]>;
+  createDeployment(deployment: InsertDeployment): Promise<Deployment>;
+  updateDeployment(id: number, deployment: Partial<Deployment>): Promise<Deployment>;
+  deleteDeployment(id: number): Promise<void>;
+  incrementDeploymentVisitCount(id: number): Promise<Deployment>;
+  isSlugAvailable(slug: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
