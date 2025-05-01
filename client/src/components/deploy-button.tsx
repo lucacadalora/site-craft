@@ -194,7 +194,7 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
         size="sm" 
         onClick={() => handleOpen(true)}
         disabled={!html}
-        className="flex items-center gap-1"
+        className="flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700"
       >
         <Globe className="h-4 w-4 mr-1" />
         Deploy

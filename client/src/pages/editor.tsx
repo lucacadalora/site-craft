@@ -1098,7 +1098,7 @@ export default function Editor({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-400 hover:text-white px-2 md:px-3" 
+            className="bg-primary/10 text-white hover:bg-primary/20 px-2 md:px-3" 
           >
             <Save className="h-4 w-4 md:mr-1" />
             <span className={`${isMobile ? 'hidden' : 'inline'} text-sm`}>Save</span>
@@ -1106,7 +1106,7 @@ export default function Editor({
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-gray-400 hover:text-white px-2 md:px-3" 
+            className="bg-primary/10 text-white hover:bg-primary/20 px-2 md:px-3" 
             onClick={() => window.location.href = '/editor'}
           >
             <PlusCircle className="h-4 w-4 md:mr-1" />
