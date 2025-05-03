@@ -1,37 +1,33 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
+import { Redirect, Route } from 'wouter';
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
+export function ProtectedRoute({
+  path,
+  component: Component,
+}: {
+  path: string;
+  component: () => React.JSX.Element;
+}) {
+  const { user, isLoading } = useAuth();
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  return (
+    <Route path={path}>
+      {() => {
+        if (isLoading) {
+          return (
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="h-8 w-8 animate-spin text-border" />
+            </div>
+          );
+        }
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Redirect to login page if not authenticated and not loading
-      setLocation('/login');
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
+        if (!user) {
+          return <Redirect to="/auth" />;
+        }
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="w-full max-w-md p-8 space-y-4 bg-white rounded-lg shadow-lg">
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-4/6" />
-          <Skeleton className="h-10 w-full mt-6" />
-        </div>
-      </div>
-    );
-  }
-
-  // Render children only if authenticated
-  return isAuthenticated ? <>{children}</> : null;
+        return <Component />;
+      }}
+    </Route>
+  );
 }
