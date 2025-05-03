@@ -1,42 +1,42 @@
-import { pgTable, text, varchar, integer, boolean, json, timestamp, date, jsonb, index, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, timestamp, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table for Replit Auth
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)],
-);
-
-// User storage table for Replit Auth
+// Enhanced User schema with email as main identifier and token tracking
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  username: varchar("username").unique().notNull(),
-  email: varchar("email").unique(),
-  // Password is nullable for social login users
-  password: varchar("password"),
-  // Display name field for social login users
-  displayName: varchar("display_name"),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  bio: text("bio"),
-  profileImageUrl: varchar("profile_image_url"),
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(), // Email is now the primary identifier
+  password: text("password").notNull(),
+  displayName: text("display_name"), // Optional display name instead of username
   tokenUsage: integer("token_usage").default(0),
   generationCount: integer("generation_count").default(0),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  
+  // Keep username for backward compatibility, but mark as optional
+  username: text("username").unique(),
 });
 
-export type UpsertUser = typeof users.$inferInsert;
+// For regular registration we pick required fields
+export const baseInsertUserSchema = createInsertSchema(users).pick({
+  email: true,
+  password: true,
+}).extend({
+  displayName: z.string().optional(),
+  username: z.string().optional(), // Now optional
+});
+
+// For token usage recovery or system ops we allow ID and token fields
+export const insertUserSchema = baseInsertUserSchema.extend({
+  id: z.number().optional(),
+  tokenUsage: z.number().optional(),
+  generationCount: z.number().optional()
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-// For backwards compatibility with existing code
+// Authentication schemas
 export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -70,7 +70,7 @@ export const projects = pgTable("projects", {
   settings: json("settings"),
   published: boolean("published").default(false),
   publishPath: text("publish_path"),
-  userId: varchar("user_id").references(() => users.id),
+  userId: integer("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -182,7 +182,7 @@ export const deployments = pgTable("deployments", {
   html: text("html").notNull(),
   css: text("css"),
   projectId: integer("project_id").references(() => projects.id),
-  userId: varchar("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   isActive: boolean("is_active").default(true),
   visitCount: integer("visit_count").default(0),
   lastVisitedAt: timestamp("last_visited_at"),

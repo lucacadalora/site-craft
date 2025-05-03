@@ -115,28 +115,12 @@ router.post('/login', async (req: Request, res: Response) => {
     console.log('User found:', user.id, user.username);
 
     // Verify password
-    console.log('Checking if user has a password...');
-    
-    // Check if user has a password (might be null for Replit Auth users)
-    if (!user.password) {
-      console.log('User has no password (likely a social login account):', user.id);
-      return res.status(401).json({ 
-        message: 'This account was created using social login. Please sign in with Google or X instead.' 
-      });
-    }
-    
     console.log('Comparing password hash...');
-    try {
-      const passwordMatches = await bcrypt.compare(password, user.password);
-      console.log('Password match result:', passwordMatches);
-      
-      if (!passwordMatches) {
-        console.log('Password does not match for user:', user.id);
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-    } catch (error) {
-      console.error('Error comparing passwords:', error);
-      return res.status(500).json({ message: 'Authentication error' });
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    console.log('Password match result:', passwordMatches);
+    if (!passwordMatches) {
+      console.log('Password does not match for user:', user.id);
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Update last login timestamp
@@ -204,37 +188,6 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Stats error:', error);
     res.status(500).json({ message: 'Error fetching user stats' });
-  }
-});
-
-// Get current user endpoint (critical for the useAuth hook)
-router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    console.log('Current user endpoint called, user ID:', req.user?.id);
-    
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-    
-    const user = await storage.getUser(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    // Return user data sanitized (no password)
-    res.status(200).json({
-      id: user.id,
-      username: user.displayName || user.email.split('@')[0], // Use displayName or email username part
-      email: user.email,
-      displayName: user.displayName,
-      tokenUsage: user.tokenUsage,
-      generationCount: user.generationCount,
-      createdAt: user.createdAt,
-      lastLogin: user.lastLogin
-    });
-  } catch (error) {
-    console.error('Error fetching current user:', error);
-    res.status(500).json({ message: 'Error fetching user data' });
   }
 });
 

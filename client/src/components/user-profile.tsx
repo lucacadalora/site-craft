@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/auth-context';
+import { useAuth } from '@/contexts/auth-context';
 import { User, Zap, FileText, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -34,20 +34,13 @@ export function UserProfile() {
       const token = localStorage.getItem('auth_token');
       console.log('Fetching user stats with token:', token ? 'Token available' : 'No token');
       
-      // Build headers with auth token if available
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
       // First try the stats endpoint
       fetch('/api/auth/stats', {
-        headers,
-        credentials: 'include'
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
       })
         .then(res => {
           console.log('Stats endpoint response status:', res.status);
@@ -55,8 +48,11 @@ export function UserProfile() {
             console.log('Stats endpoint failed, trying profile endpoint');
             // If stats endpoint fails, try the profile endpoint as fallback
             return fetch('/api/auth/profile', {
-              headers,
-              credentials: 'include'
+              headers: {
+                'Authorization': `Bearer ${token || ''}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
             }).then(profileRes => {
               console.log('Profile endpoint response status:', profileRes.status);
               if (!profileRes.ok) {
@@ -110,31 +106,11 @@ export function UserProfile() {
   
   // Fetch stats on initial load and when auth state changes
   useEffect(() => {
-    // Only fetch stats if user is authenticated
-    if (isAuthenticated && user) {
-      // Initial fetch with a small delay to ensure everything is initialized
-      setTimeout(() => {
-        fetchUserStats();
-      }, 1000);
-    }
-    
-    // Track last fetch time to prevent excessive requests
-    let lastFetchTime = Date.now();
-    const minTimeBetweenFetches = 10000; // 10 seconds minimum between fetches - increased to reduce load
-    
-    const rateLimitedFetch = () => {
-      const now = Date.now();
-      if (now - lastFetchTime > minTimeBetweenFetches) {
-        lastFetchTime = now;
-        fetchUserStats();
-      } else {
-        console.log('Skipping stats fetch due to rate limiting');
-      }
-    };
+    fetchUserStats();
     
     // Add event listener for custom generation events
     const handleGeneration = () => {
-      setTimeout(rateLimitedFetch, 1000); // Small delay to ensure DB has updated
+      setTimeout(fetchUserStats, 1000); // Small delay to ensure DB has updated
     };
     
     // Add event handler for token-usage-updated custom event
@@ -151,13 +127,14 @@ export function UserProfile() {
         console.log('Updating stats from event to:', newStats);
         setUserStats(newStats);
         
-        // We'll skip the automatic fetch to reduce server load
-        // User can expand the dropdown menu to get fresh stats
-      } else {
-        // If there's no detail, update once in a while with rate limits
+        // Also force a fresh fetch after a brief delay
         setTimeout(() => {
-          rateLimitedFetch();
-        }, 5000);
+          console.log('Refreshing stats after token update event');
+          fetchUserStats();
+        }, 2000);
+      } else {
+        // If there's no detail, just refresh the stats
+        fetchUserStats();
       }
     };
     
@@ -183,11 +160,10 @@ export function UserProfile() {
     document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
     window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
 
-// Reduce automatic stat fetching after generation to avoid overloading the server
+// Force the browser to manually fetch stats after generation
 document.addEventListener('complete', () => {
-  console.log('Generation complete event detected');
-  // We'll let the server-side track this and only fetch when necessary
-  // Stats will be available when user manually views them
+  console.log('Generation complete event detected, updating user stats');
+  setTimeout(fetchUserStats, 1000);
 });
 
 // Add direct dispatch and debug methods to the window for testing
@@ -215,8 +191,7 @@ document.addEventListener('complete', () => {
   fetch('/api/usage/record', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ tokenCount }),
-    credentials: 'include'
+    body: JSON.stringify({ tokenCount })
   })
   .then(res => {
     if (!res.ok) {
@@ -295,7 +270,7 @@ document.addEventListener('complete', () => {
 
   if (!isAuthenticated) {
     return (
-      <Button variant="outline" onClick={() => setLocation('/auth')}>
+      <Button variant="outline" onClick={() => setLocation('/login')}>
         Login
       </Button>
     );

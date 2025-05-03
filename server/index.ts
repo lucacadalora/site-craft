@@ -1,29 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { createServer, type Server } from "http";
-
-// Ensure required environment variables for Replit Auth
-// Force set REPLIT_DOMAINS to include custom domains regardless of existing value
-// This ensures custom domains are always included
-const customDomains = ["site.aiccelerate.id", "landingcraft.id"];
-const replitDomains = process.env.REPL_SLUG ? 
-  `${process.env.REPL_SLUG}.repl.co,${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
-  "localhost:5000";
-
-// Set the complete domains list
-process.env.REPLIT_DOMAINS = [...customDomains, replitDomains].join(",");
-
-// Log configured domains for debugging
-console.log("Configured Replit Auth domains:", process.env.REPLIT_DOMAINS);
-
-if (!process.env.REPL_ID && process.env.REPL_SLUG) {
-  process.env.REPL_ID = process.env.REPL_SLUG;
-}
-
-if (!process.env.SESSION_SECRET) {
-  process.env.SESSION_SECRET = "landingcraft-session-secret-key";
-}
 
 const app = express();
 app.use(express.json());
@@ -82,36 +59,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  let server;
-  try {
-    // Run Replit Auth migration before setting up routes
-    const { runMigration } = await import('./db/migrate-replit-auth');
-    await runMigration();
-    
-    // Create and set up the server
-    server = await registerRoutes(app);
+  const server = await registerRoutes(app);
 
-    // Global error handler - must be AFTER all other middleware and routes
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+  // Global error handler - must be AFTER all other middleware and routes
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-      res.status(status).json({ message });
-      console.error('Server error:', err);
-    });
+    res.status(status).json({ message });
+    console.error('Server error:', err);
+  });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-  } catch (error) {
-    console.error("Failed to initialize server:", error);
-    // Create a basic server if registration failed
-    server = createServer(app);
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
 
   // ALWAYS serve the app on port 5000

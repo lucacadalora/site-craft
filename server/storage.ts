@@ -3,7 +3,7 @@ import {
   Project, 
   InsertTemplate, 
   Template, 
-  UpsertUser as InsertUser, 
+  InsertUser, 
   User,
   InsertDeployment,
   Deployment
@@ -85,8 +85,7 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const numericId = this.userId++;
-    const id = String(numericId); // Convert to string for compatibility with Replit Auth
+    const id = this.userId++;
     const user: User = { 
       ...insertUser, 
       id,
@@ -94,10 +93,10 @@ export class MemStorage implements IStorage {
       generationCount: 0,
       createdAt: new Date(),
       lastLogin: null,
-      // Username is required and cannot be null
-      username: insertUser.username || `user_${id}`
+      displayName: insertUser.displayName || null,
+      username: insertUser.username || null
     };
-    this.users.set(numericId, user);
+    this.users.set(id, user);
     return user;
   }
   
@@ -185,10 +184,9 @@ export class MemStorage implements IStorage {
     return Array.from(this.projects.values());
   }
   
-  async getUserProjects(userId: number | string): Promise<Project[]> {
-    const userIdStr = String(userId);
+  async getUserProjects(userId: number): Promise<Project[]> {
     return Array.from(this.projects.values()).filter(
-      (project) => project.userId === userIdStr || project.userId === userId
+      (project) => project.userId === userId
     );
   }
 
@@ -238,10 +236,9 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getUserDeployments(userId: number | string): Promise<Deployment[]> {
-    const userIdStr = String(userId);
+  async getUserDeployments(userId: number): Promise<Deployment[]> {
     return Array.from(this.deployments.values()).filter(
-      (deployment) => deployment.userId === userIdStr || deployment.userId === userId
+      (deployment) => deployment.userId === userId
     );
   }
 
