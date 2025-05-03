@@ -34,13 +34,20 @@ export function UserProfile() {
       const token = localStorage.getItem('auth_token');
       console.log('Fetching user stats with token:', token ? 'Token available' : 'No token');
       
+      // Build headers with auth token if available
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       // First try the stats endpoint
       fetch('/api/auth/stats', {
-        headers: {
-          'Authorization': `Bearer ${token || ''}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers,
+        credentials: 'include'
       })
         .then(res => {
           console.log('Stats endpoint response status:', res.status);
@@ -48,11 +55,8 @@ export function UserProfile() {
             console.log('Stats endpoint failed, trying profile endpoint');
             // If stats endpoint fails, try the profile endpoint as fallback
             return fetch('/api/auth/profile', {
-              headers: {
-                'Authorization': `Bearer ${token || ''}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
+              headers,
+              credentials: 'include'
             }).then(profileRes => {
               console.log('Profile endpoint response status:', profileRes.status);
               if (!profileRes.ok) {
@@ -106,11 +110,28 @@ export function UserProfile() {
   
   // Fetch stats on initial load and when auth state changes
   useEffect(() => {
-    fetchUserStats();
+    // Only fetch stats if user is authenticated
+    if (isAuthenticated && user) {
+      fetchUserStats();
+    }
+    
+    // Track last fetch time to prevent excessive requests
+    let lastFetchTime = Date.now();
+    const minTimeBetweenFetches = 5000; // 5 seconds minimum between fetches
+    
+    const rateLimitedFetch = () => {
+      const now = Date.now();
+      if (now - lastFetchTime > minTimeBetweenFetches) {
+        lastFetchTime = now;
+        fetchUserStats();
+      } else {
+        console.log('Skipping stats fetch due to rate limiting');
+      }
+    };
     
     // Add event listener for custom generation events
     const handleGeneration = () => {
-      setTimeout(fetchUserStats, 1000); // Small delay to ensure DB has updated
+      setTimeout(rateLimitedFetch, 1000); // Small delay to ensure DB has updated
     };
     
     // Add event handler for token-usage-updated custom event
@@ -127,14 +148,14 @@ export function UserProfile() {
         console.log('Updating stats from event to:', newStats);
         setUserStats(newStats);
         
-        // Also force a fresh fetch after a brief delay
+        // Also force a fresh fetch after a brief delay, respecting rate limits
         setTimeout(() => {
           console.log('Refreshing stats after token update event');
-          fetchUserStats();
+          rateLimitedFetch();
         }, 2000);
       } else {
-        // If there's no detail, just refresh the stats
-        fetchUserStats();
+        // If there's no detail, just refresh the stats respecting rate limits
+        rateLimitedFetch();
       }
     };
     
@@ -163,7 +184,7 @@ export function UserProfile() {
 // Force the browser to manually fetch stats after generation
 document.addEventListener('complete', () => {
   console.log('Generation complete event detected, updating user stats');
-  setTimeout(fetchUserStats, 1000);
+  setTimeout(rateLimitedFetch, 1000);
 });
 
 // Add direct dispatch and debug methods to the window for testing
@@ -191,7 +212,8 @@ document.addEventListener('complete', () => {
   fetch('/api/usage/record', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ tokenCount })
+    body: JSON.stringify({ tokenCount }),
+    credentials: 'include'
   })
   .then(res => {
     if (!res.ok) {

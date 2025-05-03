@@ -39,15 +39,30 @@ export function useAuth() {
     localStorage.removeItem('auth_token');
     setToken(null);
     
-    // Then, call logout endpoint to clear session if needed
     try {
-      await fetch('/api/logout', { credentials: 'include' });
+      // Try to use Replit Auth logout endpoint first
+      const replitAuthResponse = await fetch('/api/auth/logout', { 
+        credentials: 'include',
+        method: 'GET'
+      });
+      
+      if (!replitAuthResponse.ok) {
+        // Fallback to traditional logout
+        await fetch('/api/logout', { 
+          credentials: 'include',
+          method: 'POST'
+        });
+      }
+      
+      console.log("Logout successful");
     } catch (err) {
       console.error('Error during logout:', err);
     }
     
-    // Refresh page to reset all client state
-    window.location.href = '/';
+    // Force a reload to clear all client state
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 300);
   };
 
   return {
