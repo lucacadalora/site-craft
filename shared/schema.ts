@@ -18,6 +18,10 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").unique().notNull(),
   email: varchar("email").unique(),
+  // Password is nullable for social login users
+  password: varchar("password"),
+  // Display name field for social login users
+  displayName: varchar("display_name"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   bio: text("bio"),

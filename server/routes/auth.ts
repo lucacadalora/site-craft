@@ -115,12 +115,28 @@ router.post('/login', async (req: Request, res: Response) => {
     console.log('User found:', user.id, user.username);
 
     // Verify password
+    console.log('Checking if user has a password...');
+    
+    // Check if user has a password (might be null for Replit Auth users)
+    if (!user.password) {
+      console.log('User has no password (likely a social login account):', user.id);
+      return res.status(401).json({ 
+        message: 'This account was created using social login. Please sign in with Google or X instead.' 
+      });
+    }
+    
     console.log('Comparing password hash...');
-    const passwordMatches = await bcrypt.compare(password, user.password);
-    console.log('Password match result:', passwordMatches);
-    if (!passwordMatches) {
-      console.log('Password does not match for user:', user.id);
-      return res.status(401).json({ message: 'Invalid credentials' });
+    try {
+      const passwordMatches = await bcrypt.compare(password, user.password);
+      console.log('Password match result:', passwordMatches);
+      
+      if (!passwordMatches) {
+        console.log('Password does not match for user:', user.id);
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+    } catch (error) {
+      console.error('Error comparing passwords:', error);
+      return res.status(500).json({ message: 'Authentication error' });
     }
 
     // Update last login timestamp
