@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Telescope } from "lucide-react";
+import { Code, CodeIcon } from "lucide-react";
 
 interface LogoProps {
   className?: string;
@@ -7,8 +7,8 @@ interface LogoProps {
 
 export function LandingcraftLogo({ className }: LogoProps) {
   return (
-    <div className={cn("text-primary", className)}>
-      <Telescope className="h-full w-full stroke-current" />
+    <div className={cn("relative flex items-center justify-center text-primary bg-black rounded-lg", className)}>
+      <CodeIcon className="h-full w-full stroke-current" />
     </div>
   );
 }
