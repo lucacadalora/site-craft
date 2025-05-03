@@ -157,15 +157,28 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
-    });
+  app.get("/api/auth/logout", (req, res) => {
+    try {
+      // First, check if request is authenticated with Replit Auth
+      if (req.isAuthenticated()) {
+        console.log('Logging out user from Replit Auth session');
+        req.logout(() => {
+          res.redirect(
+            client.buildEndSessionUrl(config, {
+              client_id: process.env.REPL_ID!,
+              post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+            }).href
+          );
+        });
+      } else {
+        // User not authenticated with Replit Auth, just return success
+        console.log('No Replit Auth session to logout from');
+        res.status(200).json({ success: true, message: "Logged out successfully" });
+      }
+    } catch (error) {
+      console.error('Error during Replit Auth logout:', error);
+      res.status(500).json({ success: false, message: "Error during logout" });
+    }
   });
 
   // User info endpoint for the client

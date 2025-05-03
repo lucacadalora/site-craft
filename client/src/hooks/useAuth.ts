@@ -59,8 +59,29 @@ export function useAuth() {
       console.error('Error during logout:', err);
     }
     
-    // Force a reload to clear all client state
+    // Force clearing of any residual state and client cache
+    // Clear React Query cache
+    try {
+      // Attempt to clear React Query cache
+      const anyWindow = window as any;
+      if (anyWindow.__REACT_QUERY_GLOBAL_CACHE__) {
+        anyWindow.__REACT_QUERY_GLOBAL_CACHE__.clear();
+      }
+      
+      // Clear any session storage that might be related to auth
+      sessionStorage.clear();
+      
+      // Clear any auth-related cookies
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    } catch (e) {
+      console.error('Error clearing cache:', e);
+    }
+
+    // Redirect to home page with hard refresh after short delay to ensure cleanup is done
     setTimeout(() => {
+      console.log('Logout complete, redirecting to home');
       window.location.href = '/';
     }, 300);
   };
