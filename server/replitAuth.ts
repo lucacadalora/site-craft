@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoizee from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage-replit-auth";
+import jwt from 'jsonwebtoken';
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -168,10 +169,69 @@ export async function setupAuth(app: Express) {
   });
 
   // User info endpoint for the client
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+  // Supports both Replit Auth and JWT auth
+  app.get("/api/auth/user", (req: any, res, next) => {
+    // Special middleware to handle JWT tokens
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_SECRET || 'landingcraft-secret-key';
+        
+        console.log('Processing JWT token for /api/auth/user');
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Set user info in request
+        req.user = {
+          id: decoded.id,
+          email: decoded.email,
+          username: decoded.username || decoded.email.split('@')[0],
+          displayName: decoded.displayName
+        };
+        
+        console.log('JWT token verified, user:', req.user.id);
+      } catch (error) {
+        console.log('Error verifying JWT token:', error);
+        // Continue even if token verification fails
+        // Will be handled in the main handler
+      }
+    }
+    
+    next();
+  }, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      console.log('Auth endpoint called with req.user:', req.user);
+      
+      // Check authentication type and extract user ID accordingly
+      let userId;
+      
+      // Case 1: User authenticated with Replit Auth
+      if (req.isAuthenticated() && req.user?.claims?.sub) {
+        userId = req.user.claims.sub;
+        console.log('User authenticated via Replit Auth, ID:', userId);
+      } 
+      // Case 2: User authenticated with JWT
+      else if (req.user?.id) {
+        userId = req.user.id;
+        console.log('User authenticated via JWT, ID:', userId);
+      }
+      // Case 3: Not authenticated
+      else {
+        console.log('User not authenticated');
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Fetch user data from database
+      console.log('Fetching user with ID:', userId);
       const user = await storage.getUser(userId);
+      
+      if (!user) {
+        console.log('User not found in database:', userId);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      console.log('User found, returning data');
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
