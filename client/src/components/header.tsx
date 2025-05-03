@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { Save, Send, Download } from 'lucide-react';
+import { ReplitAuthButton } from '@/components/auth/replit-auth-button';
 
 interface HeaderProps {
   onSave: () => void;
@@ -32,6 +33,8 @@ export function Header({ onSave, onPublish, onExport, isSaving = false }: Header
           </div>
           
           <div className="flex items-center space-x-2">
+            <ReplitAuthButton />
+            <div className="ml-2 border-r border-gray-200 h-6"></div>
             <Button 
               variant="outline" 
               size="sm" 

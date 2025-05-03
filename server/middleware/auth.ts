@@ -6,12 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'landingcraft-secret-key';
 
 // Extend Request type to include user
 export interface AuthRequest extends Request {
-  user?: {
-    id: number;
-    email: string;
-    username?: string; // Username is now optional
-    displayName?: string; // Added displayName
-  };
+  user?: any; // This allows for both old JWT auth and new Replit Auth
 }
 
 // Middleware to authenticate JWT token

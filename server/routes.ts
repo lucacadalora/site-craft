@@ -12,6 +12,7 @@ import { PgStorage } from './db/pg-storage';
 import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
 import { db } from './db';
+import { setupAuth, isAuthenticated } from './replitAuth';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -67,6 +68,9 @@ async function trackTokenUsage(userId: number, tokenCount: number, incrementGene
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup Replit Auth
+  await setupAuth(app);
+
   // API routes - prefix all routes with /api
   
   // Register authentication routes with more debugging
