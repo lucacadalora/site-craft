@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/useAuth';
 import { User, Zap, FileText, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -270,7 +270,7 @@ document.addEventListener('complete', () => {
 
   if (!isAuthenticated) {
     return (
-      <Button variant="outline" onClick={() => setLocation('/login')}>
+      <Button variant="outline" onClick={() => setLocation('/auth')}>
         Login
       </Button>
     );
