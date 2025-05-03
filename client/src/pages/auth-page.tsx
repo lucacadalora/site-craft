@@ -123,8 +123,13 @@ export default function AuthPage() {
       const userData = await response.json();
       console.log("Login successful!", userData);
       
-      // Redirect to home
-      window.location.href = '/';
+      // Store JWT token if provided
+      if (userData.token) {
+        localStorage.setItem('auth_token', userData.token);
+      }
+      
+      // Redirect to editor page (protected area) instead of home
+      window.location.href = '/editor';
     } catch (err) {
       console.error("Error during login:", err);
       setError(`Login failed: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -174,8 +179,13 @@ export default function AuthPage() {
       const userData = await response.json();
       console.log("Registration successful!", userData);
       
-      // Redirect to home page
-      window.location.href = '/';
+      // Store JWT token if provided
+      if (userData.token) {
+        localStorage.setItem('auth_token', userData.token);
+      }
+      
+      // Redirect to editor page (protected area) instead of home
+      window.location.href = '/editor';
     } catch (err) {
       console.error("Error during registration:", err);
       setError(`Registration failed: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -213,9 +223,23 @@ export default function AuthPage() {
         if (popup.closed) {
           clearInterval(checkPopup);
           
-          // When popup closes, check if authentication was successful by refreshing user data
+          // When popup closes, check if authentication was successful and redirect to editor
           setTimeout(() => {
-            window.location.reload();
+            // Try to fetch current user to verify login success
+            fetch('/api/auth/user', { credentials: 'include' })
+              .then(res => {
+                if (res.ok) {
+                  // Successfully authenticated, redirect to editor
+                  window.location.href = '/editor';
+                } else {
+                  // Auth failed, just reload the current page
+                  window.location.reload();
+                }
+              })
+              .catch(err => {
+                console.error('Error checking auth status:', err);
+                window.location.reload();
+              });
           }, 500);
         }
       }, 500);

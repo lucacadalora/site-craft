@@ -151,7 +151,7 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     const strategy = getAuthStrategy(req);
     passport.authenticate(strategy, {
-      successReturnToOrRedirect: "/",
+      successReturnToOrRedirect: "/editor", // Redirect to editor page instead of home
       failureRedirect: "/api/login",
     })(req, res, next);
   });
