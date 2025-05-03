@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { GenerationStatus } from "@/components/ui/generation-status";
 import { UserProfile } from "@/components/user-profile";
-import { useAuth } from "../contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { DeployButton } from "@/components/deploy-button";
 
 // Extend the Window interface to include our custom property

@@ -22,6 +22,9 @@ export function useAuth() {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/auth/user"],
     retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minute
     // Always run the query - will use JWT token if available or check for Replit Auth session
   });
   
