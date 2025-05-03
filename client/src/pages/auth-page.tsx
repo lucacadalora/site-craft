@@ -1,10 +1,11 @@
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FaGoogle } from 'react-icons/fa';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FaGoogle, FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { LandingcraftLogo } from '@/components/logo';
 import { CodeIcon, Code2, ArrowLeft, Wand2 } from 'lucide-react';
@@ -45,6 +46,15 @@ export default function LandingPage() {
 export default function AuthPage() {
   const { user, isLoading } = useAuth();
   const [_, setLocation] = useLocation();
+  const [formData, setFormData] = useState({
+    loginEmail: "",
+    loginPassword: "",
+    registerUsername: "",
+    registerEmail: "",
+    registerPassword: "",
+    registerConfirmPassword: ""
+  });
+  const [error, setError] = useState("");
 
   // Redirect to home if already logged in
   useEffect(() => {
@@ -53,8 +63,87 @@ export default function AuthPage() {
     }
   }, [user, isLoading, setLocation]);
 
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData({
+      ...formData,
+      [id.replace('-', '')]: value // convert id like 'login-email' to 'loginEmail'
+    });
+  };
+
+  // Handle traditional login
   const handleLogin = () => {
+    // For Replit OAuth
     window.location.href = '/api/login';
+    
+    // For traditional login through API
+    // if (!formData.loginEmail || !formData.loginPassword) {
+    //   setError("Please enter both email and password");
+    //   return;
+    // }
+    
+    // API call would go here
+    // fetch('/api/login', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ 
+    //     email: formData.loginEmail,
+    //     password: formData.loginPassword 
+    //   })
+    // })
+    // .then(res => res.json())
+    // .then(data => {
+    //   if (data.error) {
+    //     setError(data.error);
+    //   } else {
+    //     setLocation('/');
+    //   }
+    // })
+    // .catch(err => {
+    //   setError("Login failed. Please try again.");
+    //   console.error(err);
+    // });
+  };
+
+  // Handle registration
+  const handleRegister = () => {
+    // Validate form
+    if (!formData.registerUsername || !formData.registerEmail || !formData.registerPassword) {
+      setError("Please fill in all required fields");
+      return;
+    }
+    
+    if (formData.registerPassword !== formData.registerConfirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    
+    // For now, we redirect to Replit Auth
+    window.location.href = '/api/login';
+    
+    // API call would go here
+    // fetch('/api/register', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ 
+    //     username: formData.registerUsername,
+    //     email: formData.registerEmail,
+    //     password: formData.registerPassword 
+    //   })
+    // })
+    // .then(res => res.json())
+    // .then(data => {
+    //   if (data.error) {
+    //     setError(data.error);
+    //   } else {
+    //     setLocation('/');
+    //   }
+    // })
+    // .catch(err => {
+    //   setError("Registration failed. Please try again.");
+    //   console.error(err);
+    // });
   };
 
   const handleProviderLogin = (provider: string) => {
@@ -80,36 +169,116 @@ export default function AuthPage() {
           </div>
           
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold">Login</h2>
-            <p className="text-gray-500 text-sm">Designed by Luca Lora</p>
+            <h2 className="text-2xl font-semibold">Welcome</h2>
+            <p className="text-gray-500 text-sm flex items-center">
+              Developed by Luca Cada Lora 
+              <a 
+                href="https://github.com/lucacadalora" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="ml-1 inline-flex items-center"
+              >
+                <FaGithub className="h-4 w-4" />
+              </a>
+            </p>
           </div>
           
-          <div className="space-y-4 mb-6">
-            <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="your.email@example.com" 
-              />
-            </div>
+          <Tabs defaultValue="login" className="w-full mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-1">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••••"
-              />
-            </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm mb-4">
+                {error}
+              </div>
+            )}
             
-            <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              onClick={handleLogin}
-            >
-              Sign in
-            </Button>
-          </div>
+            <TabsContent value="login" className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="login-email">Email</Label>
+                <Input 
+                  id="login-email" 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  value={formData.loginEmail}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="login-password">Password</Label>
+                <Input 
+                  id="login-password" 
+                  type="password" 
+                  placeholder="••••••••••"
+                  value={formData.loginPassword}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={handleLogin}
+              >
+                Sign in
+              </Button>
+            </TabsContent>
+            
+            <TabsContent value="register" className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="register-username">Username</Label>
+                <Input 
+                  id="register-username" 
+                  type="text" 
+                  placeholder="your_username"
+                  value={formData.registerUsername}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="register-email">Email</Label>
+                <Input 
+                  id="register-email" 
+                  type="email" 
+                  placeholder="your.email@example.com"
+                  value={formData.registerEmail}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="register-password">Password</Label>
+                <Input 
+                  id="register-password" 
+                  type="password" 
+                  placeholder="••••••••••"
+                  value={formData.registerPassword}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="space-y-1">
+                <Label htmlFor="register-confirm-password">Confirm Password</Label>
+                <Input 
+                  id="register-confirm-password" 
+                  type="password" 
+                  placeholder="••••••••••"
+                  value={formData.registerConfirmPassword}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={handleRegister}
+              >
+                Create Account
+              </Button>
+            </TabsContent>
+          </Tabs>
           
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
