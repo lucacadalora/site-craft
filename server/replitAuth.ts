@@ -180,14 +180,14 @@ export async function setupAuth(app: Express) {
         const JWT_SECRET = process.env.JWT_SECRET || 'landingcraft-secret-key';
         
         console.log('Processing JWT token for /api/auth/user');
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
         
         // Set user info in request
         req.user = {
-          id: decoded.id,
-          email: decoded.email,
-          username: decoded.username || decoded.email.split('@')[0],
-          displayName: decoded.displayName
+          id: decoded.id as string,
+          email: decoded.email as string,
+          username: (decoded.username as string) || (decoded.email as string).split('@')[0],
+          displayName: decoded.displayName as string
         };
         
         console.log('JWT token verified, user:', req.user.id);
@@ -240,29 +240,52 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
+export const isAuthenticated: RequestHandler = async (req: any, res, next) => {
   const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user?.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
+  const authHeader = req.headers.authorization;
+  
+  // Case 1: Check JWT token in Authorization header
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      const JWT_SECRET = process.env.JWT_SECRET || 'landingcraft-secret-key';
+      
+      console.log('Processing JWT token for protected route');
+      const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+      
+      // JWT token is valid, proceed
+      console.log('JWT token verified for protected route, user:', decoded.id);
+      return next();
+    } catch (error) {
+      console.log('Error verifying JWT token for protected route:', error);
+      // Continue to check other auth methods
+    }
   }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
+  
+  // Case 2: Check for Replit Auth session
+  if (req.isAuthenticated() && user?.expires_at) {
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Session is still valid
+    if (now <= user.expires_at) {
+      return next();
+    }
+    
+    // Try to refresh the token
+    const refreshToken = user.refresh_token;
+    if (refreshToken) {
+      try {
+        const config = await getOidcConfig();
+        const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+        updateUserSession(user, tokenResponse);
+        return next();
+      } catch (error) {
+        console.log('Error refreshing token:', error);
+        // Fall through to unauthorized
+      }
+    }
   }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    return res.redirect("/api/login");
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
-  } catch (error) {
-    return res.redirect("/api/login");
-  }
+  
+  // No valid authentication found
+  return res.status(401).json({ message: "Unauthorized" });
 };

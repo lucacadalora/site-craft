@@ -22,7 +22,7 @@ export function useAuth() {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    enabled: !!token, // Only run the query if we have a token
+    // Always run the query - will use JWT token if available or check for Replit Auth session
   });
   
   // If we have a token but no user data, refetch when token changes
@@ -33,11 +33,29 @@ export function useAuth() {
     }
   }, [token, refetch, user]);
 
+  // Handle logging out
+  const logout = async () => {
+    // First, clear local token
+    localStorage.removeItem('auth_token');
+    setToken(null);
+    
+    // Then, call logout endpoint to clear session if needed
+    try {
+      await fetch('/api/logout', { credentials: 'include' });
+    } catch (err) {
+      console.error('Error during logout:', err);
+    }
+    
+    // Refresh page to reset all client state
+    window.location.href = '/';
+  };
+
   return {
     user,
-    isLoading: isLoading && !!token, // Only show loading if we're actually trying to fetch
+    isLoading,
     error,
     isAuthenticated: !!user,
-    token
+    token,
+    logout
   };
 }

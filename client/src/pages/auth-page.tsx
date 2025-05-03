@@ -125,7 +125,28 @@ export default function AuthPage() {
       
       // Store JWT token if provided
       if (userData.token) {
+        console.log("JWT token received, storing in localStorage:", userData.token.substring(0, 20) + "...");
         localStorage.setItem('auth_token', userData.token);
+        
+        // Test the authentication by making a request with the token
+        try {
+          console.log("Testing authentication with token...");
+          const testResponse = await fetch('/api/auth/user', {
+            headers: {
+              'Authorization': `Bearer ${userData.token}`
+            },
+            credentials: 'include'
+          });
+          
+          if (testResponse.ok) {
+            const user = await testResponse.json();
+            console.log("Authentication successful! User data:", user);
+          } else {
+            console.warn("Auth test failed with status:", testResponse.status);
+          }
+        } catch (testError) {
+          console.error("Error testing auth token:", testError);
+        }
       }
       
       // Redirect to editor page (protected area) instead of home
