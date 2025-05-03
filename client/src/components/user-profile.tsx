@@ -148,7 +148,8 @@ export function UserProfile() {
         // Directly record the token count - works for both authenticated and anonymous users
         if ((window as any).recordTokenUsage) {
           console.log('Recording token usage from detected event:', event.detail.tokenCount);
-          (window as any).recordTokenUsage(event.detail.tokenCount);
+          // This event comes from generation, so set isGeneration to true
+          (window as any).recordTokenUsage(event.detail.tokenCount, true);
         } else {
           console.warn('recordTokenUsage function not available yet - token count detection will be ignored');
         }
@@ -174,8 +175,8 @@ document.addEventListener('complete', () => {
 };
 
 // Add a method to manually record token usage from the UI
-(window as any).recordTokenUsage = (tokenCount: number) => {
-  console.log(`Recording token usage manually: ${tokenCount}`);
+(window as any).recordTokenUsage = (tokenCount: number, isGeneration: boolean = false) => {
+  console.log(`Recording token usage manually: ${tokenCount}, isGeneration: ${isGeneration}`);
   const token = localStorage.getItem('auth_token');
   
   // Headers for the request - include auth token if available
@@ -191,7 +192,7 @@ document.addEventListener('complete', () => {
   fetch('/api/usage/record', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ tokenCount })
+    body: JSON.stringify({ tokenCount, isGeneration })
   })
   .then(res => {
     if (!res.ok) {
