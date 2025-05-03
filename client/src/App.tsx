@@ -10,7 +10,7 @@ import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
 import { ApiConfig } from "@shared/schema";
 import { AuthProvider } from "@/contexts/auth-context";
-import { ProtectedRoute } from "@/components/protected-route";
+import { ProtectedRoute, ProtectedRouteWrapper } from "@/components/protected-route";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
@@ -19,32 +19,35 @@ const defaultApiConfig: ApiConfig = {
   saveToken: true
 };
 
+// Import the auth page
+import AuthPage from "@/pages/auth-page";
+
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
-      <Route path="/editor">
-        {() => (
-          <ProtectedRoute>
-            <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route path="/auth" component={AuthPage} />
+      
+      <ProtectedRoute 
+        path="/editor" 
+        component={() => <Editor initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />} 
+      />
+      
       <Route path="/editor/:id">
         {(params) => (
-          <ProtectedRoute>
-            <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
-          </ProtectedRoute>
+          <ProtectedRoute 
+            path={`/editor/${params.id}`}
+            component={() => <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />} 
+          />
         )}
       </Route>
-      <Route path="/test-deployment">
-        {() => (
-          <ProtectedRoute>
-            <TestDeployment />
-          </ProtectedRoute>
-        )}
-      </Route>
+      
+      <ProtectedRoute 
+        path="/test-deployment" 
+        component={() => <TestDeployment />} 
+      />
+      
       <Route component={NotFound} />
     </Switch>
   );
