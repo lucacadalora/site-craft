@@ -86,8 +86,11 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  // Register all domains from REPLIT_DOMAINS
+  const domains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+  console.log("Registering Replit Auth strategies for domains:", domains);
+  
+  for (const domain of domains) {
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
@@ -98,20 +101,56 @@ export async function setupAuth(app: Express) {
       verify,
     );
     passport.use(strategy);
+    console.log(`Registered strategy: replitauth:${domain}`);
   }
+
+  // Create a default strategy for use when hostname detection fails
+  const defaultStrategy = new Strategy(
+    {
+      name: "replitauth:default",
+      config,
+      scope: "openid email profile offline_access",
+      callbackURL: `https://${domains[0]}/api/callback`, // Use first domain as default
+    },
+    verify,
+  );
+  passport.use(defaultStrategy);
+  console.log("Registered fallback strategy: replitauth:default");
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
+  // Middleware to determine the correct strategy name based on hostname
+  const getAuthStrategy = (req: any) => {
+    const host = req.hostname || req.headers.host || '';
+    console.log(`Login attempt from host: ${host}`);
+    
+    // Try to find exact domain match first
+    for (const domain of domains) {
+      if (host === domain || host.includes(domain)) {
+        console.log(`Using strategy: replitauth:${domain}`);
+        return `replitauth:${domain}`;
+      }
+    }
+    
+    // Fallback to default strategy if no match
+    console.log(`No matching strategy for ${host}, using default strategy`);
+    return "replitauth:default";
+  };
+
+  // Login route with dynamic strategy selection
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const strategy = getAuthStrategy(req);
+    passport.authenticate(strategy, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
+  // Callback route with dynamic strategy selection
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const strategy = getAuthStrategy(req);
+    passport.authenticate(strategy, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
