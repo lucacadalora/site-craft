@@ -88,36 +88,49 @@ export default function AuthPage() {
 
   // Handle traditional login
   const handleLogin = () => {
-    // For Replit OAuth
-    window.location.href = '/api/login';
-    
-    // For traditional login through API
-    // if (!formData.loginEmail || !formData.loginPassword) {
-    //   setError("Please enter both email and password");
-    //   return;
-    // }
-    
-    // API call would go here
-    // fetch('/api/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ 
-    //     email: formData.loginEmail,
-    //     password: formData.loginPassword 
-    //   })
-    // })
-    // .then(res => res.json())
-    // .then(data => {
-    //   if (data.error) {
-    //     setError(data.error);
-    //   } else {
-    //     setLocation('/');
-    //   }
-    // })
-    // .catch(err => {
-    //   setError("Login failed. Please try again.");
-    //   console.error(err);
-    // });
+    // Validate form
+    if (!formData.loginEmail || !formData.loginPassword) {
+      setError("Please enter both email and password");
+      return;
+    }
+
+    try {
+      // Use popup for Replit Auth too
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      // Create popup window features
+      const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
+      
+      // Open the authentication popup
+      const popup = window.open('/api/login', 'LoginPopup', features);
+      
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Popup was blocked or closed
+        setError("Please enable popups for this site and try again");
+        return;
+      }
+
+      // Check periodically if the popup is still open
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          
+          // When popup closes, check if authentication was successful by refreshing user data
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }, 500);
+      
+      // Show a message about popup
+      setError("Authentication in progress... Please complete the login in the popup window");
+    } catch (err) {
+      console.error("Error during login:", err);
+      setError(`Login failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
   };
 
   // Handle registration
@@ -132,32 +145,44 @@ export default function AuthPage() {
       setError("Passwords do not match");
       return;
     }
-    
-    // For now, we redirect to Replit Auth
-    window.location.href = '/api/login';
-    
-    // API call would go here
-    // fetch('/api/register', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ 
-    //     username: formData.registerUsername,
-    //     email: formData.registerEmail,
-    //     password: formData.registerPassword 
-    //   })
-    // })
-    // .then(res => res.json())
-    // .then(data => {
-    //   if (data.error) {
-    //     setError(data.error);
-    //   } else {
-    //     setLocation('/');
-    //   }
-    // })
-    // .catch(err => {
-    //   setError("Registration failed. Please try again.");
-    //   console.error(err);
-    // });
+
+    try {
+      // Use popup for Replit Auth
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      
+      // Create popup window features
+      const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
+      
+      // Open the authentication popup
+      const popup = window.open('/api/login', 'LoginPopup', features);
+      
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Popup was blocked or closed
+        setError("Please enable popups for this site and try again");
+        return;
+      }
+
+      // Check periodically if the popup is still open
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          
+          // When popup closes, check if authentication was successful by refreshing user data
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }, 500);
+      
+      // Show a message about popup
+      setError("Registration in progress... Please complete the signup in the popup window");
+    } catch (err) {
+      console.error("Error during registration:", err);
+      setError(`Registration failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
   };
 
   const handleProviderLogin = (provider: string) => {
@@ -167,14 +192,39 @@ export default function AuthPage() {
       
       // Log the attempt with provider information
       console.log(`Attempting to login with provider: ${provider}`);
-      console.log(`Current hostname: ${window.location.hostname}`);
       
-      // For Replit Auth, we redirect to the server-side login route
-      // The server will handle the OAuth flow with Replit
-      window.location.href = '/api/login';
+      // For OAuth providers, we'll use a popup window for a better UX
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
       
-      // Show a loading message before redirect
-      setError("Redirecting to login...");
+      // Create popup window features
+      const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
+      
+      // Open the authentication popup
+      const popup = window.open('/api/login', 'LoginPopup', features);
+      
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        // Popup was blocked or closed
+        setError("Please enable popups for this site and try again");
+        return;
+      }
+
+      // Check periodically if the popup is still open
+      const checkPopup = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopup);
+          
+          // When popup closes, check if authentication was successful by refreshing user data
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
+      }, 500);
+            
+      // Show a message about popup
+      setError("Authentication in progress... Please complete the login in the popup window");
     } catch (err) {
       console.error("Error during provider login:", err);
       setError(`Login failed: ${err instanceof Error ? err.message : "Unknown error"}`);
