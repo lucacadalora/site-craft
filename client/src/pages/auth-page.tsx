@@ -199,7 +199,7 @@ export default function AuthPage() {
       // Create popup window features
       const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
       
-      // Open the authentication popup with the correct provider
+      // For social login, use the Replit Auth endpoint directly 
       const popup = window.open(`/api/login?provider=${provider}`, 'LoginPopup', features);
       
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {

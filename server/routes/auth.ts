@@ -191,6 +191,37 @@ router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get current user endpoint (critical for the useAuth hook)
+router.get('/user', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('Current user endpoint called, user ID:', req.user?.id);
+    
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Return user data sanitized (no password)
+    res.status(200).json({
+      id: user.id,
+      username: user.displayName || user.email.split('@')[0], // Use displayName or email username part
+      email: user.email,
+      displayName: user.displayName,
+      tokenUsage: user.tokenUsage,
+      generationCount: user.generationCount,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin
+    });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ message: 'Error fetching user data' });
+  }
+});
+
 // Test endpoint to check if auth routes are working 
 router.get('/test', (req: Request, res: Response) => {
   console.log('Auth test endpoint called');
