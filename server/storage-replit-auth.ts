@@ -49,11 +49,24 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  /**
+   * Track token usage for a user using Replit Auth
+   * This method increments a user's token usage and optionally their generation count
+   * It's used to track usage metrics across both traditional auth and Replit Auth
+   * 
+   * @param id - Replit Auth user ID (string format)
+   * @param tokenCount - Number of tokens to add to the user's total
+   * @param incrementGenerationCount - Whether to increment generation count (default: false)
+   * @returns Updated user object with new metrics
+   */
   async updateUserTokenUsage(id: string, tokenCount: number, incrementGenerationCount: boolean = false): Promise<User> {
+    console.log(`[Replit Auth] Tracking token usage for user ${id}: ${tokenCount} tokens, incrementGenerationCount=${incrementGenerationCount}`);
+    
     // Get the current user data
     const [user] = await db.select().from(users).where(eq(users.id, id));
     
     if (!user) {
+      console.error(`[Replit Auth] User with ID ${id} not found for token tracking`);
       throw new Error(`User with ID ${id} not found`);
     }
     
@@ -64,6 +77,8 @@ export class DatabaseStorage implements IStorage {
     // Calculate new generation count if required
     const currentGenerations = user.generationCount || 0;
     const newGenerations = incrementGenerationCount ? currentGenerations + 1 : currentGenerations;
+    
+    console.log(`[Replit Auth] User ${id} metrics: ${currentTokens} → ${newTokens} tokens, ${currentGenerations} → ${newGenerations} generations`);
     
     // Update the user record
     const [updatedUser] = await db
