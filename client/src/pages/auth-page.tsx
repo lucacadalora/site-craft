@@ -315,11 +315,11 @@ export default function AuthPage() {
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-blue-100 to-blue-50 flex-col p-10">
         <div className="flex-1 flex flex-col justify-center max-w-lg mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">Transform Your Code <br/> with AI Magic</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Imagine and Share <br/> in 1-Click</h2>
             <p className="mt-4 text-gray-600">
-              landingcraft.id provides powerful AI-driven code generation tools to 
-              convert your ideas into professional-quality landing pages. Create stunning 
-              websites with just a few clicks.
+              landingcraft.id creates professional websites instantly with 
+              DeepSeek V3. Generate beautiful landing pages from a simple prompt
+              without any coding required.
             </p>
           </div>
           
@@ -343,8 +343,8 @@ export default function AuthPage() {
                 <Wand2 className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <h3 className="font-semibold text-gray-900">Style Transfer</h3>
-                <p className="text-gray-600 text-sm">Transform your code into Pixar, anime, or oil painting styles with a single click</p>
+                <h3 className="font-semibold text-gray-900">AI-Powered Generation</h3>
+                <p className="text-gray-600 text-sm">Create complete landing pages with advanced DeepSeek V3 AI in seconds from a text prompt</p>
               </div>
             </div>
             
@@ -353,8 +353,8 @@ export default function AuthPage() {
                 <CodeIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <h3 className="font-semibold text-gray-900">Smart Editing</h3>
-                <p className="text-gray-600 text-sm">Describe what you want changed and our AI will edit your code exactly as instructed</p>
+                <h3 className="font-semibold text-gray-900">Professional Styling</h3>
+                <p className="text-gray-600 text-sm">Generate beautifully styled pages with modern layouts and responsive designs automatically</p>
               </div>
             </div>
             
@@ -363,8 +363,8 @@ export default function AuthPage() {
                 <Code2 className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <h3 className="font-semibold text-gray-900">Advanced Control</h3>
-                <p className="text-gray-600 text-sm">Customize quality, size, and format to get the perfect output for any use case</p>
+                <h3 className="font-semibold text-gray-900">One-Click Deployment</h3>
+                <p className="text-gray-600 text-sm">Instantly deploy your landing page to a public URL to share with clients and customers</p>
               </div>
             </div>
           </div>
