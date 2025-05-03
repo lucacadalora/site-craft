@@ -68,17 +68,37 @@ async function trackTokenUsage(userId: number, tokenCount: number, incrementGene
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth
+  // Setup Replit Auth (for social login methods)
   await setupAuth(app);
 
   // API routes - prefix all routes with /api
   
-  // Register authentication routes with more debugging
+  // Register traditional authentication routes at /api/auth
   console.log('Registering auth routes at /api/auth');
   app.use('/api/auth', (req, res, next) => {
     console.log(`Auth route called: ${req.method} ${req.url}`);
     next();
   }, authRoutes);
+  
+  // Add compatibility route for traditional login
+  app.post('/api/login', async (req, res) => {
+    console.log('Traditional login endpoint called, forwarding to auth routes');
+    // Forward to the auth routes login handler
+    req.url = '/login';
+    authRoutes(req, res, () => {
+      console.log('Traditional login completed');
+    });
+  });
+  
+  // Add compatibility route for traditional register
+  app.post('/api/register', async (req, res) => {
+    console.log('Traditional register endpoint called, forwarding to auth routes');
+    // Forward to the auth routes register handler
+    req.url = '/register';
+    authRoutes(req, res, () => {
+      console.log('Traditional register completed');
+    });
+  });
   
   // Register project routes
   console.log('Registering project routes at /api/projects');
