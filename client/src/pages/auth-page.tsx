@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaGoogle, FaGithub } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { LandingcraftLogo } from '@/components/logo';
+import { LandingcraftLogo } from '../components/logo';
 import { CodeIcon, Code2, ArrowLeft, Wand2 } from 'lucide-react';
 
 // Sample code for display
@@ -66,10 +66,24 @@ export default function AuthPage() {
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setFormData({
-      ...formData,
-      [id.replace('-', '')]: value // convert id like 'login-email' to 'loginEmail'
-    });
+    
+    // Map input IDs to their corresponding state properties
+    const fieldMap: Record<string, string> = {
+      'login-email': 'loginEmail',
+      'login-password': 'loginPassword',
+      'register-username': 'registerUsername',
+      'register-email': 'registerEmail',
+      'register-password': 'registerPassword',
+      'register-confirm-password': 'registerConfirmPassword'
+    };
+    
+    const field = fieldMap[id] || id;
+    console.log(`Updating field ${id} -> ${field} with value ${value}`);
+    
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   // Handle traditional login
