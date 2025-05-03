@@ -1,6 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { migrateReplitAuth } from "./db/migrate-replit-auth";
+
+// Ensure required environment variables for Replit Auth
+if (!process.env.REPLIT_DOMAINS) {
+  process.env.REPLIT_DOMAINS = process.env.REPL_SLUG ? 
+    `${process.env.REPL_SLUG}.repl.co,${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+    "localhost:5000";
+}
+
+if (!process.env.REPL_ID && process.env.REPL_SLUG) {
+  process.env.REPL_ID = process.env.REPL_SLUG;
+}
+
+if (!process.env.SESSION_SECRET) {
+  process.env.SESSION_SECRET = "landingcraft-session-secret-key";
+}
 
 const app = express();
 app.use(express.json());
