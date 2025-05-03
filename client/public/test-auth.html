@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Token Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth Token Test</h1>
+    
+    <div>
+        <h2>Current Token</h2>
+        <pre id="token-display">Checking...</pre>
+        <button id="check-token">Check Token</button>
+        <button id="clear-token">Clear Token</button>
+    </div>
+    
+    <div>
+        <h2>Test API Request</h2>
+        <button id="test-api">Test API Request</button>
+        <pre id="api-result">Click the button to test</pre>
+    </div>
+
+    <div>
+        <h2>Navigation</h2>
+        <button id="go-home">Go to Home</button>
+        <button id="go-auth">Go to Auth Page</button>
+        <button id="go-editor">Go to Editor</button>
+    </div>
+
+    <script>
+        // Check token button
+        document.getElementById('check-token').addEventListener('click', function() {
+            const token = localStorage.getItem('auth_token');
+            const display = document.getElementById('token-display');
+            
+            if (token) {
+                // Only show first part for security
+                const tokenPreview = token.substring(0, 20) + '...' + token.substring(token.length - 10);
+                display.textContent = tokenPreview;
+                display.className = 'success';
+            } else {
+                display.textContent = 'No token found in localStorage';
+                display.className = 'error';
+            }
+        });
+        
+        // Clear token button
+        document.getElementById('clear-token').addEventListener('click', function() {
+            localStorage.removeItem('auth_token');
+            document.getElementById('token-display').textContent = 'Token cleared';
+            document.getElementById('token-display').className = 'error';
+        });
+        
+        // Test API button
+        document.getElementById('test-api').addEventListener('click', async function() {
+            const resultDisplay = document.getElementById('api-result');
+            resultDisplay.textContent = 'Testing...';
+            
+            try {
+                const token = localStorage.getItem('auth_token');
+                const headers = {};
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/auth/user', {
+                    headers,
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDisplay.textContent = JSON.stringify(data, null, 2);
+                    resultDisplay.className = 'success';
+                } else {
+                    resultDisplay.textContent = `Error: ${response.status} ${response.statusText}`;
+                    resultDisplay.className = 'error';
+                }
+            } catch (error) {
+                resultDisplay.textContent = `Error: ${error.message}`;
+                resultDisplay.className = 'error';
+            }
+        });
+        
+        // Navigation buttons
+        document.getElementById('go-home').addEventListener('click', function() {
+            window.location.href = '/';
+        });
+        
+        document.getElementById('go-auth').addEventListener('click', function() {
+            window.location.href = '/auth';
+        });
+        
+        document.getElementById('go-editor').addEventListener('click', function() {
+            window.location.href = '/editor';
+        });
+        
+        // Check token on load
+        document.getElementById('check-token').click();
+    </script>
+</body>
+</html>

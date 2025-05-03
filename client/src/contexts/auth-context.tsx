@@ -21,9 +21,12 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   // Use our Replit Auth hook to manage authentication state
-  const { user, isLoading, isAuthenticated } = useReplitAuth();
+  const { user, isLoading, isAuthenticated, token } = useReplitAuth();
 
   const logout = () => {
+    // Clear the token from localStorage 
+    localStorage.removeItem('auth_token');
+    
     // Redirect to server-side logout endpoint
     window.location.href = "/api/logout";
   };
