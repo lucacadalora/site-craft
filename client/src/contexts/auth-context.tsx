@@ -4,7 +4,7 @@ import {
   ReactNode,
 } from "react";
 import { User } from "@shared/schema";
-import { useAuth as useReplitAuth } from "@/hooks/useAuth";
+import { useAuth as useReplitAuth } from "../hooks/useAuth";
 
 interface AuthContextType {
   user: User | null;
@@ -34,8 +34,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        isAuthenticated,
+        user: user || null,
+        isAuthenticated: !!user,
         isLoading,
         logout,
       }}
