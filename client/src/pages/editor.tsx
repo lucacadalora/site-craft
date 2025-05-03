@@ -728,7 +728,8 @@ export default function Editor({
                   // Record token usage if available in the complete event
                   if (event.tokenCount && (window as any).recordTokenUsage) {
                     console.log(`Recording token usage from complete event: ${event.tokenCount} tokens`);
-                    (window as any).recordTokenUsage(event.tokenCount);
+                    // This is a generation, so set isGeneration to true
+                    (window as any).recordTokenUsage(event.tokenCount, true);
                   }
                   
                   // Store stats for UI reference
@@ -896,7 +897,8 @@ export default function Editor({
         // Record the token usage using our manual tracking method
         if (displayedTokenCount > 0 && (window as any).recordTokenUsage) {
           console.log(`Recording token usage of ${displayedTokenCount} tokens`);
-          (window as any).recordTokenUsage(displayedTokenCount);
+          // This is a generation, so set isGeneration to true
+          (window as any).recordTokenUsage(displayedTokenCount, true);
         }
         
         // Dispatch custom event to notify token usage has been updated
