@@ -5,9 +5,16 @@ import { createServer, type Server } from "http";
 
 // Ensure required environment variables for Replit Auth
 if (!process.env.REPLIT_DOMAINS) {
-  process.env.REPLIT_DOMAINS = process.env.REPL_SLUG ? 
+  // Include all supported domains: Replit domain, custom domains, and localhost
+  const customDomains = ["site.aiccelerate.id", "landingcraft.id"];
+  const replitDomains = process.env.REPL_SLUG ? 
     `${process.env.REPL_SLUG}.repl.co,${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
     "localhost:5000";
+  
+  // Combine all domains with the custom domains first
+  process.env.REPLIT_DOMAINS = [...customDomains, replitDomains].join(",");
+  
+  console.log("Configured Replit Auth domains:", process.env.REPLIT_DOMAINS);
 }
 
 if (!process.env.REPL_ID && process.env.REPL_SLUG) {

@@ -147,9 +147,24 @@ export default function AuthPage() {
   };
 
   const handleProviderLogin = (provider: string) => {
-    // In a real implementation, we would specify the provider to use
-    // But for now, we just redirect to the Replit login flow
-    window.location.href = '/api/login';
+    try {
+      // Clear any existing errors
+      setError("");
+      
+      // Log the attempt with provider information
+      console.log(`Attempting to login with provider: ${provider}`);
+      console.log(`Current hostname: ${window.location.hostname}`);
+      
+      // For Replit Auth, we redirect to the server-side login route
+      // The server will handle the OAuth flow with Replit
+      window.location.href = '/api/login';
+      
+      // Show a loading message before redirect
+      setError("Redirecting to login...");
+    } catch (err) {
+      console.error("Error during provider login:", err);
+      setError(`Login failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
   };
 
   return (
