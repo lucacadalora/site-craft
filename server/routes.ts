@@ -781,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add a specific endpoint for updating token usage manually - WITH DATA PROTECTION
   app.post("/api/usage/record", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { tokenCount } = req.body;
+      const { tokenCount, isGeneration } = req.body;
       
       // If no user is authenticated, just acknowledge the request without tracking
       if (!req.user) {
@@ -801,7 +801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      console.log(`Manually recording token usage for user ${req.user.id}: ${tokenCount} tokens`);
+      console.log(`Manually recording token usage for user ${req.user.id}: ${tokenCount} tokens, isGeneration: ${isGeneration}`);
       
       // Check if user exists first - NEVER create sensitive records without explicit user action
       let user = await pgStorage.getUser(req.user.id);
@@ -817,8 +817,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Update user token usage in the database using our protected helper function
-        // Don't increment generation count for manual tracking (false)
-        await trackTokenUsage(req.user.id, tokenCount, false);
+        // Increment generation count if this is a generation (true)
+        await trackTokenUsage(req.user.id, tokenCount, isGeneration === true);
         
         // Get updated user to return the current values
         const updatedUser = await pgStorage.getUser(req.user.id);
