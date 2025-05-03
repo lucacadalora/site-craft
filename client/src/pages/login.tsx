@@ -1,54 +1,64 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LoginForm } from "@/components/auth/login-form";
-import { RegisterForm } from "@/components/auth/register-form";
-import { Link } from "wouter";
+import { useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<string>("login");
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    // Redirect to home if already authenticated
+    if (isAuthenticated && !isLoading) {
+      setLocation('/');
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
+  const handleLogin = () => {
+    window.location.href = '/api/login';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-gray-100 py-4">
-        <div className="container mx-auto flex items-center justify-between px-4">
-          <Link href="/" className="text-xl font-bold text-blue-600">
-            LandingCraft
-          </Link>
-        </div>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-8 rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {activeTab === "login" ? "Sign in to your account" : "Create an account"}
-            </h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {activeTab === "login"
-                ? "Enter your credentials below to access your account"
-                : "Fill out the form below to create your account"}
-            </p>
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Welcome to LandingCraft</CardTitle>
+          <CardDescription className="text-center">
+            Log in to create and manage your AI-powered landing pages
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Button
+              className="w-full flex items-center justify-center gap-2"
+              onClick={handleLogin}
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in with Replit
+            </Button>
           </div>
-
-          <Tabs
-            defaultValue="login"
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login">
-              <LoginForm />
-            </TabsContent>
-            <TabsContent value="register">
-              <RegisterForm />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+          
+          <div className="text-center text-sm text-gray-500 mt-4">
+            <p>Securely authenticate using your Replit account</p>
+            <p>No separate registration needed</p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col">
+          <p className="text-xs text-center text-gray-500 mt-4">
+            By logging in, you agree to our Terms of Service and Privacy Policy.
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

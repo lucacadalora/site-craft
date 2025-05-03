@@ -4,20 +4,18 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import memoize from "memoizee";
+import memoizee from "memoizee";
 import connectPg from "connect-pg-simple";
-import { db } from "./db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "./storage-replit-auth";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
-const getOidcConfig = memoize(
+const getOidcConfig = memoizee(
   async () => {
     return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      new URL(process.env.ISSUER_URL || "https://replit.com/oidc"),
       process.env.REPL_ID!
     );
   },
@@ -30,11 +28,11 @@ export function getSession() {
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: true,
-    ttl: sessionTtl,
+    ttl: sessionTtl / 1000, // PG store uses seconds
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "supersecretkey", // Replace with a proper secret in production
+    secret: process.env.SESSION_SECRET!,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -59,34 +57,15 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  const userResult = await db.insert(users)
-    .values({
-      id: claims["sub"],
-      username: claims["username"],
-      email: claims["email"],
-      firstName: claims["first_name"],
-      lastName: claims["last_name"],
-      bio: claims["bio"],
-      profileImageUrl: claims["profile_image_url"],
-      lastLogin: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        username: claims["username"],
-        email: claims["email"],
-        firstName: claims["first_name"],
-        lastName: claims["last_name"],
-        bio: claims["bio"],
-        profileImageUrl: claims["profile_image_url"],
-        lastLogin: new Date(),
-        updatedAt: new Date(),
-      }
-    })
-    .returning();
-  
-  return userResult[0];
+  await storage.upsertUser({
+    id: claims["sub"],
+    username: claims["username"],
+    email: claims["email"],
+    firstName: claims["first_name"],
+    lastName: claims["last_name"],
+    bio: claims["bio"],
+    profileImageUrl: claims["profile_image_url"],
+  });
 }
 
 export async function setupAuth(app: Express) {
@@ -149,16 +128,11 @@ export async function setupAuth(app: Express) {
     });
   });
 
-  // API endpoint to get current user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // User info endpoint for the client
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);

@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { migrateReplitAuth } from "./db/migrate-replit-auth";
+import { createServer, type Server } from "http";
 
 // Ensure required environment variables for Replit Auth
 if (!process.env.REPLIT_DOMAINS) {
@@ -75,24 +75,36 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  let server;
+  try {
+    // Run Replit Auth migration before setting up routes
+    const { runMigration } = await import('./db/migrate-replit-auth');
+    await runMigration();
+    
+    // Create and set up the server
+    server = await registerRoutes(app);
 
-  // Global error handler - must be AFTER all other middleware and routes
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Global error handler - must be AFTER all other middleware and routes
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    console.error('Server error:', err);
-  });
+      res.status(status).json({ message });
+      console.error('Server error:', err);
+    });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+  } catch (error) {
+    console.error("Failed to initialize server:", error);
+    // Create a basic server if registration failed
+    server = createServer(app);
   }
 
   // ALWAYS serve the app on port 5000

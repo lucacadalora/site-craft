@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
 import { ApiConfig } from "@shared/schema";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ProtectedRoute } from "@/components/protected-route";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
@@ -17,8 +18,6 @@ const defaultApiConfig: ApiConfig = {
   apiKey: "9f5d2696-9a9f-43a6-9778-ebe727cd2968",
   saveToken: true
 };
-
-import { ProtectedRoute } from "@/components/protected-route";
 
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
