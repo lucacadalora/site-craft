@@ -86,8 +86,8 @@ export default function AuthPage() {
     }));
   };
 
-  // Handle traditional login
-  const handleLogin = () => {
+  // Handle email/password login (traditional authentication)
+  const handleLogin = async () => {
     // Validate form
     if (!formData.loginEmail || !formData.loginPassword) {
       setError("Please enter both email and password");
@@ -95,46 +95,44 @@ export default function AuthPage() {
     }
 
     try {
-      // Use popup for Replit Auth too
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
+      setError(""); // Clear previous errors
       
-      // Create popup window features
-      const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
+      // Use traditional email/password login with direct POST request
+      console.log("Attempting traditional login with email/password");
       
-      // Open the authentication popup
-      const popup = window.open('/api/login', 'LoginPopup', features);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.loginEmail,
+          password: formData.loginPassword,
+        }),
+        credentials: 'include',
+      });
       
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // Popup was blocked or closed
-        setError("Please enable popups for this site and try again");
-        return;
+      // Handle response
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.message || `Error ${response.status}: Invalid credentials`;
+        throw new Error(errorMsg);
       }
-
-      // Check periodically if the popup is still open
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          
-          // When popup closes, check if authentication was successful by refreshing user data
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }
-      }, 500);
       
-      // Show a message about popup
-      setError("Authentication in progress... Please complete the login in the popup window");
+      // Login successful - get user data
+      const userData = await response.json();
+      console.log("Login successful!", userData);
+      
+      // Redirect to home
+      window.location.href = '/';
     } catch (err) {
       console.error("Error during login:", err);
       setError(`Login failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
-  // Handle registration
-  const handleRegister = () => {
+  // Handle traditional registration with email/password
+  const handleRegister = async () => {
     // Validate form
     if (!formData.registerUsername || !formData.registerEmail || !formData.registerPassword) {
       setError("Please fill in all required fields");
@@ -147,38 +145,37 @@ export default function AuthPage() {
     }
 
     try {
-      // Use popup for Replit Auth
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
+      setError(""); // Clear previous errors
       
-      // Create popup window features
-      const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
+      // Use traditional registration with direct POST request
+      console.log("Attempting registration with email/password");
       
-      // Open the authentication popup
-      const popup = window.open('/api/login', 'LoginPopup', features);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          displayName: formData.registerUsername, // Use displayName as shown in the API
+          email: formData.registerEmail,
+          password: formData.registerPassword,
+        }),
+        credentials: 'include',
+      });
       
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // Popup was blocked or closed
-        setError("Please enable popups for this site and try again");
-        return;
+      // Handle response
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.message || `Error ${response.status}: Registration failed`;
+        throw new Error(errorMsg);
       }
-
-      // Check periodically if the popup is still open
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          
-          // When popup closes, check if authentication was successful by refreshing user data
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-        }
-      }, 500);
       
-      // Show a message about popup
-      setError("Registration in progress... Please complete the signup in the popup window");
+      // If registration successful, get user data
+      const userData = await response.json();
+      console.log("Registration successful!", userData);
+      
+      // Redirect to home page
+      window.location.href = '/';
     } catch (err) {
       console.error("Error during registration:", err);
       setError(`Registration failed: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -202,8 +199,8 @@ export default function AuthPage() {
       // Create popup window features
       const features = `width=${width},height=${height},left=${left},top=${top},status=yes,toolbar=no,menubar=no,location=no`;
       
-      // Open the authentication popup
-      const popup = window.open('/api/login', 'LoginPopup', features);
+      // Open the authentication popup with the correct provider
+      const popup = window.open(`/api/login?provider=${provider}`, 'LoginPopup', features);
       
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         // Popup was blocked or closed
