@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '../contexts/auth-context';
 import { User, Zap, FileText, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -112,12 +112,15 @@ export function UserProfile() {
   useEffect(() => {
     // Only fetch stats if user is authenticated
     if (isAuthenticated && user) {
-      fetchUserStats();
+      // Initial fetch with a small delay to ensure everything is initialized
+      setTimeout(() => {
+        fetchUserStats();
+      }, 1000);
     }
     
     // Track last fetch time to prevent excessive requests
     let lastFetchTime = Date.now();
-    const minTimeBetweenFetches = 5000; // 5 seconds minimum between fetches
+    const minTimeBetweenFetches = 10000; // 10 seconds minimum between fetches - increased to reduce load
     
     const rateLimitedFetch = () => {
       const now = Date.now();
@@ -148,14 +151,13 @@ export function UserProfile() {
         console.log('Updating stats from event to:', newStats);
         setUserStats(newStats);
         
-        // Also force a fresh fetch after a brief delay, respecting rate limits
-        setTimeout(() => {
-          console.log('Refreshing stats after token update event');
-          rateLimitedFetch();
-        }, 2000);
+        // We'll skip the automatic fetch to reduce server load
+        // User can expand the dropdown menu to get fresh stats
       } else {
-        // If there's no detail, just refresh the stats respecting rate limits
-        rateLimitedFetch();
+        // If there's no detail, update once in a while with rate limits
+        setTimeout(() => {
+          rateLimitedFetch();
+        }, 5000);
       }
     };
     
@@ -181,10 +183,11 @@ export function UserProfile() {
     document.addEventListener('token-usage-updated', handleTokenUpdate as EventListener);
     window.addEventListener('token-usage-updated' as any, handleTokenUpdate as EventListener);
 
-// Force the browser to manually fetch stats after generation
+// Reduce automatic stat fetching after generation to avoid overloading the server
 document.addEventListener('complete', () => {
-  console.log('Generation complete event detected, updating user stats');
-  setTimeout(rateLimitedFetch, 1000);
+  console.log('Generation complete event detected');
+  // We'll let the server-side track this and only fetch when necessary
+  // Stats will be available when user manually views them
 });
 
 // Add direct dispatch and debug methods to the window for testing
