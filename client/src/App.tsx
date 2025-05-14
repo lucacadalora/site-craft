@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useState } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import HomeRevamped from "@/pages/home-revamped";
 import Editor from "@/pages/editor";
 import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
@@ -23,7 +24,8 @@ import { ProtectedRoute } from "@/components/protected-route";
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={HomeRevamped} />
+      <Route path="/original" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/editor">
         {() => (
