@@ -207,7 +207,7 @@ export default function HomeRevamped() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold mb-1">5000+</div>
-              <div className="text-sm text-blue-100">UMKM Websites</div>
+              <div className="text-sm text-blue-100">SME Websites</div>
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold mb-1">3 min</div>
@@ -219,7 +219,7 @@ export default function HomeRevamped() {
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold mb-1">300%</div>
-              <div className="text-sm text-blue-100">UMKM Online Growth</div>
+              <div className="text-sm text-blue-100">SME Online Growth</div>
             </div>
           </div>
         </div>
@@ -384,7 +384,7 @@ export default function HomeRevamped() {
       <section id="pricing" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Affordable UMKM Pricing</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Affordable SME Pricing</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Choose the perfect plan for your business needs
             </p>
@@ -395,12 +395,12 @@ export default function HomeRevamped() {
             <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all">
               <div className="text-lg font-semibold text-gray-500 mb-4">Free</div>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">Rp 0</span>
-                <span className="text-gray-600">/forever</span>
+                <span className="text-4xl font-bold text-gray-900">$0</span>
+                <span className="text-gray-600"> credits</span>
               </div>
               <p className="text-gray-500 mb-6 text-sm">Perfect for trying out our platform</p>
               <ul className="space-y-3 mb-8">
-                {["1 Landing Page", "Basic Templates", "AI Content Generation", "Export HTML/CSS"].map((feature, i) => (
+                {["3 Landing Pages", "Basic Templates", "Jatevo AI Generation", "Export HTML/CSS"].map((feature, i) => (
                   <li key={i} className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />
                     <span className="text-gray-600 text-sm">{feature}</span>
@@ -421,16 +421,16 @@ export default function HomeRevamped() {
               </div>
               <div className="text-lg font-semibold text-blue-600 mb-4">Pro</div>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">Rp 99k</span>
-                <span className="text-gray-600">/month</span>
+                <span className="text-4xl font-bold text-gray-900">$15</span>
+                <span className="text-gray-600"> credits</span>
               </div>
               <p className="text-gray-500 mb-6 text-sm">Ideal for growing businesses</p>
               <ul className="space-y-3 mb-8">
                 {[
-                  "10 Landing Pages", 
-                  "Premium UMKM Templates", 
-                  "Advanced AI Generation", 
-                  "Free Domain Name",
+                  "20 Landing Pages", 
+                  "Premium SME Templates", 
+                  "Advanced Jatevo AI", 
+                  "Custom Domain",
                   "Custom Branding",
                   "Priority Support"
                 ].map((feature, i) => (
@@ -479,7 +479,7 @@ export default function HomeRevamped() {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Indonesian UMKM Success Stories</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">SME Success Stories</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               See how businesses have transformed their online presence
             </p>
@@ -547,7 +547,7 @@ export default function HomeRevamped() {
             <div>
               <h3 className="text-lg font-bold mb-4">LandingCraft</h3>
               <p className="text-gray-400 text-sm mb-6">
-                Empowering Indonesian UMKM with AI-powered landing pages. Create professional websites in minutes.
+                Empowering SMEs with Jatevo-powered AI landing pages. Create professional websites in minutes.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="text-gray-400 hover:text-white transition-colors">
