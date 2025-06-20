@@ -13,7 +13,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Cpu className="h-6 w-6 text-blue-600" />
-            <span className="font-bold text-lg text-gray-900">Site Craft <span className="text-blue-600">by AI Accelerate</span></span>
+            <span className="font-bold text-lg text-gray-900">Landing<span className="text-blue-600">Craft</span> <span className="text-sm text-gray-500">by Jatevo</span></span>
           </div>
           {!isMobile && (
             <nav className="flex items-center space-x-8">
@@ -62,7 +62,7 @@ export default function Home() {
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"> AI</span>
               </h1>
               <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                Create stunning, conversion-optimized landing pages in minutes. No design skills needed. Just enter your business idea and let AI do the magic.
+                Create stunning, conversion-optimized landing pages in minutes. Powered by Jatevo's high-performance AI inference. No design skills needed.
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link href="/editor">
@@ -83,7 +83,7 @@ export default function Home() {
                   <img className="w-10 h-10 rounded-full border-2 border-white" src="https://randomuser.me/api/portraits/women/68.jpg" alt="User" />
                 </div>
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">1,000+</span> businesses accelerated their digital presence
+                  <span className="font-semibold">1,000+</span> businesses powered by Jatevo's AI infrastructure
                 </p>
               </div>
             </div>
@@ -227,6 +227,68 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Jatevo Integration Section */}
+      <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Powered by <span className="text-blue-600">Jatevo</span> Infrastructure
+            </h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              LandingCraft is built on Jatevo's high-performance AI inference platform, delivering lightning-fast generation with enterprise-grade reliability.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Ultra-Fast Inference</h3>
+              <p className="text-gray-600">
+                Sub-second response times powered by Jatevo's optimized GPU clusters and advanced model acceleration.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Cpu className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Enterprise Grade</h3>
+              <p className="text-gray-600">
+                Built on Jatevo's enterprise infrastructure with 99.9% uptime and scalable performance.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Rocket className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Playground Integration</h3>
+              <p className="text-gray-600">
+                Part of the Jatevo ecosystem - access more AI tools and capabilities at jatevo.id/playground.
+              </p>
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <div className="inline-flex items-center space-x-4 bg-white rounded-lg p-6 shadow-sm">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">Visit Jatevo Playground:</span>
+              </div>
+              <a 
+                href="https://jatevo.id/playground" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium flex items-center"
+              >
+                jatevo.id/playground <ArrowRight className="ml-1 w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Case Studies Section */}
       <section id="case-studies" className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -295,9 +357,9 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Starter</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Free</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">$29</span>
+                <span className="text-4xl font-bold text-gray-900">$0</span>
                 <span className="text-gray-600">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
@@ -305,7 +367,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-600">5 Landing Pages</span>
+                  <span className="text-gray-600">3 Landing Pages</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,27 +379,27 @@ export default function Home() {
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-600">Standard AI Content</span>
+                  <span className="text-gray-600">Jatevo AI Generation</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-600">Email Support</span>
+                  <span className="text-gray-600">Community Support</span>
                 </li>
               </ul>
               <Button variant="outline" className="w-full py-2 border-blue-600 text-blue-600 hover:bg-blue-50">
-                Get Started
+                Get Started Free
               </Button>
             </div>
             
             <div className="bg-blue-600 rounded-lg shadow-lg p-8 border border-blue-600 transform scale-105">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-white">Professional</h3>
+                <h3 className="text-xl font-bold text-white">Pro</h3>
                 <span className="bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded">POPULAR</span>
               </div>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-white">$79</span>
+                <span className="text-4xl font-bold text-white">$15</span>
                 <span className="text-blue-200">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
@@ -345,7 +407,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-white mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-white">25 Landing Pages</span>
+                  <span className="text-white">20 Landing Pages</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-white mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -357,7 +419,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-white mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-white">Advanced AI Content</span>
+                  <span className="text-white">Advanced Jatevo AI</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-white mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -373,14 +435,14 @@ export default function Home() {
                 </li>
               </ul>
               <Button className="w-full py-2 bg-white text-blue-600 hover:bg-blue-50">
-                Get Started
+                Upgrade to Pro
               </Button>
             </div>
             
             <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Enterprise</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">$199</span>
+                <span className="text-4xl font-bold text-gray-900">$99</span>
                 <span className="text-gray-600">/month</span>
               </div>
               <ul className="space-y-3 mb-8">
@@ -400,7 +462,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-600">Premium AI Content</span>
+                  <span className="text-gray-600">Premium Jatevo AI</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +474,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-green-500 mr-2 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-gray-600">API Access</span>
+                  <span className="text-gray-600">Jatevo API Access</span>
                 </li>
               </ul>
               <Button variant="outline" className="w-full py-2 border-blue-600 text-blue-600 hover:bg-blue-50">
@@ -426,9 +488,9 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Accelerate Your Digital Presence?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Build with Jatevo's AI Power?</h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of businesses using Site Craft to create landing pages that convert.
+            Join thousands of businesses using LandingCraft to create landing pages powered by Jatevo's high-performance inference.
           </p>
           <Link href="/editor">
             <Button className="px-8 py-3 bg-white text-blue-600 hover:bg-blue-50 text-lg font-semibold rounded-md">
@@ -445,10 +507,10 @@ export default function Home() {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Cpu className="h-6 w-6 text-blue-400" />
-                <span className="font-bold text-lg">Site Craft <span className="text-blue-400">by AI Accelerate</span></span>
+                <span className="font-bold text-lg">Landing<span className="text-blue-400">Craft</span> <span className="text-sm text-gray-500">by Jatevo</span></span>
               </div>
               <p className="text-gray-400 mb-4">
-                Accelerating digital presence for businesses of all sizes with AI-powered landing pages.
+                AI-powered landing page generation built on Jatevo's high-performance inference infrastructure.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="text-gray-400 hover:text-white">
@@ -484,7 +546,7 @@ export default function Home() {
               <ul className="space-y-2">
                 <li><a href="#" className="text-gray-400 hover:text-white">About</a></li>
                 <li><a href="#case-studies" className="text-gray-400 hover:text-white">Case Studies</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Blog</a></li>
+                <li><a href="https://jatevo.id" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Jatevo Platform</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-white">Contact</a></li>
               </ul>
             </div>
