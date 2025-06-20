@@ -95,7 +95,7 @@ export default function HomeRevamped() {
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-12 md:mb-0">
               <div className="inline-block bg-blue-100 text-blue-700 rounded-full px-4 py-1 text-sm font-medium mb-6">
-                UMKM Digitalization Made Simple
+                SME Digitalization Powered by Jatevo
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
                 Create Amazing Landing Pages with 
@@ -190,7 +190,7 @@ export default function HomeRevamped() {
       {/* Trusted By */}
       <section className="py-10 bg-white">
         <div className="container mx-auto px-4">
-          <p className="text-center text-gray-500 mb-6">TRUSTED BY INDONESIAN UMKM</p>
+          <p className="text-center text-gray-500 mb-6">TRUSTED BY SMEs WORLDWIDE</p>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-70">
             <div className="h-8 bg-gray-300 w-24 rounded"></div>
             <div className="h-8 bg-gray-300 w-32 rounded"></div>
@@ -291,7 +291,7 @@ export default function HomeRevamped() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Everything You Need to Create Beautiful Pages</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our platform combines the best of Canva, Figma, and AI to help UMKMs create professional websites
+              Our platform combines the best of Canva, Figma, and AI to help SMEs create professional websites
             </p>
           </div>
           
@@ -449,7 +449,8 @@ export default function HomeRevamped() {
             <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all">
               <div className="text-lg font-semibold text-gray-500 mb-4">Enterprise</div>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">Custom</span>
+                <span className="text-4xl font-bold text-gray-900">$99</span>
+                <span className="text-gray-600"> credits</span>
               </div>
               <p className="text-gray-500 mb-6 text-sm">For large businesses and agencies</p>
               <ul className="space-y-3 mb-8">
@@ -597,12 +598,12 @@ export default function HomeRevamped() {
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
             <div className="text-gray-400 text-sm mb-4 md:mb-0">
-              © 2025 LandingCraft by AI Accelerate. All rights reserved.
+              © 2025 LandingCraft by Jatevo. Powered by high-performance AI inference.
             </div>
             <div className="flex space-x-6">
+              <a href="https://jatevo.id" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">Jatevo Platform</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms</a>
               <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Cookies</a>
             </div>
           </div>
         </div>
