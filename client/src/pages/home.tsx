@@ -552,18 +552,18 @@ export default function Home() {
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold mb-4">Resources</h3>
+              <h3 className="text-lg font-semibold mb-4">Jatevo Ecosystem</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-white">Help Center</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Documentation</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">API</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-white">Privacy Policy</a></li>
+                <li><a href="https://jatevo.id" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Jatevo Platform</a></li>
+                <li><a href="https://jatevo.id/playground" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">AI Playground</a></li>
+                <li><a href="https://jatevo.id/app" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">Chat Interface</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-white">API Documentation</a></li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center">
-            <p className="text-gray-400">&copy; {new Date().getFullYear()} AI Accelerate. All rights reserved.</p>
+            <p className="text-gray-400">&copy; {new Date().getFullYear()} LandingCraft by Jatevo. Powered by high-performance AI inference.</p>
           </div>
         </div>
       </footer>

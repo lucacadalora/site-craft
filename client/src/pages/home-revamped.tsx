@@ -24,8 +24,8 @@ export default function HomeRevamped() {
   const features = [
     {
       icon: <Zap className="w-5 h-5 text-blue-600" />,
-      title: "AI-Powered Creation",
-      description: "Generate complete landing pages in minutes using our DeepSeek multimodal AI engine."
+      title: "Jatevo AI-Powered Creation",
+      description: "Generate complete landing pages in minutes using Jatevo's high-performance AI inference engine."
     },
     {
       icon: <SquarePen className="w-5 h-5 text-blue-600" />,
@@ -61,7 +61,7 @@ export default function HomeRevamped() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="text-xl md:text-2xl font-bold text-gray-900">
-              Landing<span className="text-blue-600">Craft</span>
+              Landing<span className="text-blue-600">Craft</span> <span className="text-sm text-gray-500">by Jatevo</span>
             </Link>
             
             <nav className="hidden md:flex space-x-8">
@@ -102,7 +102,7 @@ export default function HomeRevamped() {
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600"> AI</span>
               </h1>
               <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                Join thousands of businesses using our Figma-style AI editor to create professional landing pages in minutes. Perfect for Indonesian UMKM.
+                Join thousands of businesses using our Figma-style AI editor powered by Jatevo's high-performance inference to create professional landing pages in minutes.
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link href="/editor">
@@ -117,7 +117,7 @@ export default function HomeRevamped() {
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
-                {['Canva-Style Editor', 'Hostinger Integration', 'DeepSeek AI', 'Figma-like UI'].map((tag) => (
+                {['Jatevo AI Powered', 'Figma-Style Editor', 'One-Click Deploy', 'Mobile Responsive'].map((tag) => (
                   <span key={tag} className="bg-blue-50 text-blue-700 rounded-full px-3 py-1 text-sm font-medium">
                     {tag}
                   </span>
