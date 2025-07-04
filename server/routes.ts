@@ -530,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SambaNova API integration for DeepSite generation with true streaming
   app.post("/api/sambanova/generate-stream", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { prompt, apiConfig } = req.body;
+      const { prompt, apiConfig, previousPrompt, isFollowUp } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -566,14 +566,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
         // Prepare the system prompt and user message
+        let systemContent = `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`;
+        
+        // Add context for follow-up mode
+        if (isFollowUp && previousPrompt) {
+          systemContent += ` You are making modifications to an existing landing page. The user previously asked for: "${previousPrompt}". Now they want you to modify it based on their new request. Maintain the overall structure and theme while applying the requested changes.`;
+        }
+        
         const systemMessage = {
           role: "system",
-          content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
+          content: systemContent
         };
         
         const userMessage = {
           role: "user",
-          content: `Create a landing page for: ${prompt}`
+          content: isFollowUp ? `Modify the landing page: ${prompt}` : `Create a landing page for: ${prompt}`
         };
         
         const completionOptions = {

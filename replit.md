@@ -96,6 +96,11 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
 
 - July 04, 2025. Initial setup
 - July 04, 2025. Cloned deepsite-v2 from Hugging Face (https://huggingface.co/spaces/enzostvs/deepsite) into source/deepsite-v2 folder for future integration with the editor
+- July 04, 2025. Started implementing session management features:
+  - Added ConversationPanel component for follow-up prompts
+  - Updated editor to support conversation history
+  - Modified server endpoint to handle follow-up mode with context
+  - Enabled session-based editing where prompts continue the conversation rather than resetting
 
 ## User Preferences
 

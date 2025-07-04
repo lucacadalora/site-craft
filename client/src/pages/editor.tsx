@@ -11,6 +11,7 @@ import { GenerationStatus } from "@/components/ui/generation-status";
 import { UserProfile } from "@/components/user-profile";
 import { useAuth } from "@/contexts/auth-context";
 import { DeployButton } from "@/components/deploy-button";
+import { ConversationPanel } from "@/components/ui/conversation-panel";
 
 // Extend the Window interface to include our custom property
 declare global {
@@ -143,6 +144,11 @@ export default function Editor({
     apiKey: "",
     saveToken: false,
   });
+  
+  // New state for conversation management
+  const [conversationOpen, setConversationOpen] = useState(false);
+  const [previousPrompt, setPreviousPrompt] = useState("");
+  const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   
   // Update the parent's API config if it changes and if handler provided
   useEffect(() => {
@@ -347,11 +353,28 @@ export default function Editor({
     }
   };
 
+  // Handle conversation messages (follow-up or new generation)
+  const handleConversationMessage = async (message: string, isFollowUp: boolean) => {
+    // Store the current prompt for follow-up context
+    if (isFollowUp) {
+      setPreviousPrompt(prompt);
+      setConversationHistory(prev => [...prev, prompt]);
+    }
+    
+    // Update the prompt with the new message
+    setPrompt(message);
+    
+    // Call the existing generation handler with follow-up context
+    await handleGenerate(message, isFollowUp);
+  };
+
   // Handle generation with typewriter streaming effect
-  const handleGenerate = async () => {
+  const handleGenerate = async (overridePrompt?: string, isFollowUp: boolean = false) => {
     // Store interval reference outside try/catch scope for cleanup
     let progressInterval: NodeJS.Timeout | undefined;
-    if (!prompt) {
+    const actualPrompt = overridePrompt || prompt;
+    
+    if (!actualPrompt) {
       toast({
         title: "Missing Information",
         description: "Please describe what you want to generate",
@@ -404,7 +427,7 @@ export default function Editor({
         setStreamingOutput(prev => [...prev, "Analyzing prompt..."]);
         
         // Show only one processing message with the main prompt topic
-        const mainKeywords = prompt.split(' ').slice(0, 3).join(' ');
+        const mainKeywords = actualPrompt.split(' ').slice(0, 3).join(' ');
         if (mainKeywords.length > 0) {
           setStreamingOutput(prev => [...prev, `Processing: ${mainKeywords}`]);
         }
@@ -457,7 +480,9 @@ export default function Editor({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          prompt, 
+          prompt: actualPrompt,
+          previousPrompt: isFollowUp ? previousPrompt : undefined,
+          isFollowUp,
           apiConfig: {
             ...apiConfig,
             apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
@@ -1219,7 +1244,7 @@ export default function Editor({
           {/* Generate Button - Always visible */}
           <Button 
             className={`w-full ${isGenerating ? 'mb-2' : 'mb-4'} py-3 ${isGenerating ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-all duration-200 transform hover:translate-y-[-1px]`} 
-            onClick={handleGenerate}
+            onClick={() => handleGenerate()}
             disabled={isGenerating || !prompt}
           >
             {isGenerating ? (
@@ -1282,6 +1307,16 @@ export default function Editor({
               {/* Typing indicator is now handled in the code-editor-enhanced.tsx component */}
             </div>
           </div>
+          
+          {/* Conversation Panel - Session Management */}
+          <ConversationPanel
+            isOpen={conversationOpen}
+            onToggle={() => setConversationOpen(!conversationOpen)}
+            onSendMessage={handleConversationMessage}
+            isGenerating={isGenerating}
+            currentHtml={htmlContent}
+            className="mt-4"
+          />
         </div>
         </div>
 
