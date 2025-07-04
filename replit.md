@@ -101,6 +101,11 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
   - Updated editor to support conversation history
   - Modified server endpoint to handle follow-up mode with context
   - Enabled session-based editing where prompts continue the conversation rather than resetting
+- July 04, 2025. Fixed critical issue with session management:
+  - Updated AI logic to modify existing HTML instead of regenerating from scratch
+  - AI now receives the current HTML and applies only the requested changes
+  - Maintains existing structure, styles, and content except where modifications are requested
+  - Works like Canvas/Artifacts - enhances specific sections while preserving the rest
 
 ## User Preferences
 

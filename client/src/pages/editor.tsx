@@ -150,6 +150,13 @@ export default function Editor({
   const [previousPrompt, setPreviousPrompt] = useState("");
   const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   
+  // Auto-open conversation panel when HTML is generated
+  useEffect(() => {
+    if (htmlContent && htmlContent !== defaultHTML && !conversationOpen) {
+      setConversationOpen(true);
+    }
+  }, [htmlContent]);
+  
   // Update the parent's API config if it changes and if handler provided
   useEffect(() => {
     if (onApiConfigChange) {
@@ -361,10 +368,10 @@ export default function Editor({
       setConversationHistory(prev => [...prev, prompt]);
     }
     
-    // Update the prompt with the new message
+    // Update the prompt with the new message  
     setPrompt(message);
     
-    // Call the existing generation handler with follow-up context
+    // Call the existing generation handler with follow-up context and current HTML
     await handleGenerate(message, isFollowUp);
   };
 
@@ -483,6 +490,7 @@ export default function Editor({
           prompt: actualPrompt,
           previousPrompt: isFollowUp ? previousPrompt : undefined,
           isFollowUp,
+          currentHtml: isFollowUp ? htmlContent : undefined,
           apiConfig: {
             ...apiConfig,
             apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"

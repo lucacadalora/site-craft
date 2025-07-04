@@ -71,6 +71,19 @@ export function ConversationPanel({
     setMessages(prev => [...prev, newMessage]);
     onSendMessage(input.trim(), isFollowUpMode);
     setInput('');
+    
+    // Add a placeholder for AI response
+    setTimeout(() => {
+      if (isGenerating) {
+        const aiMessage: Message = {
+          id: 'ai-' + Date.now().toString(),
+          role: 'assistant',
+          content: isFollowUpMode ? 'Modifying your page...' : 'Generating new page...',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
+    }, 100);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
