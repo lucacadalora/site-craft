@@ -1344,23 +1344,23 @@ export default function Editor({
               : isMobile 
                 ? (activeTab === 'preview' ? 'w-full h-full' : 'hidden') 
                 : 'w-1/2 h-full'
-          } flex flex-col bg-white overflow-hidden`}
+          } flex flex-col bg-[#0f172a] overflow-hidden`}
         >
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700 bg-[#1e293b] shadow-sm">
             <div className="flex items-center">
               <div className="flex space-x-1.5 mr-4">
                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                 <div className="w-3 h-3 rounded-full bg-green-500"></div>
               </div>
-              <div className="text-sm font-medium text-gray-800">
+              <div className="text-sm font-medium text-gray-300">
                 Preview <span className={`${isMobile ? 'hidden' : 'inline'} text-gray-500 text-xs`}>- Generated Landing Page</span>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
               {!isMobile && (
-                <div className="flex items-center h-8 px-3 text-xs font-medium text-green-700 bg-green-100 border border-green-300 rounded-md shadow-sm">
+                <div className="flex items-center h-8 px-3 text-xs font-medium text-green-400 bg-green-900/20 border border-green-800 rounded-md shadow-sm">
                   <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
                   <span>Live Preview</span>
                 </div>
@@ -1378,7 +1378,7 @@ export default function Editor({
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="h-8 px-2 text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:text-green-800" 
+                className="h-8 px-2 text-xs bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors" 
                 onClick={handleRefreshPreview}
                 title="Refresh Preview"
               >
@@ -1391,7 +1391,7 @@ export default function Editor({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                  className="h-8 px-2 text-xs bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
                   onClick={() => setIsFullscreen(!isFullscreen)}
                   title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 >
@@ -1466,6 +1466,71 @@ export default function Editor({
                   }}
                 />
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom Toolbar - Similar to DeepSite v2 */}
+      <div className="border-t border-gray-700 bg-[#1e293b] px-4 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={() => {
+                // New project functionality
+                if (confirm('Create a new project? This will clear the current content.')) {
+                  setPrompt('');
+                  setHtmlContent(defaultHTML);
+                  setPreviousPrompt('');
+                  setConversationHistory([]);
+                }
+              }}
+            >
+              <PlusCircle className="h-3.5 w-3.5 mr-1" />
+              New Project
+            </Button>
+            
+            <div className="h-4 w-px bg-gray-600" /> {/* Separator */}
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={() => setActiveTab && setActiveTab('editor')}
+            >
+              <Edit className="h-3.5 w-3.5 mr-1" />
+              Edit
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={() => showToast({ title: "Settings", description: "Settings panel coming soon!" })}
+            >
+              <Settings className="h-3.5 w-3.5 mr-1" />
+              Settings
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-xs text-gray-400 hover:text-white hover:bg-gray-700"
+              onClick={() => window.open('https://github.com/deepsite/deepsite-v2', '_blank')}
+            >
+              <svg className="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+              </svg>
+              Help
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-xs text-gray-500">
+              DeepSite v2 Enhanced
             </div>
           </div>
         </div>
