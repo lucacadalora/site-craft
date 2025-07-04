@@ -570,16 +570,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Add context for follow-up mode - MODIFY EXISTING HTML
         if (isFollowUp && currentHtml) {
-          systemContent = `You are modifying an existing HTML page. The user wants you to update specific parts while keeping the rest intact. 
-          
-          IMPORTANT RULES:
-          1. Return the COMPLETE modified HTML file starting with <!DOCTYPE html>
-          2. Preserve the overall structure, style, and content except where changes are requested
-          3. Only modify the specific elements or sections mentioned in the user's request
-          4. Keep all existing scripts, styles, and libraries unless explicitly asked to change them
-          5. Maintain the same design language and visual consistency
-          
-          The user is asking for specific modifications, not a complete rewrite.`;
+          systemContent = `You are a code editor that modifies existing HTML. Your job is to make ONLY the specific changes requested by the user while keeping EVERYTHING ELSE exactly the same.
+
+CRITICAL RULES:
+1. DO NOT rewrite or regenerate the HTML from scratch
+2. DO NOT add explanatory text like "Here's the modified HTML..."
+3. Return ONLY the complete HTML starting with <!DOCTYPE html>
+4. Make ONLY the specific changes requested
+5. Keep ALL other elements, styles, scripts, and content EXACTLY as they were
+6. Preserve all formatting, indentation, and structure
+7. Do not optimize, clean up, or reorganize code unless specifically asked
+
+You are editing code, not creating new code. Think of yourself as a precise text editor making surgical changes.`;
         }
         
         const systemMessage = {
@@ -589,13 +591,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         let userContent = prompt;
         if (isFollowUp && currentHtml) {
-          userContent = `Here is the current HTML page:
-
+          userContent = `Current HTML to modify:
+\`\`\`html
 ${currentHtml}
+\`\`\`
 
-User's modification request: ${prompt}
+Modification request: ${prompt}
 
-Please update the HTML according to the request while keeping everything else the same.`;
+Remember: Return ONLY the modified HTML code with the requested changes. Do not add any explanations.`;
         }
         
         const userMessage = {
@@ -754,18 +757,34 @@ Please update the HTML according to the request while keeping everything else th
         // Send completion event with token information
         console.log("Streaming completed, sending final event");
         
+        // Clean the HTML content to remove any explanatory text before the HTML
+        let cleanedHtml = fullContent;
+        
+        // Find the start of the HTML document
+        const doctypeIndex = fullContent.indexOf('<!DOCTYPE');
+        const htmlIndex = fullContent.indexOf('<html');
+        
+        // Use whichever comes first (DOCTYPE or html tag)
+        const htmlStartIndex = doctypeIndex !== -1 ? doctypeIndex : htmlIndex;
+        
+        if (htmlStartIndex > 0) {
+          // There's text before the HTML - remove it
+          cleanedHtml = fullContent.substring(htmlStartIndex);
+          console.log(`Removed ${htmlStartIndex} characters of explanatory text before HTML`);
+        }
+        
         // Calculate token estimate for client reference
-        const tokenEstimate = Math.round(fullContent.length / 4);
+        const tokenEstimate = Math.round(cleanedHtml.length / 4);
         
         res.write(`data: ${JSON.stringify({ 
           event: 'complete', 
-          html: fullContent,
+          html: cleanedHtml,
           source: 'api',
           tokenCount: tokenEstimate,
           // Include stats to help UI understand processing
           stats: {
             tokens: tokenEstimate,
-            characters: fullContent.length,
+            characters: cleanedHtml.length,
             // If we tracked user info, include that too
             userId: req.user?.id || null,
             generationCount: req.user ? 1 : 0
