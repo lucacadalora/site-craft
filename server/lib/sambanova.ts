@@ -1,4 +1,5 @@
 import { ApiConfig } from "@shared/schema";
+import { Groq } from 'groq-sdk';
 
 interface Message {
   role: "system" | "user" | "assistant";
@@ -20,9 +21,124 @@ interface GenerationResult {
 }
 
 /**
+ * Generate HTML content using Groq's Kimi K2 model
+ */
+export async function generateLandingPageHtmlWithKimi(
+  prompt: string,
+  apiConfig: ApiConfig
+): Promise<GenerationResult> {
+  try {
+    // Use the Groq API key from environment variables
+    const groqApiKey = process.env.GROQ_API_KEY;
+    
+    if (!groqApiKey) {
+      console.error("GROQ_API_KEY environment variable not found");
+      return {
+        html: generateFallbackHtml(`${prompt.substring(0, 20)}...`, prompt),
+        success: false,
+        error: "GROQ_API_KEY environment variable not found"
+      };
+    }
+
+    console.log("Generating HTML with Groq Kimi K2 model using prompt:", prompt.substring(0, 50) + "...");
+    
+    // Initialize Groq client
+    const groq = new Groq({
+      apiKey: groqApiKey
+    });
+    
+    // Prepare the system prompt and user message using DeepSite style
+    const systemMessage = {
+      role: "system" as const,
+      content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
+    };
+    
+    const userMessage = {
+      role: "user" as const,
+      content: `Create a landing page for: ${prompt}`
+    };
+    
+    // Log API request for debugging
+    console.log("Calling Groq API with Kimi K2 model:", {
+      model: "moonshotai/kimi-k2-instruct-0905",
+      stream: true,
+      messages: [
+        { role: systemMessage.role, content: systemMessage.content.substring(0, 50) + "..." },
+        { role: userMessage.role, content: userMessage.content }
+      ]
+    });
+    
+    // Create chat completion with streaming
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [systemMessage, userMessage],
+      model: "moonshotai/kimi-k2-instruct-0905",
+      temperature: 0.6,
+      max_completion_tokens: 4096,
+      top_p: 1,
+      stream: true,
+      stop: null
+    });
+    
+    // Collect the streamed response
+    let fullContent = "";
+    for await (const chunk of chatCompletion) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      fullContent += content;
+    }
+    
+    console.log("Successfully collected streamed content from Kimi K2, length:", fullContent.length);
+    
+    // Process the collected content - same logic as DeepSeek
+    // Find HTML content
+    // Make sure it starts with <!DOCTYPE html>
+    if (fullContent.includes("<!DOCTYPE html>") || fullContent.includes("<!doctype html>")) {
+      // Find the start of the HTML content
+      const htmlStart = Math.max(
+        fullContent.indexOf("<!DOCTYPE html>"),
+        fullContent.indexOf("<!doctype html>")
+      );
+      
+      if (htmlStart >= 0) {
+        const htmlContent = fullContent.substring(htmlStart);
+        return {
+          html: htmlContent,
+          success: true
+        };
+      }
+    }
+    
+    // If no HTML found, wrap the content
+    return {
+      html: `<!DOCTYPE html><html><head><title>Generated Page</title></head><body>${fullContent}</body></html>`,
+      success: true
+    };
+    
+  } catch (error) {
+    console.error("Error generating landing page HTML with Kimi K2:", error);
+    return {
+      html: generateFallbackHtml(`${prompt.substring(0, 20)}...`, prompt),
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
+}
+
+/**
  * Generate HTML content using AI Accelerate's DeepSeek-V3-0324 model
  */
 export async function generateLandingPageHtml(
+  prompt: string,
+  apiConfig: ApiConfig
+): Promise<GenerationResult> {
+  // For now, use Kimi K2 as the primary model
+  // Later this can be made configurable
+  return generateLandingPageHtmlWithKimi(prompt, apiConfig);
+}
+
+/**
+ * Generate HTML content using AI Accelerate's DeepSeek-V3-0324 model (original implementation)
+ */
+export async function generateLandingPageHtmlWithDeepSeek(
   prompt: string,
   apiConfig: ApiConfig
 ): Promise<GenerationResult> {
