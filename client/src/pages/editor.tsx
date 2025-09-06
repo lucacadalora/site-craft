@@ -1486,6 +1486,7 @@ export default function Editor({
                   setHtmlContent(defaultHTML);
                   setPreviousPrompt('');
                   setConversationHistory([]);
+                  setConversationOpen(false); // Close conversation panel to show main prompt input
                 }
               }}
             >
