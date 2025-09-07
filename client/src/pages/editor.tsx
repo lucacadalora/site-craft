@@ -463,9 +463,6 @@ export default function Editor({
         },
         body: JSON.stringify({ 
           prompt: actualPrompt,
-          previousPrompt: isFollowUp ? previousPrompt : undefined,
-          isFollowUp,
-          currentHtml: isFollowUp ? htmlContent : undefined,
           apiConfig: {
             ...apiConfig,
             apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
@@ -1450,9 +1447,6 @@ export default function Editor({
                 if (confirm('Create a new project? This will clear the current content.')) {
                   setPrompt('');
                   setHtmlContent(defaultHTML);
-                  setPreviousPrompt('');
-                  setConversationHistory([]);
-                  setConversationOpen(false); // Close conversation panel to show main prompt input
                 }
               }}
             >
