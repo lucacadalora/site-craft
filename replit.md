@@ -96,21 +96,11 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
 
 - July 04, 2025. Initial setup
 - July 04, 2025. Cloned deepsite-v2 from Hugging Face (https://huggingface.co/spaces/enzostvs/deepsite) into source/deepsite-v2 folder for future integration with the editor
-- July 04, 2025. Started implementing session management features:
-  - Added ConversationPanel component for follow-up prompts
-  - Updated editor to support conversation history
-  - Modified server endpoint to handle follow-up mode with context
-  - Enabled session-based editing where prompts continue the conversation rather than resetting
-- July 04, 2025. Fixed critical issue with session management:
-  - Updated AI logic to modify existing HTML instead of regenerating from scratch
-  - AI now receives the current HTML and applies only the requested changes
-  - Maintains existing structure, styles, and content except where modifications are requested
-  - Works like Canvas/Artifacts - enhances specific sections while preserving the rest
-- July 04, 2025. Enhanced follow-up modification logic:
-  - Updated system prompts to act as a precise code editor making surgical changes
-  - Added HTML cleaning to remove any explanatory text before the actual HTML code
-  - Fixed the AI response parsing to extract only valid HTML content
-  - Improved conversation panel to show immediate status updates
+- September 07, 2025. Removed conversation/follow-up functionality:
+  - Removed ConversationPanel component and conversation history features
+  - Simplified API to focus on single-prompt streaming generation
+  - Restored clean, focused editor interface for optimal streaming UX
+  - Editor now provides pure streaming generation experience without conversation complexity
 
 ## User Preferences
 
