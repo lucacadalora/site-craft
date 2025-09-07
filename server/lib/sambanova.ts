@@ -73,7 +73,7 @@ export async function generateLandingPageHtmlWithKimi(
       messages: [systemMessage, userMessage],
       model: "moonshotai/kimi-k2-instruct-0905",
       temperature: 0.6,
-      max_completion_tokens: 4096,
+      max_completion_tokens: 32000,
       top_p: 1,
       stream: true,
       stop: null
@@ -163,7 +163,8 @@ export async function generateLandingPageHtmlWithDeepSeek(
     const completionOptions: CompletionOptions = {
       stream: true,
       model: "DeepSeek-V3-0324", // Corrected model name with proper capitalization
-      messages: [systemMessage, userMessage]
+      messages: [systemMessage, userMessage],
+      max_tokens: 32000
     };
     
     // Log API request for debugging

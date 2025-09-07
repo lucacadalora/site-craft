@@ -609,7 +609,8 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
         const completionOptions = {
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage]
+          messages: [systemMessage, userMessage],
+          max_tokens: 32000
         };
         
         // Call the Jatevo Inference API with streaming
