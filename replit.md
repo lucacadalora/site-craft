@@ -17,7 +17,7 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: JWT-based authentication with bcrypt for password hashing
-- **API Integration**: Multiple AI providers (AI Accelerate, OpenAI, SambaNova)
+- **API Integration**: Multiple AI providers (Jatevo, OpenAI, SambaNova)
 - **File Storage**: Local file system with planned cloud storage support
 
 ### Database Schema
@@ -29,7 +29,7 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
 ## Key Components
 
 ### AI Integration Layer
-- **Primary Provider**: AI Accelerate (DeepSeek-V3-0324) with hardcoded API key for production reliability
+- **Primary Provider**: Jatevo (DeepSeek-V3-0324) with hardcoded API key for production reliability
 - **Fallback Provider**: OpenAI GPT-4 for premium features
 - **SambaNova**: Additional AI model support
 - **Streaming**: Real-time AI response streaming with typewriter effect
@@ -63,7 +63,7 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
 
 ### Core Dependencies
 - **Database**: PostgreSQL (Neon serverless recommended)
-- **AI Services**: AI Accelerate API, OpenAI API, SambaNova API
+- **AI Services**: Jatevo API, OpenAI API, SambaNova API
 - **Authentication**: JWT for token management
 - **UI Components**: Radix UI primitives via Shadcn/UI
 

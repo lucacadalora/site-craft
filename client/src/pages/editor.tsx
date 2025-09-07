@@ -146,7 +146,7 @@ export default function Editor({
   });
   
   // New state for conversation management
-  const [conversationOpen, setConversationOpen] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(true);
   const [previousPrompt, setPreviousPrompt] = useState("");
   const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   
