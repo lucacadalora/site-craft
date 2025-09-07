@@ -563,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
         // Using a hardcoded key prevents any issues with environment variables not being passed properly
         
-        console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
+        console.log("Generating HTML with Jatevo Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
         // Prepare the system prompt and user message
         let systemContent = `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`;
@@ -612,7 +612,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
           messages: [systemMessage, userMessage]
         };
         
-        // Call the AI Accelerate Inference API with streaming
+        // Call the Jatevo Inference API with streaming
         const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -624,7 +624,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
         
         if (!apiResponse.ok) {
           const errorText = await apiResponse.text();
-          console.error("AI Accelerate Inference API error:", apiResponse.status, errorText);
+          console.error("Jatevo Inference API error:", apiResponse.status, errorText);
           
           // Send error and then fallback content as a stream event
           res.write(`data: ${JSON.stringify({ 
@@ -644,7 +644,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
         }
         
         // Initialize for processing HTML chunks
-        console.log("AI Accelerate Inference API response received, streaming to client");
+        console.log("Jatevo Inference API response received, streaming to client");
         const reader = apiResponse.body?.getReader();
         if (!reader) {
           throw new Error("Response body is not readable");
@@ -791,7 +791,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
           }
         })}\n\n`);
       } catch (error) {
-        console.error("Error streaming from AI Accelerate Inference API:", error);
+        console.error("Error streaming from Jatevo Inference API:", error);
         
         // Send error as a stream event
         res.write(`data: ${JSON.stringify({ 
@@ -811,12 +811,12 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
       return res.end();
       
     } catch (error) {
-      console.error("Critical error with AI Accelerate Inference API streaming:", error);
+      console.error("Critical error with Jatevo Inference API streaming:", error);
       
       // If we reach this, we can't use the streaming response anymore
       if (!res.headersSent) {
         return res.status(500).json({ 
-          message: error instanceof Error ? error.message : "Failed to generate content with AI Accelerate Inference API" 
+          message: error instanceof Error ? error.message : "Failed to generate content with Jatevo Inference API" 
         });
       } else {
         return res.end();
@@ -901,7 +901,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
       // Estimate token usage
       const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
       
-      // Call the AI Accelerate Inference API
+      // Call the Jatevo Inference API
       const result = await generateLandingPageHtml(prompt, apiConfig);
       
       if (result.success) {
@@ -940,7 +940,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
     }
   });
   
-  // Validate AI Accelerate API key
+  // Validate Jatevo API key
   app.post("/api/sambanova/validate", async (req, res) => {
     try {
       const { apiKey } = req.body;

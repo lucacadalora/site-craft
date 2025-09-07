@@ -124,7 +124,7 @@ export async function generateLandingPageHtmlWithKimi(
 }
 
 /**
- * Generate HTML content using AI Accelerate's DeepSeek-V3-0324 model
+ * Generate HTML content using Jatevo's DeepSeek-V3-0324 model
  */
 export async function generateLandingPageHtml(
   prompt: string,
@@ -136,7 +136,7 @@ export async function generateLandingPageHtml(
 }
 
 /**
- * Generate HTML content using AI Accelerate's DeepSeek-V3-0324 model (original implementation)
+ * Generate HTML content using Jatevo's DeepSeek-V3-0324 model (original implementation)
  */
 export async function generateLandingPageHtmlWithDeepSeek(
   prompt: string,
@@ -147,7 +147,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
     // This ensures it works across all domains including custom domains
     const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
     
-    console.log("Generating HTML with AI Accelerate Inference API using prompt:", prompt.substring(0, 50) + "...");
+    console.log("Generating HTML with Jatevo Inference API using prompt:", prompt.substring(0, 50) + "...");
     
     // Prepare the system prompt and user message using DeepSite style
     const systemMessage: Message = {
@@ -167,7 +167,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
     };
     
     // Log API request for debugging
-    console.log("Calling AI Accelerate Inference API with options:", {
+    console.log("Calling Jatevo Inference API with options:", {
       model: completionOptions.model,
       stream: completionOptions.stream,
       messages: [
@@ -188,7 +188,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI Accelerate Inference API error:", response.status, errorText);
+      console.error("Jatevo Inference API error:", response.status, errorText);
       console.log("Using fallback HTML generation due to API error:", `API error: ${response.status} - ${errorText}`);
       return {
         html: generateFallbackHtml(`${prompt.substring(0, 20)}...`, prompt),
@@ -199,7 +199,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
     
     // For streamed responses, we need to read the chunks and collect them
     try {
-      console.log("AI Accelerate Inference API response received successfully");
+      console.log("Jatevo Inference API response received successfully");
       
       // Since we're using streaming mode, we need to collect the response differently
       if (completionOptions.stream) {
@@ -324,7 +324,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
 }
 
 /**
- * Validate an AI Accelerate Inference API key
+ * Validate a Jatevo Inference API key
  */
 export async function validateSambanovaApiKey(apiKey: string): Promise<boolean> {
   try {
@@ -359,7 +359,7 @@ export async function validateSambanovaApiKey(apiKey: string): Promise<boolean> 
       return false;
     }
   } catch (error) {
-    console.error("Error validating AI Accelerate Inference API key:", error);
+    console.error("Error validating Jatevo Inference API key:", error);
     
     // If there's an error but we're using the default key, assume it's valid
     if (apiKey === "9f5d2696-9a9f-43a6-9778-ebe727cd2968") {
@@ -489,8 +489,8 @@ export function generateFallbackHtml(title: string, prompt: string): string {
     </header>
     
     <div class="error-box">
-      <h2>AI Accelerate Inference API Error</h2>
-      <p>We were unable to generate a landing page using the AI Accelerate Inference API. This is likely due to an API connection issue or service limitation.</p>
+      <h2>Jatevo Inference API Error</h2>
+      <p>We were unable to generate a landing page using the Jatevo Inference API. This is likely due to an API connection issue or service limitation.</p>
     </div>
     
     <div class="prompt-preview">

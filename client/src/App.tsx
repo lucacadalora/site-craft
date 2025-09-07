@@ -14,7 +14,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
-  provider: "AI Accelerate (DeepSeek-V3-0324)",
+  provider: "Jatevo (DeepSeek-V3-0324)",
   apiKey: "9f5d2696-9a9f-43a6-9778-ebe727cd2968",
   saveToken: true
 };

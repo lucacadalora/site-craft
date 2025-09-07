@@ -17,7 +17,7 @@ interface GenerationResult {
 }
 
 /**
- * Generate a comprehensive site with AI Accelerate's DeepSeek-V3-0324 model
+ * Generate a comprehensive site with Jatevo's DeepSeek-V3-0324 model
  */
 export async function generateDeepSite(
   prompt: string,
@@ -27,7 +27,7 @@ export async function generateDeepSite(
   apiConfig: ApiConfig
 ): Promise<GenerationResult> {
   try {
-    console.log("Generating with AI Accelerate DeepSeek-V3-0324...");
+    console.log("Generating with Jatevo DeepSeek-V3-0324...");
     
     // Always use a valid API key - either from config or our hardcoded default
     let apiKey = apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
@@ -56,7 +56,7 @@ export async function generateDeepSite(
           contentDepth,
           apiConfig: {
             apiKey,
-            provider: "AI Accelerate (DeepSeek-V3-0324)"
+            provider: "Jatevo (DeepSeek-V3-0324)"
           }
         }),
       });
@@ -676,7 +676,7 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
       return false;
     }
     
-    console.log("Validating AI Accelerate API key...");
+    console.log("Validating Jatevo API key...");
     
     // Call the server endpoint to validate the API key
     try {
