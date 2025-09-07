@@ -4,6 +4,7 @@ import { apiConfigSchema } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import { generateLandingPageHtml, generateFallbackHtml, validateSambanovaApiKey } from './lib/sambanova';
+import { Groq } from 'groq-sdk';
 import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import sitesRoutes from './routes/sites';
@@ -558,12 +559,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
       
       try {
-        // ALWAYS use the hardcoded API key directly for maximum reliability
-        // This ensures it works on all domains including custom domains
-        const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
-        // Using a hardcoded key prevents any issues with environment variables not being passed properly
+        // Use Groq API key for Kimi K2 model
+        const groqApiKey = process.env.GROQ_API_KEY;
         
-        console.log("Generating HTML with Jatevo Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
+        if (!groqApiKey) {
+          console.error("GROQ_API_KEY environment variable not found");
+          res.write(`data: ${JSON.stringify({ 
+            event: 'error', 
+            message: 'GROQ_API_KEY environment variable not found'
+          })}\n\n`);
+          return res.end();
+        }
+        
+        console.log("Generating HTML with Groq Kimi K2 model using streaming for prompt:", prompt.substring(0, 50) + "...");
         
         // Prepare the system prompt and user message
         let systemContent = `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`;
@@ -585,7 +593,7 @@ You are editing code, not creating new code. Think of yourself as a precise text
         }
         
         const systemMessage = {
-          role: "system",
+          role: "system" as const,
           content: systemContent
         };
         
@@ -602,54 +610,14 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
         }
         
         const userMessage = {
-          role: "user",
+          role: "user" as const,
           content: userContent
         };
         
-        const completionOptions = {
-          stream: true,
-          model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage],
-          max_tokens: 32000
-        };
-        
-        // Call the Jatevo Inference API with streaming
-        const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${apiKey}`
-          },
-          body: JSON.stringify(completionOptions)
+        // Initialize Groq client
+        const groq = new Groq({
+          apiKey: groqApiKey
         });
-        
-        if (!apiResponse.ok) {
-          const errorText = await apiResponse.text();
-          console.error("Jatevo Inference API error:", apiResponse.status, errorText);
-          
-          // Send error and then fallback content as a stream event
-          res.write(`data: ${JSON.stringify({ 
-            event: 'error', 
-            message: `API error: ${apiResponse.status} - ${errorText}`
-          })}\n\n`);
-          
-          // Send fallback HTML
-          const fallbackHtml = generateFallbackHtml(title, prompt);
-          res.write(`data: ${JSON.stringify({ 
-            event: 'complete', 
-            html: fallbackHtml,
-            source: 'fallback'
-          })}\n\n`);
-          
-          return res.end();
-        }
-        
-        // Initialize for processing HTML chunks
-        console.log("Jatevo Inference API response received, streaming to client");
-        const reader = apiResponse.body?.getReader();
-        if (!reader) {
-          throw new Error("Response body is not readable");
-        }
         
         // Send an initial message
         res.write(`data: ${JSON.stringify({ 
@@ -657,56 +625,47 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
           message: 'Generation started' 
         })}\n\n`);
         
+        // Create chat completion with streaming using Kimi K2
+        const chatCompletion = await groq.chat.completions.create({
+          messages: [systemMessage, userMessage],
+          model: "moonshotai/kimi-k2-instruct-0905",
+          temperature: 0.6,
+          max_completion_tokens: 32000,
+          top_p: 1,
+          stream: true,
+          stop: null
+        });
+        
+        console.log("Groq Kimi K2 API response received, streaming to client");
+        
         // Stream all chunks directly to the client
         let fullContent = "";
         let htmlStarted = false;
         
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Process the stream from Groq
+        for await (const chunk of chatCompletion) {
+          const content = chunk.choices[0]?.delta?.content || '';
           
-          // Decode the chunk
-          const chunk = new TextDecoder().decode(value);
-          
-          // Process each line that starts with "data: "
-          const lines = chunk.split('\n\n');
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const jsonStr = line.slice(6);
-              if (jsonStr === '[DONE]') continue;
-              
-              try {
-                const jsonData = JSON.parse(jsonStr);
-                if (jsonData.choices && jsonData.choices.length > 0) {
-                  const delta = jsonData.choices[0].delta;
-                  if (delta && delta.content) {
-                    // Extract the content and add it to our full content
-                    const contentChunk = delta.content;
-                    fullContent += contentChunk;
-                    
-                    // If this is the first piece of HTML, mark it
-                    if (!htmlStarted && (
-                      contentChunk.includes("<!DOCTYPE") || 
-                      contentChunk.includes("<html") || 
-                      contentChunk.includes("<head") ||
-                      contentChunk.includes("<body")
-                    )) {
-                      htmlStarted = true;
-                    }
-                    
-                    // Send the chunk to the client with metadata
-                    res.write(`data: ${JSON.stringify({ 
-                      event: 'chunk', 
-                      content: contentChunk,
-                      isHtml: htmlStarted
-                    })}\n\n`);
-                  }
-                }
-              } catch (e) {
-                console.error("Error parsing JSON chunk:", e);
-                // Don't fail the whole stream for a single parse error
-              }
+          if (content) {
+            // Add to our full content
+            fullContent += content;
+            
+            // If this is the first piece of HTML, mark it
+            if (!htmlStarted && (
+              content.includes("<!DOCTYPE") || 
+              content.includes("<html") || 
+              content.includes("<head") ||
+              content.includes("<body")
+            )) {
+              htmlStarted = true;
             }
+            
+            // Send the chunk to the client immediately
+            res.write(`data: ${JSON.stringify({ 
+              event: 'chunk', 
+              content: content,
+              isHtml: htmlStarted
+            })}\n\n`);
           }
         }
         
