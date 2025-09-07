@@ -11,7 +11,6 @@ import { GenerationStatus } from "@/components/ui/generation-status";
 import { UserProfile } from "@/components/user-profile";
 import { useAuth } from "@/contexts/auth-context";
 import { DeployButton } from "@/components/deploy-button";
-import { ConversationPanel } from "@/components/ui/conversation-panel";
 
 // Extend the Window interface to include our custom property
 declare global {
@@ -145,17 +144,7 @@ export default function Editor({
     saveToken: false,
   });
   
-  // New state for conversation management
-  const [conversationOpen, setConversationOpen] = useState(true);
-  const [previousPrompt, setPreviousPrompt] = useState("");
-  const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   
-  // Auto-open conversation panel when HTML is generated
-  useEffect(() => {
-    if (htmlContent && htmlContent !== defaultHTML && !conversationOpen) {
-      setConversationOpen(true);
-    }
-  }, [htmlContent]);
   
   // Update the parent's API config if it changes and if handler provided
   useEffect(() => {
@@ -360,23 +349,9 @@ export default function Editor({
     }
   };
 
-  // Handle conversation messages (follow-up or new generation)
-  const handleConversationMessage = async (message: string, isFollowUp: boolean) => {
-    // Store the current prompt for follow-up context
-    if (isFollowUp) {
-      setPreviousPrompt(prompt);
-      setConversationHistory(prev => [...prev, prompt]);
-    }
-    
-    // Update the prompt with the new message  
-    setPrompt(message);
-    
-    // Call the existing generation handler with follow-up context and current HTML
-    await handleGenerate(message, isFollowUp);
-  };
 
   // Handle generation with typewriter streaming effect
-  const handleGenerate = async (overridePrompt?: string, isFollowUp: boolean = false) => {
+  const handleGenerate = async (overridePrompt?: string) => {
     // Store interval reference outside try/catch scope for cleanup
     let progressInterval: NodeJS.Timeout | undefined;
     const actualPrompt = overridePrompt || prompt;
@@ -1316,15 +1291,6 @@ export default function Editor({
             </div>
           </div>
           
-          {/* Conversation Panel - Session Management */}
-          <ConversationPanel
-            isOpen={conversationOpen}
-            onToggle={() => setConversationOpen(!conversationOpen)}
-            onSendMessage={handleConversationMessage}
-            isGenerating={isGenerating}
-            currentHtml={htmlContent}
-            className="mt-4"
-          />
         </div>
         </div>
 
