@@ -53,7 +53,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
       setValidationStatus("valid");
       toast({
         title: "API Key Valid",
-        description: "Your Jatevo API key has been validated successfully.",
+        description: "Your AI Accelerate API key has been validated successfully.",
       });
     } catch (error) {
       setValidationStatus("invalid");
@@ -78,7 +78,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
         <CardContent>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="api-key">Jatevo API Key (Optional)</Label>
+              <Label htmlFor="api-key">AI Accelerate API Key (Optional)</Label>
               <div className="flex mt-1">
                 <Input
                   id="api-key"
@@ -122,7 +122,7 @@ export function ApiConfigComponent({ apiConfig, onApiConfigChange }: ApiConfigPr
             <div className="rounded-md bg-blue-50 p-3">
               <div className="flex">
                 <div className="text-blue-800">
-                  <p className="text-sm font-medium">Using Jatevo DeepSeek-V3-0324 Model</p>
+                  <p className="text-sm font-medium">Using AI Accelerate DeepSeek-V3-0324 Model</p>
                   <p className="text-xs mt-1">
                     A state-of-the-art language model for generating high-quality landing pages
                   </p>

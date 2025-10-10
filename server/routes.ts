@@ -4,7 +4,6 @@ import { apiConfigSchema } from "@shared/schema";
 import fs from "fs";
 import path from "path";
 import { generateLandingPageHtml, generateFallbackHtml, validateSambanovaApiKey } from './lib/sambanova';
-import { Groq } from 'groq-sdk';
 import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import sitesRoutes from './routes/sites';
@@ -531,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SambaNova API integration for DeepSite generation with true streaming
   app.post("/api/sambanova/generate-stream", optionalAuth, async (req: AuthRequest, res) => {
     try {
-      const { prompt, apiConfig, previousPrompt, isFollowUp, currentHtml } = req.body;
+      const { prompt, apiConfig } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ 
@@ -559,65 +558,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
       
       try {
-        // Use Groq API key for Kimi K2 model
-        const groqApiKey = process.env.GROQ_API_KEY;
+        // ALWAYS use the hardcoded API key directly for maximum reliability
+        // This ensures it works on all domains including custom domains
+        const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
+        // Using a hardcoded key prevents any issues with environment variables not being passed properly
         
-        if (!groqApiKey) {
-          console.error("GROQ_API_KEY environment variable not found");
+        console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
+        
+        // Prepare the system prompt and user message
+        const systemMessage = {
+          role: "system",
+          content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
+        };
+        
+        const userMessage = {
+          role: "user",
+          content: `Create a landing page for: ${prompt}`
+        };
+        
+        const completionOptions = {
+          stream: true,
+          model: "DeepSeek-V3-0324",
+          messages: [systemMessage, userMessage]
+        };
+        
+        // Call the AI Accelerate Inference API with streaming
+        const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(completionOptions)
+        });
+        
+        if (!apiResponse.ok) {
+          const errorText = await apiResponse.text();
+          console.error("AI Accelerate Inference API error:", apiResponse.status, errorText);
+          
+          // Send error and then fallback content as a stream event
           res.write(`data: ${JSON.stringify({ 
             event: 'error', 
-            message: 'GROQ_API_KEY environment variable not found'
+            message: `API error: ${apiResponse.status} - ${errorText}`
           })}\n\n`);
+          
+          // Send fallback HTML
+          const fallbackHtml = generateFallbackHtml(title, prompt);
+          res.write(`data: ${JSON.stringify({ 
+            event: 'complete', 
+            html: fallbackHtml,
+            source: 'fallback'
+          })}\n\n`);
+          
           return res.end();
         }
         
-        console.log("Generating HTML with Groq Kimi K2 model using streaming for prompt:", prompt.substring(0, 50) + "...");
-        
-        // Prepare the system prompt and user message
-        let systemContent = `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`;
-        
-        // Add context for follow-up mode - MODIFY EXISTING HTML
-        if (isFollowUp && currentHtml) {
-          systemContent = `You are a code editor that modifies existing HTML. Your job is to make ONLY the specific changes requested by the user while keeping EVERYTHING ELSE exactly the same.
-
-CRITICAL RULES:
-1. DO NOT rewrite or regenerate the HTML from scratch
-2. DO NOT add explanatory text like "Here's the modified HTML..."
-3. Return ONLY the complete HTML starting with <!DOCTYPE html>
-4. Make ONLY the specific changes requested
-5. Keep ALL other elements, styles, scripts, and content EXACTLY as they were
-6. Preserve all formatting, indentation, and structure
-7. Do not optimize, clean up, or reorganize code unless specifically asked
-
-You are editing code, not creating new code. Think of yourself as a precise text editor making surgical changes.`;
+        // Initialize for processing HTML chunks
+        console.log("AI Accelerate Inference API response received, streaming to client");
+        const reader = apiResponse.body?.getReader();
+        if (!reader) {
+          throw new Error("Response body is not readable");
         }
-        
-        const systemMessage = {
-          role: "system" as const,
-          content: systemContent
-        };
-        
-        let userContent = prompt;
-        if (isFollowUp && currentHtml) {
-          userContent = `Current HTML to modify:
-\`\`\`html
-${currentHtml}
-\`\`\`
-
-Modification request: ${prompt}
-
-Remember: Return ONLY the modified HTML code with the requested changes. Do not add any explanations.`;
-        }
-        
-        const userMessage = {
-          role: "user" as const,
-          content: userContent
-        };
-        
-        // Initialize Groq client
-        const groq = new Groq({
-          apiKey: groqApiKey
-        });
         
         // Send an initial message
         res.write(`data: ${JSON.stringify({ 
@@ -625,47 +626,56 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
           message: 'Generation started' 
         })}\n\n`);
         
-        // Create chat completion with streaming using Kimi K2
-        const chatCompletion = await groq.chat.completions.create({
-          messages: [systemMessage, userMessage],
-          model: "moonshotai/kimi-k2-instruct-0905",
-          temperature: 0.6,
-          max_completion_tokens: 32000,
-          top_p: 1,
-          stream: true,
-          stop: null
-        });
-        
-        console.log("Groq Kimi K2 API response received, streaming to client");
-        
         // Stream all chunks directly to the client
         let fullContent = "";
         let htmlStarted = false;
         
-        // Process the stream from Groq
-        for await (const chunk of chatCompletion) {
-          const content = chunk.choices[0]?.delta?.content || '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
           
-          if (content) {
-            // Add to our full content
-            fullContent += content;
-            
-            // If this is the first piece of HTML, mark it
-            if (!htmlStarted && (
-              content.includes("<!DOCTYPE") || 
-              content.includes("<html") || 
-              content.includes("<head") ||
-              content.includes("<body")
-            )) {
-              htmlStarted = true;
+          // Decode the chunk
+          const chunk = new TextDecoder().decode(value);
+          
+          // Process each line that starts with "data: "
+          const lines = chunk.split('\n\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+              
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.choices && jsonData.choices.length > 0) {
+                  const delta = jsonData.choices[0].delta;
+                  if (delta && delta.content) {
+                    // Extract the content and add it to our full content
+                    const contentChunk = delta.content;
+                    fullContent += contentChunk;
+                    
+                    // If this is the first piece of HTML, mark it
+                    if (!htmlStarted && (
+                      contentChunk.includes("<!DOCTYPE") || 
+                      contentChunk.includes("<html") || 
+                      contentChunk.includes("<head") ||
+                      contentChunk.includes("<body")
+                    )) {
+                      htmlStarted = true;
+                    }
+                    
+                    // Send the chunk to the client with metadata
+                    res.write(`data: ${JSON.stringify({ 
+                      event: 'chunk', 
+                      content: contentChunk,
+                      isHtml: htmlStarted
+                    })}\n\n`);
+                  }
+                }
+              } catch (e) {
+                console.error("Error parsing JSON chunk:", e);
+                // Don't fail the whole stream for a single parse error
+              }
             }
-            
-            // Send the chunk to the client immediately
-            res.write(`data: ${JSON.stringify({ 
-              event: 'chunk', 
-              content: content,
-              isHtml: htmlStarted
-            })}\n\n`);
           }
         }
         
@@ -717,41 +727,25 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
         // Send completion event with token information
         console.log("Streaming completed, sending final event");
         
-        // Clean the HTML content to remove any explanatory text before the HTML
-        let cleanedHtml = fullContent;
-        
-        // Find the start of the HTML document
-        const doctypeIndex = fullContent.indexOf('<!DOCTYPE');
-        const htmlIndex = fullContent.indexOf('<html');
-        
-        // Use whichever comes first (DOCTYPE or html tag)
-        const htmlStartIndex = doctypeIndex !== -1 ? doctypeIndex : htmlIndex;
-        
-        if (htmlStartIndex > 0) {
-          // There's text before the HTML - remove it
-          cleanedHtml = fullContent.substring(htmlStartIndex);
-          console.log(`Removed ${htmlStartIndex} characters of explanatory text before HTML`);
-        }
-        
         // Calculate token estimate for client reference
-        const tokenEstimate = Math.round(cleanedHtml.length / 4);
+        const tokenEstimate = Math.round(fullContent.length / 4);
         
         res.write(`data: ${JSON.stringify({ 
           event: 'complete', 
-          html: cleanedHtml,
+          html: fullContent,
           source: 'api',
           tokenCount: tokenEstimate,
           // Include stats to help UI understand processing
           stats: {
             tokens: tokenEstimate,
-            characters: cleanedHtml.length,
+            characters: fullContent.length,
             // If we tracked user info, include that too
             userId: req.user?.id || null,
             generationCount: req.user ? 1 : 0
           }
         })}\n\n`);
       } catch (error) {
-        console.error("Error streaming from Jatevo Inference API:", error);
+        console.error("Error streaming from AI Accelerate Inference API:", error);
         
         // Send error as a stream event
         res.write(`data: ${JSON.stringify({ 
@@ -771,12 +765,12 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
       return res.end();
       
     } catch (error) {
-      console.error("Critical error with Jatevo Inference API streaming:", error);
+      console.error("Critical error with AI Accelerate Inference API streaming:", error);
       
       // If we reach this, we can't use the streaming response anymore
       if (!res.headersSent) {
         return res.status(500).json({ 
-          message: error instanceof Error ? error.message : "Failed to generate content with Jatevo Inference API" 
+          message: error instanceof Error ? error.message : "Failed to generate content with AI Accelerate Inference API" 
         });
       } else {
         return res.end();
@@ -861,7 +855,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
       // Estimate token usage
       const estimatedTokens = Math.ceil(prompt.length / 4) + 50;
       
-      // Call the Jatevo Inference API
+      // Call the AI Accelerate Inference API
       const result = await generateLandingPageHtml(prompt, apiConfig);
       
       if (result.success) {
@@ -900,7 +894,7 @@ Remember: Return ONLY the modified HTML code with the requested changes. Do not 
     }
   });
   
-  // Validate Jatevo API key
+  // Validate AI Accelerate API key
   app.post("/api/sambanova/validate", async (req, res) => {
     try {
       const { apiKey } = req.body;
