@@ -1210,6 +1210,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST endpoint to enhance prompts using Cerebras
+  app.post("/api/cerebras/enhance-prompt", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      // Get API key from environment
+      const apiKey = process.env.CEREBRAS_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ 
+          error: 'Cerebras API key not configured',
+          enhancedPrompt: prompt // Return original prompt as fallback
+        });
+      }
+
+      // Call Cerebras API to enhance the prompt
+      const apiResponse = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          stream: false,
+          model: "zai-glm-4.6",
+          messages: [
+            {
+              role: "system",
+              content: `You will be given a prompt for generating a website. Your task is to rewrite the prompt to include much more detail and specificity, making it easier for an AI to generate a high-quality website.
+
+CRITICAL RULES:
+1. ALWAYS KEEP THE ORIGINAL IDEA - Do not change what the user wants
+2. ADD LOTS OF DETAILS - Be specific about design, layout, sections, features
+3. If user asks for multiple pages, keep multiple pages in rewritten prompt
+4. RETURN ONLY THE REWRITTEN PROMPT - No explanations, no extra text
+5. Make it professional and comprehensive
+
+Example:
+Original: "buatkan warung bakmi"
+Enhanced: "Create a professional, modern website for a traditional Indonesian noodle restaurant (warung bakmi). Include: 1) Hero section with appetizing banner image and restaurant name, 2) Menu section displaying noodle dishes with descriptions and prices, 3) About section telling the restaurant's story and tradition, 4) Location section with embedded map and contact information, 5) Customer testimonials/reviews section, 6) Footer with social media links and business hours. Use warm, inviting colors (red, yellow, orange tones), mobile-responsive design, clear typography, and prominent call-to-action buttons for ordering or reservations."`
+            },
+            {
+              role: "user",
+              content: `Here is my prompt: ${prompt}
+
+IMPORTANT: Keep my original idea, just add more detail and specificity to make the best website possible.`
+            }
+          ],
+          max_tokens: 2000,
+          temperature: 0.7,
+          top_p: 0.95
+        })
+      });
+
+      if (!apiResponse.ok) {
+        console.error('Cerebras API error:', await apiResponse.text());
+        return res.status(500).json({ 
+          error: 'Failed to enhance prompt',
+          enhancedPrompt: prompt // Return original as fallback
+        });
+      }
+
+      const data = await apiResponse.json();
+      const enhancedPrompt = data.choices[0]?.message?.content || prompt;
+
+      return res.json({ enhancedPrompt });
+    } catch (error) {
+      console.error('Error enhancing prompt:', error);
+      return res.status(500).json({ 
+        error: 'Failed to enhance prompt',
+        enhancedPrompt: req.body.prompt // Return original as fallback
+      });
+    }
+  });
+
   // GET endpoint for Cerebras (zai-glm-4.6) SSE streaming (EventSource API)
   app.get("/api/cerebras/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
