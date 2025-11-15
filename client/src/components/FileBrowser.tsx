@@ -78,6 +78,34 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
     }
   };
 
+  const getLanguageBadge = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    switch (extension) {
+      case 'html':
+        return (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+            HTML
+          </span>
+        );
+      case 'css':
+        return (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            CSS
+          </span>
+        );
+      case 'js':
+      case 'javascript':
+        return (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+            JS
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   const handleFileClick = (fileName: string) => {
     openFile(fileName);
     selectFile(fileName);
@@ -220,7 +248,8 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
                   ) : (
                     <>
                       {getFileIcon(file.name)}
-                      <span className="text-sm flex-1">{file.name}</span>
+                      <span className="text-sm flex-1 font-medium text-gray-200">{file.name}</span>
+                      {getLanguageBadge(file.name)}
                     </>
                   )}
                 </div>
