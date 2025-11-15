@@ -232,10 +232,7 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Code2 className="w-6 h-6 text-blue-400" />
-              <span className="text-xl font-semibold">DeepSite</span>
-              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium">
-                PRO
-              </span>
+              <span className="text-xl font-semibold text-gray-100">Jatevo Web Builder</span>
             </div>
           </div>
           
@@ -262,11 +259,11 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Title Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {username}'s DeepSite Projects
+          <h1 className="text-3xl font-bold mb-2 text-gray-100">
+            {username}'s Projects
           </h1>
           <p className="text-gray-400">
-            Create, manage, and explore your DeepSite projects.
+            Create, manage, and explore your projects.
           </p>
         </div>
 
@@ -390,10 +387,10 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
 
       {/* New Project Dialog */}
       <Dialog open={newProjectDialog} onOpenChange={setNewProjectDialog}>
-        <DialogContent className="bg-[#1a1a1a] border-gray-800">
+        <DialogContent className="bg-[#1a1a1a] border-gray-800 text-gray-100">
           <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-100">Create New Project</DialogTitle>
+            <DialogDescription className="text-gray-400">
               Give your project a name to get started. You can change this later.
             </DialogDescription>
           </DialogHeader>
@@ -426,10 +423,10 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open })}>
-        <DialogContent className="bg-[#1a1a1a] border-gray-800">
+        <DialogContent className="bg-[#1a1a1a] border-gray-800 text-gray-100">
           <DialogHeader>
-            <DialogTitle>Delete Project</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-gray-100">Delete Project</DialogTitle>
+            <DialogDescription className="text-gray-400">
               Are you sure you want to delete this project? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>

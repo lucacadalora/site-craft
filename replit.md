@@ -1,8 +1,8 @@
-# DeepSite - AI-Powered Landing Page Generator
+# Jatevo Web Builder - AI-Powered Website Generator
 
 ## Overview
 
-DeepSite is an advanced full-stack AI-powered landing page generator that leverages multiple AI technologies to create dynamic, context-aware landing pages. The application enables users to generate professional-quality landing pages using AI models like DeepSeek-V3-0324 and OpenAI, with features including real-time streaming generation, template customization, and one-click deployment.
+Jatevo Web Builder is an advanced full-stack AI-powered website generator that leverages multiple AI technologies to create dynamic, context-aware websites. The application enables users to generate professional-quality websites using AI models like DeepSeek-V3-0324 and OpenAI, with features including real-time streaming generation, template customization, and one-click deployment.
 
 ## System Architecture
 
