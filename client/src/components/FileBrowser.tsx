@@ -237,17 +237,17 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
   };
 
   return (
-    <div className={cn("bg-background border-r", className)}>
-      <div className="p-2 border-b flex items-center justify-between">
-        <span className="text-sm font-medium">Files</span>
+    <div className={cn("bg-[#1e1e1e] border-r border-gray-800", className)}>
+      <div className="p-2 border-b border-gray-800 flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-300">Files</span>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowNewFileDialog(true)}
-          className="h-6 w-6 p-0"
+          className="h-6 w-6 p-0 hover:bg-gray-800"
           data-testid="button-new-file"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-gray-400" />
         </Button>
       </div>
 
@@ -262,8 +262,8 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
                 <ContextMenuTrigger asChild>
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer relative",
-                      project.activeFile === file.name && "bg-accent",
+                      "flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-800 cursor-pointer relative",
+                      project.activeFile === file.name && "bg-gray-800",
                       isGenerating && "animate-pulse bg-blue-500/10 border-blue-500/30 border"
                     )}
                     onClick={() => handleFileClick(file.name)}
@@ -319,14 +319,17 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
                   )}
                 </div>
               </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem onClick={() => handleRename(file.name)}>
+              <ContextMenuContent className="bg-gray-900 border-gray-700">
+                <ContextMenuItem 
+                  onClick={() => handleRename(file.name)}
+                  className="text-gray-200 hover:bg-gray-800"
+                >
                   <Edit2 className="mr-2 h-4 w-4" />
                   Rename
                 </ContextMenuItem>
                 <ContextMenuItem 
                   onClick={() => setDeleteFileDialog(file.name)}
-                  className="text-destructive"
+                  className="text-red-400 hover:bg-gray-800"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete

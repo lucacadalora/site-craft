@@ -116,44 +116,7 @@ export const MultiFileEditor = ({
   }
 
   return (
-    <div className={cn("flex flex-col h-full bg-background", className)}>
-      {/* Editor Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-background">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{activeFile.name}</span>
-          {project.isDirty && (
-            <span className="text-xs text-muted-foreground">(unsaved)</span>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {onRunCode && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRunCode}
-              className="gap-2"
-              data-testid="button-run-code"
-            >
-              <Play className="w-4 h-4" />
-              Run
-            </Button>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSave}
-            disabled={!project.isDirty || saving}
-            className="gap-2"
-            data-testid="button-save-project"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Saving...' : 'Save'}
-          </Button>
-        </div>
-      </div>
-
+    <div className={cn("flex flex-col h-full bg-[#1e1e1e]", className)}>
       {/* Code Editor */}
       <div 
         className="flex-1 overflow-auto"
@@ -182,7 +145,6 @@ export const MultiFileEditor = ({
           data-testid={`editor-${activeFile.name}`}
         />
       </div>
-
     </div>
   );
 };
