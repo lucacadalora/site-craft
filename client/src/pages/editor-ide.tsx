@@ -10,6 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { UserProfile } from '@/components/user-profile';
 import { DeployButton } from '@/components/deploy-button';
 import { GenerationStatus } from '@/components/ui/generation-status';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Send, 
   Zap, 
@@ -22,7 +29,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
-  Files
+  Files,
+  AtSign,
+  Paperclip,
+  Edit3,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -54,6 +65,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
+  const [selectedModel, setSelectedModel] = useState('deepseek-v3-0324');
   
   // Refs
   const previewRef = useRef<HTMLIFrameElement>(null);
@@ -582,8 +594,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
 
         {/* Editor and Preview Container */}
         <div className="flex-1 flex relative">
-          {/* Code Editor - 20% width */}
-          <div className="w-[20%] min-w-[300px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
+          {/* Code Editor - 30% width */}
+          <div className="w-[30%] min-w-[400px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
             {/* Editor Header with Files Button */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
               <Button
@@ -618,51 +630,110 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             />
           </div>
 
-          {/* Prompt Input - Bottom Left Corner */}
-          <div className="absolute bottom-0 left-0 w-[300px] p-4 bg-[#1e1e1e]/95 backdrop-blur-sm border-t border-r border-gray-800 z-30">
-            <Textarea
-              placeholder="Ask DeepSite anything..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  handleGenerate();
-                }
-              }}
-              className="min-h-[80px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-400 text-sm"
-              disabled={isGenerating}
-              data-testid="input-prompt"
-            />
-            
-            <div className="flex gap-2">
-              <Button
-                onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                disabled={!prompt.trim() && !isGenerating}
-                size="sm"
-                className="flex-1"
-                variant={isGenerating ? "destructive" : "default"}
-                data-testid="button-generate"
-              >
-                {isGenerating ? (
-                  <>Stop</>
-                ) : (
-                  <>
-                    <Zap className="w-3 h-3 mr-1" />
-                    Generate
-                  </>
-                )}
-              </Button>
+          {/* Prompt Bar - Bottom Left Corner (v3 Design) */}
+          <div className="absolute bottom-4 left-4 w-[calc(30%_-_2rem)] min-w-[400px] z-30">
+            <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
+              {/* Prompt Input */}
+              <Textarea
+                placeholder="Ask DeepSite for edits"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
+                    e.preventDefault();
+                    if (!isGenerating) {
+                      handleGenerate();
+                    }
+                  }
+                }}
+                className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+                disabled={isGenerating}
+                data-testid="input-prompt"
+              />
               
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => createNewProject()}
-                title="New Project"
-                className="bg-transparent border-gray-700 hover:bg-gray-800 px-2"
-                data-testid="button-new-project"
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
+              {/* Menu Bar */}
+              <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
+                <div className="flex items-center gap-2">
+                  {/* Add Context Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                    data-testid="button-add-context"
+                  >
+                    <AtSign className="w-3.5 h-3.5 mr-1.5" />
+                    Add Context
+                  </Button>
+                  
+                  {/* Model Selector */}
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    <SelectTrigger 
+                      className="h-8 w-auto min-w-[180px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                      data-testid="select-model"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5" />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                      <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                        deepseek-v3-0324
+                      </SelectItem>
+                      <SelectItem value="gpt-4" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                        gpt-4
+                      </SelectItem>
+                      <SelectItem value="claude-3" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                        claude-3
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Attach Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                    data-testid="button-attach"
+                  >
+                    <Paperclip className="w-3.5 h-3.5 mr-1.5" />
+                    Attach
+                  </Button>
+                  
+                  {/* Edit Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                    data-testid="button-edit"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                </div>
+                
+                {/* Send/Stop Button */}
+                <Button
+                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
+                  disabled={!prompt.trim() && !isGenerating}
+                  size="sm"
+                  className="h-8 px-4 text-xs"
+                  variant={isGenerating ? "destructive" : "default"}
+                  data-testid="button-generate"
+                >
+                  {isGenerating ? (
+                    <>
+                      <X className="w-3.5 h-3.5 mr-1.5" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5 mr-1.5" />
+                      Run
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
