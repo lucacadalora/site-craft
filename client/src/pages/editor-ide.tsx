@@ -307,57 +307,90 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
           
           accumulatedContent += contentChunk;
           
-          // Try to parse accumulated content using the enhanced parser
-          try {
-            const parsed = processAiResponse(accumulatedContent);
+          // REAL-TIME STREAMING: Detect file markers as they arrive
+          // Check for project name
+          const projectNameMatch = accumulatedContent.match(/<<<<<<< PROJECT_NAME_START\s+(.+?)\s+>>>>>>> PROJECT_NAME_END/);
+          if (projectNameMatch && !projectName) {
+            projectName = projectNameMatch[1].trim();
+            isMultiFile = true;
+          }
+          
+          // Find all NEW_FILE_START markers in accumulated content
+          const fileMarkerRegex = /<<<<<<< NEW_FILE_START\s+([^\s>]+)\s+>>>>>>> NEW_FILE_END/g;
+          const fileMatches = Array.from(accumulatedContent.matchAll(fileMarkerRegex));
+          
+          if (fileMatches.length > 0) {
+            isMultiFile = true;
             
-            if (parsed.projectName) {
-              projectName = parsed.projectName;
-              isMultiFile = true;
-            }
-            
-            if (parsed.files.length > 0) {
-              isMultiFile = true;
+            // Process each detected file
+            fileMatches.forEach((match, index) => {
+              const fileName = match[1];
+              const fileStartPos = match.index! + match[0].length;
               
-              // Get existing files for search/replace operations
-              const existingFilesArray = Array.from(currentFiles.values());
-              
-              // Convert parsed files to project files with search/replace support
-              const newFiles = convertToProjectFiles(parsed.files, existingFilesArray);
-              
-              // Merge new files with existing ones
-              const mergedFiles = new Map(currentFiles);
-              
-              for (const file of newFiles) {
-                // Update or add each file
-                mergedFiles.set(file.name, file);
-                incompleteFiles.add(file.name); // Mark as incomplete during streaming
+              // Find the end of this file (next file marker or end of content)
+              let fileEndPos = accumulatedContent.length;
+              if (index < fileMatches.length - 1) {
+                fileEndPos = fileMatches[index + 1].index!;
               }
               
-              currentFiles = mergedFiles;
-              updateFilesRealtime();
-            } else if (!isMultiFile && (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html'))) {
-              // Fallback: Single file mode - treat as HTML
-              if (!currentFiles.has('index.html')) {
-                currentFiles.set('index.html', {
-                  name: 'index.html',
-                  content: '',
-                  language: 'html'
+              // Extract raw content for this file
+              const rawFileContent = accumulatedContent.substring(fileStartPos, fileEndPos);
+              
+              // Extract content from code block if present
+              let fileContent = rawFileContent;
+              const codeBlockMatch = rawFileContent.match(/```(?:html|css|javascript|js)?\s*\n?([\s\S]*?)(?:```|$)/);
+              if (codeBlockMatch) {
+                fileContent = codeBlockMatch[1];
+              }
+              
+              // Determine language
+              const extension = fileName.split('.').pop()?.toLowerCase();
+              let language: 'html' | 'css' | 'javascript' | 'unknown' = 'unknown';
+              if (extension === 'html') language = 'html';
+              else if (extension === 'css') language = 'css';
+              else if (extension === 'js') language = 'javascript';
+              
+              // Create or update the file immediately
+              if (!currentFiles.has(fileName)) {
+                // NEW FILE DETECTED - show it immediately in file browser!
+                currentFiles.set(fileName, {
+                  name: fileName,
+                  content: fileContent,
+                  language
                 });
-                incompleteFiles.add('index.html'); // Mark as incomplete
+                incompleteFiles.add(fileName); // Mark as incomplete during streaming
+                console.log(`🎬 Started streaming file: ${fileName}`);
+              } else {
+                // UPDATE existing file with new content
+                const existingFile = currentFiles.get(fileName)!;
+                currentFiles.set(fileName, {
+                  ...existingFile,
+                  content: fileContent
+                });
               }
-              
-              const file = currentFiles.get('index.html')!;
+            });
+            
+            // Update UI immediately to show new files
+            updateFilesRealtime();
+            
+          } else if (!isMultiFile && (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html'))) {
+            // Fallback: Single file mode - treat as HTML
+            if (!currentFiles.has('index.html')) {
               currentFiles.set('index.html', {
-                ...file,
-                content: accumulatedContent
+                name: 'index.html',
+                content: '',
+                language: 'html'
               });
-              
-              updateFilesRealtime();
+              incompleteFiles.add('index.html');
             }
-          } catch (parseError) {
-            // If parsing fails during streaming, continue accumulating
-            // This is normal as content builds up progressively
+            
+            const file = currentFiles.get('index.html')!;
+            currentFiles.set('index.html', {
+              ...file,
+              content: accumulatedContent
+            });
+            
+            updateFilesRealtime();
           }
         } catch (e) {
           console.error('Error parsing SSE data:', e);
