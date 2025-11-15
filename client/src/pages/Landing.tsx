@@ -7,8 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send } from 'lucide-react';
+import { 
+  Sparkles, Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
+  AtSign, Paperclip, Edit3, ChevronUp
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import { queryClient } from '@/lib/queryClient';
@@ -221,95 +232,134 @@ export default function Landing() {
                   </div>
                 )}
                 
-                <div className="relative bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-800">
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !isGenerating && prompt.trim() && (user || (remainingGenerations !== null && remainingGenerations > 0))) {
-                            handleGenerate();
-                          }
-                        }}
-                        placeholder="Ask Jatevo to build anything..."
-                        className="w-full px-4 py-3 bg-gray-800 text-white placeholder-gray-400 rounded-lg border border-gray-700 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                        disabled={isGenerating || (!user && remainingGenerations === 0)}
-                      />
+                <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
+                  {/* Prompt Input */}
+                  <Textarea
+                    placeholder="Ask Jatevo Web Builder for edits"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && prompt.trim() && (user || (remainingGenerations !== null && remainingGenerations > 0))) {
+                        e.preventDefault();
+                        if (!isGenerating) {
+                          handleGenerate();
+                        }
+                      }
+                    }}
+                    className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    disabled={isGenerating || (!user && remainingGenerations === 0)}
+                  />
+                  
+                  {/* Menu Bar */}
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
+                    <div className="flex items-center gap-2">
+                      {/* Add Context Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                      >
+                        <AtSign className="w-3.5 h-3.5 mr-1.5" />
+                        Add Context
+                      </Button>
+                      
+                      {/* Model Selector */}
+                      <Select value={selectedModel === 'sambanova' ? 'deepseek-v3-0324' : 'cerebras-glm-4.6'} onValueChange={(value) => setSelectedModel(value === 'deepseek-v3-0324' ? 'sambanova' : 'cerebras')}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            DeepSeek V3
+                          </SelectItem>
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            z.ai-GLM 4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Attach Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                      >
+                        <Paperclip className="w-3.5 h-3.5 mr-1.5" />
+                        Attach
+                      </Button>
+                      
+                      {/* Edit Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                      
+                      {/* Enhance Toggle */}
+                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-l border-gray-800/50 ml-1 pl-3">
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Enhance</span>
+                        <Switch
+                          className="scale-75"
+                        />
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      {/* Model Toggle */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedModel(selectedModel === 'sambanova' ? 'cerebras' : 'sambanova')}
-                        className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
-                      >
-                        {selectedModel === 'sambanova' ? (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-1" />
-                            <span className="hidden sm:inline">DeepSeek-V3</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="h-4 w-4 mr-1" />
-                            <span className="hidden sm:inline">GLM-4.6</span>
-                          </>
-                        )}
-                      </Button>
-                      
-                      {/* Enhancement Toggle */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
-                        title="Advanced Settings"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        <span className="hidden sm:inline ml-1">Enhance</span>
-                      </Button>
-                      
-                      {/* Generate Button */}
-                      <Button
-                        onClick={handleGenerate}
-                        disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2"
-                      >
-                        {isGenerating ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                    {/* Generate Button */}
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
+                      size="sm"
+                      className="h-8 px-4 text-xs"
+                      variant={isGenerating ? "destructive" : "default"}
+                    >
+                      {isGenerating ? (
+                        <>
+                          <X className="w-3.5 h-3.5 mr-1.5" />
+                          Stop
+                        </>
+                      ) : (
+                        <>
+                          <ChevronUp className="w-3.5 h-3.5 mr-1.5" />
+                          Run
+                        </>
+                      )}
+                    </Button>
                   </div>
                   
                   {!user && remainingGenerations !== null && remainingGenerations > 0 && (
-                    <p className="text-center text-xs text-gray-500 mt-4">
+                    <p className="text-center text-xs text-gray-500 px-3 pb-2">
                       No signup required • {remainingGenerations} free generation{remainingGenerations !== 1 ? 's' : ''} remaining
                     </p>
                   )}
                 </div>
                 
-                {/* Quick Templates */}
-                <div className="mt-6">
-                  <p className="text-sm text-gray-400 mb-3">Quick Templates:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {examples.slice(0, 6).map((example, index) => (
-                      <Button
+                {/* What Can You Build Section */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-center mb-4 text-gray-300">What Can You Build?</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {examples.map((example, index) => (
+                      <Card 
                         key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPrompt(example.prompt)}
-                        className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300 justify-start px-3 py-2 h-auto"
+                        className="p-4 bg-gray-900 border-gray-800 hover:bg-gray-800 cursor-pointer transition-colors"
+                        onClick={() => handleExampleClick(example)}
                       >
-                        <div className="text-left">
-                          <p className="font-medium text-xs">{example.title}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">{example.category}</p>
-                        </div>
-                      </Button>
+                        <Badge variant="outline" className="mb-2 text-xs">
+                          {example.category}
+                        </Badge>
+                        <h4 className="text-sm font-medium mb-1">{example.title}</h4>
+                        <p className="text-xs text-gray-500">
+                          {example.description}
+                        </p>
+                      </Card>
                     ))}
                   </div>
                 </div>
@@ -353,44 +403,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Examples Section */}
-      <section id="examples" className="container mx-auto px-4 py-20 bg-white dark:bg-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            What Can You Build?
-          </h2>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {examples.map((example, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card 
-                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => handleExampleClick(example)}
-                >
-                  <Badge variant="outline" className="mb-2">
-                    {example.category}
-                  </Badge>
-                  <h3 className="text-lg font-semibold mb-2">{example.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {example.description}
-                  </p>
-                  <Button variant="ghost" size="sm" className="w-full">
-                    Use This Template
-                    <ArrowRight className="ml-2 h-3 w-3" />
-                  </Button>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
 
       {/* CTA Section */}
       {!user && remainingGenerations === 0 && (
