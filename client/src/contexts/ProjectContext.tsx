@@ -214,36 +214,61 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     
     try {
       const token = localStorage.getItem('token');
-      const endpoint = project.id 
-        ? `/api/project-management/projects/${project.id}`
-        : '/api/project-management/projects';
       
-      const method = project.id ? 'PUT' : 'POST';
-      
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          name: project.name,
-          files: project.files,
-          prompts: project.prompts
-        })
-      });
+      if (project.id) {
+        // Update existing project
+        const response = await fetch(`/api/projects/${project.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            name: project.name,
+            html: project.files.find(f => f.name === 'index.html')?.content || '',
+            css: project.files.find(f => f.name === 'styles.css')?.content || '',
+            files: project.files,
+            prompts: project.prompts
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to save project');
+        if (!response.ok) {
+          throw new Error('Failed to update project');
+        }
+
+        const savedProject = await response.json();
+        setProjectState(prev => prev ? {
+          ...prev,
+          isDirty: false,
+          updatedAt: new Date()
+        } : null);
+      } else {
+        // Create new project
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            name: project.name,
+            files: project.files,
+            prompts: project.prompts
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save project');
+        }
+
+        const savedProject = await response.json();
+        setProjectState(prev => prev ? {
+          ...prev,
+          id: savedProject.id?.toString(),
+          isDirty: false,
+          updatedAt: new Date()
+        } : null);
       }
-
-      const savedProject = await response.json();
-      setProjectState(prev => prev ? {
-        ...prev,
-        id: savedProject.id,
-        isDirty: false,
-        updatedAt: new Date(savedProject.updatedAt)
-      } : null);
     } catch (error) {
       console.error('Error saving project:', error);
       throw error;
@@ -253,7 +278,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
   const loadProject = useCallback(async (projectId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/project-management/projects/${projectId}`, {
+      const response = await fetch(`/api/projects/${projectId}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 
@@ -262,12 +287,39 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
       }
 
       const data = await response.json();
+      
+      // Check if data.files exists and is an array, otherwise create default files from HTML/CSS
+      let files: ProjectFile[] = [];
+      if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+        files = data.files.map((f: any) => ({
+          name: f.name || f.path,
+          content: f.content,
+          language: getFileLanguage(f.name || f.path)
+        }));
+      } else {
+        // Backward compatibility - create files from html/css fields
+        if (data.html) {
+          files.push({
+            name: 'index.html',
+            content: data.html,
+            language: 'html'
+          });
+        }
+        if (data.css) {
+          files.push({
+            name: 'styles.css',
+            content: data.css,
+            language: 'css'
+          });
+        }
+      }
+
       const loadedProject: Project = {
-        id: data.id,
+        id: data.id?.toString(),
         name: data.name,
-        files: data.files || [],
-        activeFile: data.files?.[0]?.name,
-        openFiles: data.files?.[0]?.name ? [data.files[0].name] : [],
+        files,
+        activeFile: files[0]?.name,
+        openFiles: files[0]?.name ? [files[0].name] : [],
         prompts: data.prompts || [],
         isDirty: false,
         createdAt: new Date(data.createdAt),

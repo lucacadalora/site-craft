@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import HomeRevamped from "@/pages/home-revamped";
 import Editor from "@/pages/editor";
 import EditorIDE from "@/pages/editor-ide";
+import Projects from "@/pages/projects";
 import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
 import { ApiConfig } from "@shared/schema";
@@ -54,6 +55,13 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
         {(params) => (
           <ProtectedRoute>
             <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/projects">
+        {() => (
+          <ProtectedRoute>
+            <Projects />
           </ProtectedRoute>
         )}
       </Route>

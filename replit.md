@@ -101,6 +101,17 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
   - Simplified API to focus on single-prompt streaming generation
   - Restored clean, focused editor interface for optimal streaming UX
   - Editor now provides pure streaming generation experience without conversation complexity
+- November 15, 2025. Transformed to full IDE experience with multi-file support:
+  - Added multi-file project support (HTML, CSS, JavaScript)
+  - Implemented file browser sidebar and tab navigation for open files
+  - Created ProjectContext for centralized state management
+  - Added project management API endpoints (save, load, list, delete)
+  - Implemented AI response parsing for multi-file generation
+  - Added follow-up prompting to modify existing projects
+  - Created /projects page for managing saved projects
+  - Added project export as ZIP functionality
+  - Maintained backward compatibility with legacy single-file editor at /editor
+  - New IDE interface available at /ide route
 
 ## User Preferences
 
