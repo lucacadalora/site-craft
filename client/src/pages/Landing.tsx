@@ -181,9 +181,6 @@ export default function Landing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Badge className="mb-4 px-4 py-1" variant="secondary">
-              Powered by DeepSeek V3 & GLM-4.6
-            </Badge>
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
               Build Websites with AI
             </h1>
@@ -243,23 +240,42 @@ export default function Landing() {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Tabs value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'sambanova' | 'cerebras')}>
-                        <TabsList className="bg-gray-800 border border-gray-700">
-                          <TabsTrigger value="sambanova" className="data-[state=active]:bg-gray-700">
+                      {/* Model Toggle */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedModel(selectedModel === 'sambanova' ? 'cerebras' : 'sambanova')}
+                        className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                      >
+                        {selectedModel === 'sambanova' ? (
+                          <>
                             <Sparkles className="h-4 w-4 mr-1" />
-                            DeepSeek-V3
-                          </TabsTrigger>
-                          <TabsTrigger value="cerebras" className="data-[state=active]:bg-gray-700">
+                            <span className="hidden sm:inline">DeepSeek-V3</span>
+                          </>
+                        ) : (
+                          <>
                             <Zap className="h-4 w-4 mr-1" />
-                            GLM-4.6
-                          </TabsTrigger>
-                        </TabsList>
-                      </Tabs>
+                            <span className="hidden sm:inline">GLM-4.6</span>
+                          </>
+                        )}
+                      </Button>
                       
+                      {/* Enhancement Toggle */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-gray-700 border-gray-600 hover:bg-gray-600 text-gray-200"
+                        title="Advanced Settings"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1">Enhance</span>
+                      </Button>
+                      
+                      {/* Generate Button */}
                       <Button
                         onClick={handleGenerate}
                         disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 h-full"
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2"
                       >
                         {isGenerating ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
@@ -275,6 +291,27 @@ export default function Landing() {
                       No signup required • {remainingGenerations} free generation{remainingGenerations !== 1 ? 's' : ''} remaining
                     </p>
                   )}
+                </div>
+                
+                {/* Quick Templates */}
+                <div className="mt-6">
+                  <p className="text-sm text-gray-400 mb-3">Quick Templates:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {examples.slice(0, 6).map((example, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrompt(example.prompt)}
+                        className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300 justify-start px-3 py-2 h-auto"
+                      >
+                        <div className="text-left">
+                          <p className="font-medium text-xs">{example.title}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">{example.category}</p>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
