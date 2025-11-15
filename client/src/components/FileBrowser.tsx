@@ -161,63 +161,65 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
       <div className="p-2">
         <div className="space-y-1">
           {project.files.map((file) => (
-            <ContextMenuTrigger key={file.name} asChild>
-              <div
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer",
-                  project.activeFile === file.name && "bg-accent"
-                )}
-                onClick={() => handleFileClick(file.name)}
-                data-testid={`file-${file.name}`}
-              >
-                {renamingFile === file.name ? (
-                  <>
-                    <Input
-                      value={newFileName}
-                      onChange={(e) => setNewFileName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmRename();
-                        if (e.key === 'Escape') cancelRename();
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-6 text-sm"
-                      autoFocus
-                      data-testid={`input-rename-${file.name}`}
-                    />
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          confirmRename();
+            <ContextMenu key={file.name}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer",
+                    project.activeFile === file.name && "bg-accent"
+                  )}
+                  onClick={() => handleFileClick(file.name)}
+                  data-testid={`file-${file.name}`}
+                >
+                  {renamingFile === file.name ? (
+                    <>
+                      <Input
+                        value={newFileName}
+                        onChange={(e) => setNewFileName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') confirmRename();
+                          if (e.key === 'Escape') cancelRename();
                         }}
-                        className="h-6 w-6 p-0"
-                        data-testid="button-confirm-rename"
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          cancelRename();
-                        }}
-                        className="h-6 w-6 p-0"
-                        data-testid="button-cancel-rename"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {getFileIcon(file.name)}
-                    <span className="text-sm flex-1">{file.name}</span>
-                  </>
-                )}
-              </div>
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-6 text-sm"
+                        autoFocus
+                        data-testid={`input-rename-${file.name}`}
+                      />
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            confirmRename();
+                          }}
+                          className="h-6 w-6 p-0"
+                          data-testid="button-confirm-rename"
+                        >
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cancelRename();
+                          }}
+                          className="h-6 w-6 p-0"
+                          data-testid="button-cancel-rename"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {getFileIcon(file.name)}
+                      <span className="text-sm flex-1">{file.name}</span>
+                    </>
+                  )}
+                </div>
+              </ContextMenuTrigger>
               <ContextMenuContent>
                 <ContextMenuItem onClick={() => handleRename(file.name)}>
                   <Edit2 className="mr-2 h-4 w-4" />
@@ -231,7 +233,7 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
                   Delete
                 </ContextMenuItem>
               </ContextMenuContent>
-            </ContextMenuTrigger>
+            </ContextMenu>
           ))}
         </div>
       </div>
