@@ -1,0 +1,137 @@
+Below is a summary of improvements your senior engineer can consider to smooth out the typewriter streaming and auto-scrolling:
+
+---
+
+### 1. **Use a Ref Instead of Querying the DOM on Each Iteration**
+
+Instead of doing this on every chunk:
+
+```js
+const editorWrapper = document.querySelector('.editor-wrapper');
+```
+
+Use a React ref (which you already have in the component) to access the editor element. This reduces DOM lookups and ensures you’re always referencing the correct element.
+
+---
+
+### 2. **Compute the Actual Line Height Dynamically**
+
+Instead of hardcoding `lineHeight = 20` pixels, calculate it from the computed styles:
+
+```js
+const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+const lineHeight = parseFloat(computedStyles.lineHeight) || 20; // Fallback if parsing fails
+```
+
+This way, if the font size or line-height changes (or if the user zooms), the scroll calculations remain accurate.
+
+---
+
+### 3. **Smooth Auto-Scrolling Using requestAnimationFrame**
+
+Replace the immediate scroll jump with an easing function for a smoother scroll. For example, you can implement a small helper that gradually scrolls the editor:
+
+```js
+function smoothScrollTo(element, targetScrollTop, duration = 200) {
+  const startScrollTop = element.scrollTop;
+  const distance = targetScrollTop - startScrollTop;
+  let startTime = null;
+
+  function animation(currentTime) {
+    if (!startTime) startTime = currentTime;
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Simple easing function (easeInOutQuad)
+    const easeProgress =
+      progress < 0.5
+        ? 2 * progress * progress
+        : -1 + (4 - 2 * progress) * progress;
+    element.scrollTop = startScrollTop + distance * easeProgress;
+    if (progress < 1) {
+      requestAnimationFrame(animation);
+    }
+  }
+  requestAnimationFrame(animation);
+}
+```
+
+Then, in your streaming loop, replace the direct assignment:
+
+```js
+editorWrapper.scrollTop = scrollTarget;
+```
+
+with:
+
+```js
+smoothScrollTo(editorWrapper, scrollTarget);
+```
+
+This creates a more natural scroll behavior that “follows” the cursor instead of jumping immediately.
+
+---
+
+### 4. **Adjust Chunk Size & Delay for Realism**
+
+Your current chunk size (`15` characters) and delays (`baseDelay` plus random variance) might be too fast or too erratic. Consider fine-tuning these values so the code appears to be typed at a natural speed. For example, you might:
+- Increase the chunk size if the updates are too choppy.
+- Adjust the delays to slow down the typing, especially for longer or more complex code.
+
+---
+
+### 5. **Account for Wrapped Lines**
+
+Since very long lines may wrap, counting `\n` might not accurately reflect the visual line count. If needed, consider calculating the actual height of the content using a hidden clone element that mirrors the styling. This is a more advanced improvement but can help when your editor has wrapped lines.
+
+---
+
+### Final Code Snippet Example
+
+Below is a simplified example incorporating the key improvements:
+
+```jsx
+// Assume editorWrapperRef is already set up via useRef
+const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+const lineHeight = parseFloat(computedStyles.lineHeight) || 20;
+const lineCount = (visibleContent.match(/\n/g) || []).length;
+const editorHeight = editorWrapperRef.current.clientHeight;
+const visibleLines = Math.floor(editorHeight / lineHeight);
+const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.7));
+const scrollTarget = targetLine * lineHeight;
+
+// Instead of immediate jump:
+smoothScrollTo(editorWrapperRef.current, scrollTarget);
+
+// Smooth scrolling helper
+function smoothScrollTo(element, targetScrollTop, duration = 200) {
+  const startScrollTop = element.scrollTop;
+  const distance = targetScrollTop - startScrollTop;
+  let startTime = null;
+
+  function animation(currentTime) {
+    if (!startTime) startTime = currentTime;
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // EaseInOutQuad easing
+    const easeProgress =
+      progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+    element.scrollTop = startScrollTop + distance * easeProgress;
+    if (progress < 1) {
+      requestAnimationFrame(animation);
+    }
+  }
+  requestAnimationFrame(animation);
+}
+```
+
+---
+
+### Summary
+
+- **Refactor the DOM access** to use a ref.
+- **Dynamically compute the line height** to handle zoom and style changes.
+- **Replace setTimeout auto-scroll with requestAnimationFrame** to add easing and smooth scrolling.
+- **Fine-tune chunk size and delays** for a more human-like typing effect.
+- **Consider wrapped lines** if necessary.
+
+By making these adjustments, the streaming response should feel smoother and the editor will scroll more naturally as new code is “typed” out.

@@ -1,0 +1,380 @@
+Let me fix the scrolling issues in your code editor. The problem is that the container can't be scrolled after generation is complete, and you can't see the streaming process.
+
+```css:client/src/components/ui/code-editor.css
+/* Editor container styles */
+.code-editor-container {
+  height: 100% !important; /* Use full height of parent */
+  min-height: 400px; /* Minimum height to ensure usability */
+  max-height: 100%; /* Don't exceed parent container */
+  background-color: #111827;
+  border-radius: 0.25rem;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* For absolute positioning of children */
+}
+
+// ... existing code ...
+
+/* Editor wrapper */
+.editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow-y: scroll !important; /* Changed back to scroll to force scrollbar */
+  overflow-x: auto;
+  height: 600px; /* Fixed height to ensure scroll behavior */
+  max-height: 100%; /* Don't exceed container height */
+  min-height: 300px; /* Ensure a minimum height */
+  font-family: "Fira Code", "Consolas", monospace;
+  padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
+  will-change: transform;
+}
+
+// ... existing code ...
+```
+
+```typescript jsx:client/src/components/ui/code-editor-enhanced.tsx
+// ... existing code ...
+
+  // Force editor wrapper to have fixed height to ensure scroll behavior
+  useEffect(() => {
+    if (editorWrapperRef.current) {
+      // This forces the wrapper to have a fixed height, ensuring scroll behavior
+      editorWrapperRef.current.style.height = '600px';
+      editorWrapperRef.current.style.overflowY = 'scroll';
+      
+      // Force scroll position to activate scrollbar
+      setTimeout(() => {
+        if (editorWrapperRef.current) {
+          editorWrapperRef.current.scrollTop = 1;
+          console.log("FORCE APPLIED - Scrollbar enabled with fixed height");
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Add handler to ensure editor stays scrollable
+  useEffect(() => {
+    // Add mutation observer to ensure textarea stays scrollable
+    if (editorWrapperRef.current) {
+      const observer = new MutationObserver((mutations) => {
+        // When content changes, ensure scrollbars are visible
+        editorWrapperRef.current!.style.overflowY = 'scroll';
+        
+        // Check if we need to scroll to bottom for streaming content
+        if (isGenerating) {
+          setTimeout(() => {
+            if (editorWrapperRef.current) {
+              editorWrapperRef.current.scrollTop = 
+                editorWrapperRef.current.scrollHeight - 
+                editorWrapperRef.current.clientHeight;
+            }
+          }, 10);
+        }
+      });
+      
+      observer.observe(editorWrapperRef.current, { 
+        childList: true, 
+        subtree: true,
+        characterData: true
+      });
+      
+      return () => observer.disconnect();
+    }
+  }, [isGenerating]);
+  
+  return (
+    <div className="code-editor-container">
+      <div className="flex h-full">
+        <LineNumbers count={lineCount} lineNumbersRef={lineNumbersRef} />
+        
+        <div 
+          ref={editorWrapperRef}
+          className="editor-wrapper"
+          style={{ 
+            overflowY: 'scroll', // Force scrollbar to always be visible
+            height: '600px',
+            maxHeight: '600px',
+            position: 'relative',
+            willChange: 'transform',
+            transform: 'translateZ(0)'
+          }}
+        >
+          <Editor
+            value={value}
+            onValueChange={onChange}
+            highlight={highlightHTML}
+            padding={8}
+            textareaClassName="codearea"
+            className="editor-area"
+            style={{
+              fontFamily: '"Fira Code", "Consolas", monospace',
+              fontSize: '13px',
+              lineHeight: '1.4',
+              minHeight: '100%',
+              whiteSpace: 'pre',
+              willChange: 'contents',
+              containIntrinsicSize: 'auto',
+            }}
+            readOnly={readOnly || isGenerating}
+          />
+          
+          {isTyping && (
+            <div className="absolute right-3 bottom-3 z-10 bg-blue-600 text-white px-2 py-1 rounded-md text-xs flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Typing code...
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+// ... existing code ...
+```
+
+```typescript jsx:client/src/pages/editor.tsx
+// ... existing code ...
+
+        // Split the content into chunks for smoother rendering
+        for (let i = 0; i < htmlContent.length; i += chunkSize) {
+          const visibleContent = htmlContent.substring(0, i + chunkSize);
+          
+          // Don't add blinking cursor - it causes layout shifts
+          // const contentWithCursor = addCursorToText(visibleContent, visibleContent.length);
+          setHtmlContent(visibleContent);
+          
+          // Auto-scroll the editor to follow the typing using the saved ref
+          setTimeout(() => {
+            if (editorWrapperRef.current) {
+              // Force scrollbars to be visible
+              editorWrapperRef.current.style.overflowY = 'scroll';
+              
+              // Calculate where the cursor is based on the visible content
+              const lineCount = (visibleContent.match(/\n/g) || []).length;
+              
+              // Get computed styles to determine actual line height
+              const computedStyles = window.getComputedStyle(editorWrapperRef.current);
+              const lineHeight = parseFloat(computedStyles.lineHeight) || 20; // Fallback to 20px if parsing fails
+              
+              // Calculate visible lines based on actual element height
+              const editorHeight = editorWrapperRef.current.clientHeight;
+              const visibleLines = Math.floor(editorHeight / lineHeight);
+              
+              // Check if we're near the end of the content
+              const totalLines = (htmlContent.match(/\n/g) || []).length + 1;
+              const isNearEnd = i > htmlContent.length * 0.95 || lineCount > totalLines * 0.95;
+              
+              // Enhanced scrolling logic with better end-of-content handling
+              // We want to keep the cursor in view and provide smooth scrolling experience
+              let scrollTarget;
+              
+              if (isNearEnd) {
+                // When we're near the end, always ensure we can see the very bottom
+                // Add extra buffer to ensure the last few lines are completely visible
+                scrollTarget = editorWrapperRef.current.scrollHeight;
+              } else {
+                // Normal scroll behavior - position cursor in the visible area but not at the very bottom
+                // This creates a more natural reading experience by keeping cursor at ~70% of visible area
+                const targetLine = Math.max(0, lineCount - Math.floor(visibleLines * 0.6));
+                scrollTarget = targetLine * lineHeight;
+              }
+              
+              // Scroll updates for every chunk to ensure we can see typing in progress
+              // Use enhanced smooth scrolling with requestAnimationFrame
+              if (editorWrapperRef.current) {
+                // For every 10th update or near end, do a smooth scroll
+                if (i % 10 === 0 || isNearEnd) {
+                  smoothScrollTo(editorWrapperRef.current, scrollTarget, 200);
+                } else {
+                  // For other updates, just jump to keep up with typing
+                  editorWrapperRef.current.scrollTop = scrollTarget;
+                }
+              }
+            }
+          }, 5);
+          
+          // ... existing code ...
+
+// ... existing code ...
+
+  // Helper function for smooth scrolling with requestAnimationFrame
+  const smoothScrollTo = (element: HTMLElement, targetScrollTop: number, duration = 200) => {
+    // Make sure we can see the very end of the content by adding extra padding
+    // when scrolling near the bottom of the content
+    const maxScroll = element.scrollHeight - element.clientHeight;
+    
+    // Make sure the scrollbar is visible
+    element.style.overflowY = 'scroll';
+    
+    // If target is within 10% of the max scroll, go all the way to the bottom
+    // This ensures we always can see the last lines of content
+    if (targetScrollTop > maxScroll * 0.9) {
+      targetScrollTop = maxScroll;
+    }
+    
+    // Safety check: ensure targetScrollTop is within bounds
+    targetScrollTop = Math.max(0, Math.min(maxScroll, targetScrollTop));
+    
+    const startScrollTop = element.scrollTop;
+    const distance = targetScrollTop - startScrollTop;
+    
+    // Don't animate if distance is too small or if we're already at target
+    if (Math.abs(distance) < 10 || startScrollTop === targetScrollTop) {
+      element.scrollTop = targetScrollTop;
+      return;
+    }
+    
+    // Throttle animation to reduce CPU usage and shaking
+    // Only run animation if we're not already in the middle of one
+    if (element.dataset.isScrolling === "true") {
+      // Just set the final position if another scroll is in progress
+      element.scrollTop = targetScrollTop;
+      return;
+    }
+    
+    // Mark that we're currently scrolling
+    element.dataset.isScrolling = "true";
+    
+    let startTime: number | null = null;
+    let lastPosition = startScrollTop;
+
+    function animation(currentTime: number) {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Simplified easing function for less CPU usage
+      const easeProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+      // Apply the calculated scroll position
+      const newPosition = startScrollTop + distance * easeProgress;
+      element.scrollTop = newPosition;
+      
+      // Check if we're actually making progress (avoid infinite loop in case of DOM issues)
+      const isMoving = Math.abs(newPosition - lastPosition) > 0.5;
+      lastPosition = newPosition;
+      
+      // Ensure scrollbar is visible during animation
+      element.style.overflowY = 'scroll';
+      
+      // Continue animation if we're not done and still making progress
+      if (progress < 1 && isMoving) {
+        requestAnimationFrame(animation);
+      } else {
+        // When finished or stuck, make sure we're exactly at target (no rounding errors)
+        element.scrollTop = targetScrollTop;
+        // Mark that we're done scrolling
+        element.dataset.isScrolling = "false";
+      }
+    }
+    
+    // Start the animation
+    requestAnimationFrame(animation);
+  };
+
+// ... existing code ...
+```
+
+```typescript jsx:client/src/pages/editor.tsx
+// ... existing code ...
+
+        // Ensure final content is set correctly without any cursor
+        setHtmlContent(htmlContent);
+        
+        // Final step to ensure scrolling works after generation is complete
+        setTimeout(() => {
+          if (editorWrapperRef.current) {
+            // Force scrollbar to be visible after all content is loaded
+            editorWrapperRef.current.style.overflowY = 'scroll';
+            
+            // Make one last scroll to ensure we can see the end of the content
+            const scrollableHeight = editorWrapperRef.current.scrollHeight - editorWrapperRef.current.clientHeight;
+            
+            // Scroll to a position just above the bottom to encourage user to scroll
+            editorWrapperRef.current.scrollTop = Math.max(0, scrollableHeight - 100);
+            
+            // Give focus to the editor to enable keyboard navigation
+            const textarea = editorWrapperRef.current.querySelector('textarea');
+            if (textarea) {
+              textarea.focus();
+            }
+          }
+        }, 500);
+        
+        // Update preview based on device type
+        if (isMobile) {
+
+// ... existing code ...
+```
+Finally, let's add a slight improvement to the HTML/CSS editor container to ensure it has a clear scrollbar:
+
+```typescript jsx:client/src/pages/editor.tsx
+// ... existing code ...
+
+          {/* HTML Editor - Always visible */}
+          <div className="flex-1 overflow-hidden bg-[#111827] rounded-md border border-gray-700">
+            <div className="flex items-center justify-between bg-[#1e293b] px-3 py-2 border-b border-gray-700">
+              <div className="text-xs font-medium text-gray-300">
+                {isGenerating ? (
+                  <span className="flex items-center">
+                    <span className="inline-block h-2 w-2 rounded-full bg-blue-500 mr-1.5 animate-pulse"></span>
+                    Generating index.html...
+                  </span>
+                ) : (
+                  "index.html"
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="text-xs text-blue-300 mr-1">{htmlContent.length > 0 ? `${Math.round(htmlContent.length / 4)} tokens` : ""}</div>
+                <div className="flex space-x-1">
+                  <div className="px-1.5 py-0.5 bg-blue-500 rounded-md text-xs text-white">HTML</div>
+                  <div className="px-1.5 py-0.5 bg-pink-500 rounded-md text-xs text-white">CSS</div>
+                </div>
+              </div>
+            </div>
+            <div className="relative w-full h-[calc(100%-32px)] flex flex-col">
+              <div className="flex-1" style={{ 
+                height: '600px', 
+                maxHeight: '600px',
+                overflow: 'visible' // Allow the CodeEditor to control scrolling
+              }}>
+                <CodeEditor
+                  value={htmlContent}
+                  onChange={handleHtmlChange}
+                  isGenerating={isGenerating}
+                  editorWrapperRef={editorWrapperRef}
+                />
+              </div>
+              {/* Typing indicator is now handled in the code-editor-enhanced.tsx component */}
+            </div>
+          </div>
+
+// ... existing code ...
+```
+The issues with your code editor scrolling should now be fixed. Here's what the changes accomplish:
+
+1. **Fixed scrollbar visibility**: 
+   - Changed `overflow-y: auto` back to `overflow-y: scroll` to force the scrollbar to always be visible
+   - Added multiple safeguards to ensure the scrollbar remains visible during and after code generation
+
+2. **Improved streaming visibility**:
+   - Added a mutation observer to detect content changes and ensure proper scrolling
+   - Increased the frequency of scroll updates during typing (every 10 chunks instead of 50)
+   - Added direct scrollTop updates between smooth scrolls to keep up with typing
+
+3. **Fixed post-generation scrolling**:
+   - Added a final step after generation completes to ensure scrolling works
+   - Focus is given to the textarea to enable keyboard navigation
+   - A slight scroll position is set to encourage the user to scroll and show that scrolling is possible
+
+4. **Container improvements**:
+   - Explicitly set `overflow: visible` on the parent container to allow the editor's scrollbar to work properly
+   - Added several style.overflowY = 'scroll' calls throughout the code to ensure the scrollbar remains visible
+
+These changes should resolve both issues: you should now be able to see the streaming process during generation and scroll through the entire code editor after generation is complete.

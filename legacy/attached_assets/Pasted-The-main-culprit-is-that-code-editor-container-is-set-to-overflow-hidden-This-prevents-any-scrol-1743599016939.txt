@@ -1,0 +1,88 @@
+The main culprit is that .code-editor-container is set to overflow: hidden;. This prevents any scrollbar from appearing on that container—even if its content is taller than its parent. To fix this, you have two main options:
+
+⸻
+
+Option 1: Let the Editor Wrapper Scroll (Most Common)
+
+Typically, the outer .code-editor-container just provides the layout and background. The actual scrolling should happen inside .editor-wrapper. If that’s your design, remove overflow: hidden; from the container and let the wrapper handle its own scrollbar.
+
+Changes:
+
+/* code-editor.css */
+.code-editor-container {
+  height: 100% !important;
+  min-height: 600px;
+  background-color: #111827;
+  border-radius: 0.25rem;
+- overflow: hidden;  /* Remove this or change it to visible/auto */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow-y: auto !important; /* Keep the scroll here */
+  overflow-x: auto;
+  height: 100%;
+  min-height: 300px;
+  font-family: "Fira Code", "Consolas", monospace;
+}
+
+Now, .editor-wrapper can scroll whenever its content (the editor text) is taller than its own height.
+
+Important: Make sure .editor-wrapper actually has a constrained height. For instance, if .code-editor-container is 600px tall, and .editor-wrapper flexes to fill the container, you’ll see a scrollbar once the text exceeds that height.
+
+⸻
+
+Option 2: Scroll on the Container Itself
+
+If you actually want the entire .code-editor-container to scroll (instead of the child .editor-wrapper), then set the container to overflow: auto; and remove or reduce the child’s overflow settings.
+
+Changes:
+
+/* code-editor.css */
+.code-editor-container {
+  height: 100% !important;
+  min-height: 600px;
+  background-color: #111827;
+  border-radius: 0.25rem;
+- overflow: hidden;
++ overflow: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* If you do NOT want a separate scroll region inside .editor-wrapper, 
+   you can remove or reduce overflow here */
+.editor-wrapper {
+  flex: 1;
+  position: relative;
+- overflow-y: auto !important;
+- overflow-x: auto;
+  height: 100%;
+  min-height: 300px;
+  font-family: "Fira Code", "Consolas", monospace;
+}
+
+With this setup, the container as a whole will scroll once its content (line numbers + editor + any other elements) exceeds the container’s height.
+
+⸻
+
+Double-Check the Dynamic minHeight Logic
+
+In your useEffect, you call calculateContentHeight() to set a large minHeight on the textarea. If your container is also large, you might not see a scrollbar at all because there’s no need to scroll yet. If you want the scrollbar to appear more reliably:
+	1.	Reduce the minHeight you’re assigning to the textarea if it’s larger than the container.
+	2.	Or remove that dynamic resizing logic and let the natural content size determine scrolling.
+
+⸻
+
+Summary
+	•	Remove overflow: hidden; from .code-editor-container.
+	•	Decide which element you want to actually scroll: the container itself or the .editor-wrapper.
+	•	Make sure the scrolled element has a fixed or constrained height so that the browser has a reason to show a scrollbar.
+	•	Adjust or remove the calculateContentHeight() logic if it’s making your editor taller than the container.
+
+By letting the .editor-wrapper (or the container) have a constrained height and overflow: auto, the scrollbar should reappear as soon as the text exceeds that height.

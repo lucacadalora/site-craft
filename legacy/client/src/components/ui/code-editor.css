@@ -1,0 +1,120 @@
+/* Editor container styles */
+.code-editor-container {
+  height: 100% !important; /* Use full height of parent */
+  min-height: 400px; /* Minimum height to ensure usability */
+  max-height: 100%; /* Don't exceed parent container */
+  background-color: #111827;
+  border-radius: 0.25rem;
+  overflow: visible; /* Allows children to extend beyond if needed */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* For absolute positioning of children */
+  width: 100%; /* Ensure it fills the width of its parent */
+  flex: 1; /* Allow container to grow and fill available space */
+}
+
+/* Line numbers column */
+.line-numbers {
+  width: 40px;
+  flex: 0 0 40px;
+  text-align: right;
+  padding-right: 0.5rem;
+  padding-bottom: 60px; /* Add extra bottom padding to ensure all line numbers are visible */
+  font-size: 0.75rem;
+  color: #6b7280;
+  user-select: none;
+  overflow-y: auto; /* Allow scrolling but hide scrollbar */
+  overflow-x: hidden;
+  height: 100%; /* Use full height of the container */
+  min-height: 400px; /* Ensure minimum height */
+  border-right: 1px solid #374151;
+  background-color: #1f2937;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Needed for position sticky scrolling */
+}
+
+.line-numbers > div {
+  padding: 0 0.5rem;
+  height: 1.4em !important; /* Force constant height */
+  line-height: 1.4;
+  flex-shrink: 0; /* Prevent shrinking */
+  display: block;
+}
+
+/* Editor wrapper */
+.editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow-y: auto !important; /* Allow natural scrollbar behavior */
+  overflow-x: auto;
+  height: 100%; /* Use full height of parent container */
+  max-height: 100%; /* Don't exceed container height */
+  min-height: 400px; /* Ensure a minimum height */
+  width: 100%; /* Ensure it takes full width */
+  font-family: "Fira Code", "Consolas", monospace;
+  padding-bottom: 40px; /* Add padding at the bottom to ensure last lines are visible */
+  will-change: transform; /* Add GPU acceleration to reduce flicker */
+  border-radius: 0 0 4px 0; /* Rounded corners on bottom right */
+}
+
+/* React Simple Editor styles */
+.editor-area {
+  width: 100%;
+  min-height: 100%;
+  padding: 0;
+  white-space: pre;
+  background-color: #111827;
+  color: #d1d5db;
+  /* Changed from 'strict' which might prevent scrolling */
+  contain: content;
+  will-change: contents;
+}
+
+/* Make textarea match the size of highlighting */
+.codearea {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  tab-size: 2 !important;
+}
+
+/* Syntax highlighting enhancements */
+.hljs-tag-name {
+  color: #e06c75;
+}
+
+.hljs-attr-name {
+  color: #d19a66;
+}
+
+.hljs-attr-value {
+  color: #98c379;
+}
+
+.hljs-color {
+  font-weight: bold;
+}
+
+/* Custom scrollbar for the editor */
+.editor-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-wrapper::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.editor-wrapper::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.editor-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.line-numbers::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for line numbers as it's synced with editor */
+}

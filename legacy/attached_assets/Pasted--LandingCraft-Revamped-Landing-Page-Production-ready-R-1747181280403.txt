@@ -1,0 +1,378 @@
+/*
+  LandingCraft – Revamped Landing Page
+  -----------------------------------
+  Production‑ready React + TailwindCSS single‑page layout that emphasises an AI‑powered landing‑page generator for UMKM (micro, small & medium enterprises).  
+  Notes for devs:
+  • Replace placeholder images / logos with real assets.
+  • Hero background gradient and subtle noise layer for depth.
+  • Uses shadcn/ui primitives for consistency.
+  • All copy is editable via `siteContent.ts` for quick localisation.
+*/
+
+import React from "react";
+import {
+  Button,
+  buttonVariants,
+} from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Check, LightningBolt, Sparkles } from "lucide-react";
+import { siteContent } from "./siteContent";
+
+export default function LandingCraftLandingPage() {
+  return (
+    <div className="min-h-screen w-full flex flex-col text-gray-800 bg-gradient-to-br from-white to-slate-50">
+      {/* ───────────────── NAVBAR ───────────────── */}
+      <header className="sticky top-0 z-30 backdrop-blur-lg border-b border-slate-100/60 bg-white/70">
+        <nav className="container mx-auto flex items-center justify-between py-3 px-4 md:px-8">
+          {/* Brand */}
+          <a href="#hero" className="text-xl font-extrabold tracking-tight">
+            <span className="text-sky-600">LandingCraft</span>
+            <span className="text-slate-800">.</span>
+          </a>
+          {/* Desktop Links */}
+          <ul className="hidden md:flex gap-8 font-medium text-sm">
+            {siteContent.nav.map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  className="hover:text-sky-600 transition-colors"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {/* CTAs */}
+          <div className="flex items-center gap-2">
+            <a
+              href="/login"
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+            >
+              Login
+            </a>
+            <a
+              href="/signup"
+              className={buttonVariants({ variant: "default", size: "sm" })}
+            >
+              Create Free
+            </a>
+          </div>
+        </nav>
+      </header>
+
+      {/* ───────────────── HERO ───────────────── */}
+      <section
+        id="hero"
+        className="relative flex flex-col items-center text-center py-24 md:py-32 px-4 md:px-0"
+      >
+        <h1 className="max-w-4xl text-4xl md:text-6xl font-extrabold leading-tight tracking-tight">
+          {siteContent.hero.title}
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg md:text-xl text-slate-600">
+          {siteContent.hero.subtitle}
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+          <a
+            href="/app"
+            className={buttonVariants({ variant: "default", size: "lg" })}
+          >
+            🚀 Start Generating
+          </a>
+          <a
+            href="#examples"
+            className={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            View Examples
+          </a>
+        </div>
+        {/* Partner badges */}
+        <div className="mt-12 flex flex-wrap justify-center gap-3 opacity-90">
+          {siteContent.partners.map((partner) => (
+            <span
+              key={partner}
+              className="bg-slate-100 px-3 py-1 rounded-full text-xs font-medium text-slate-700"
+            >
+              {partner}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* ───────────────── HOW IT WORKS ───────────────── */}
+      <section id="how" className="container mx-auto py-24 px-4 md:px-0">
+        <h2 className="section-heading">How It Works</h2>
+        <p className="section-sub">
+          Build, customise, and publish high‑converting pages in three friction‑free
+          steps.
+        </p>
+        <div className="grid md:grid-cols-3 gap-8 mt-16">
+          {siteContent.steps.map((step, idx) => (
+            <Card
+              key={step.title}
+              className="group hover:shadow-xl transition-shadow"
+            >
+              <CardContent className="p-8 flex flex-col items-center text-center">
+                <span className="w-12 h-12 mb-4 rounded-full bg-sky-50 flex items-center justify-center text-sky-600 font-bold text-lg">
+                  {idx + 1}
+                </span>
+                <h3 className="text-base font-semibold mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  {step.desc}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* ───────────────── FEATURES ───────────────── */}
+      <section id="features" className="bg-slate-50 py-24">
+        <div className="container mx-auto px-4 md:px-0">
+          <h2 className="section-heading">Powerful Features</h2>
+          <p className="section-sub">
+            Everything you need to craft beautiful, business‑ready pages without
+            breaking the bank.
+          </p>
+          <div className="grid md:grid-cols-3 gap-10 mt-16">
+            {siteContent.features.map((f) => (
+              <div key={f.title} className="flex gap-4">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                  {f.icon}
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">{f.title}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── PRICING ───────────────── */}
+      <section id="pricing" className="container mx-auto py-24 px-4 md:px-0">
+        <h2 className="section-heading">Affordable & Transparent Pricing</h2>
+        <p className="section-sub">
+          From hobby projects to high‑traffic startups – a plan for every stage.
+        </p>
+        <div className="grid md:grid-cols-3 gap-8 mt-16">
+          {siteContent.pricing.map((plan) => (
+            <Card
+              key={plan.name}
+              className={`relative overflow-hidden group hover:shadow-xl transition-shadow ${
+                plan.popular ? "ring-2 ring-sky-500" : ""
+              }`}
+            >
+              {plan.popular && (
+                <span className="absolute top-4 right-4 bg-sky-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  Popular
+                </span>
+              )}
+              <CardContent className="p-8 flex flex-col gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold">{plan.name}</h3>
+                  <p className="mt-2 text-3xl font-extrabold">
+                    ${plan.price}
+                    <span className="text-base font-medium text-slate-500">/mo</span>
+                  </p>
+                </div>
+                <ul className="flex flex-col gap-2 text-sm">
+                  {plan.includes.map((inc) => (
+                    <li key={inc} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 mt-0.5 text-sky-600" />
+                      <span>{inc}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href={plan.cta}
+                  className={buttonVariants({
+                    variant: plan.popular ? "default" : "outline",
+                    size: "lg",
+                    className: "mt-auto",
+                  })}
+                >
+                  {plan.button}
+                </a>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* ───────────────── CTA ───────────────── */}
+      <section className="relative overflow-hidden py-24 bg-gradient-to-r from-sky-600 to-indigo-600 text-white text-center">
+        <div className="container mx-auto px-4 md:px-0">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Ready to launch your next idea?
+          </h2>
+          <p className="max-w-2xl mx-auto text-lg text-slate-100">
+            Empower your business with AI‑optimised landing pages that look and
+            sell like the pros – starting today, for free.
+          </p>
+          <a
+            href="/signup"
+            className={buttonVariants({ variant: "secondary", size: "xl", className: "mt-8" })}
+          >
+            Get Started Free ↗
+          </a>
+        </div>
+      </section>
+
+      {/* ───────────────── FOOTER ───────────────── */}
+      <footer className="bg-slate-900 text-slate-300 py-16">
+        <div className="container mx-auto px-4 md:px-0 grid md:grid-cols-4 gap-10">
+          <div>
+            <h3 className="text-lg font-extrabold mb-4 text-white">
+              LandingCraft
+            </h3>
+            <p className="text-sm leading-relaxed">
+              Accelerating Indonesia’s UMKM digital presence with affordable
+              AI‑powered landing pages.
+            </p>
+          </div>
+          {siteContent.footer.map((col) => (
+            <div key={col.heading}>
+              <h4 className="font-semibold mb-3 text-white">{col.heading}</h4>
+              <ul className="space-y-2 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
+                      className="hover:text-white transition-colors"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="mt-12 text-center text-xs text-slate-500">
+          © 2025 AI Accelerate. All rights reserved.
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+/* ---------- siteContent.ts (Example) ----------
+export const siteContent = {
+  nav: [
+    { label: "How It Works", href: "#how" },
+    { label: "Features", href: "#features" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Templates", href: "/templates" },
+  ],
+  hero: {
+    title: "Generate Landing Pages like Canva – Powered by Multimodal AI",
+    subtitle:
+      "Democratising professional web presence for UMKM with real‑time design tools you already love.",
+  },
+  partners: ["Figma‑style Editor", "Canva Templates", "1‑Click Hostinger", "Built on DeepSeek"],
+  steps: [
+    {
+      title: "Describe Your Brand",
+      desc: "Tell us what you do, who you serve, and your unique edge.",
+    },
+    {
+      title: "AI Crafts Your Page",
+      desc: "Our LLM multimodal engine designs copy & layout simultaneously.",
+    },
+    {
+      title: "Customise and Launch",
+      desc: "Tweak visually, then publish on a custom domain or export code.",
+    },
+  ],
+  features: [
+    {
+      title: "Visual Drag‑and‑Drop Editor",
+      desc: "Edit sections exactly like in Figma – no code required.",
+      icon: <Sparkles className="w-5 h-5 text-sky-600" />,
+    },
+    {
+      title: "Multimodal DeepSeek AI",
+      desc: "Text, images, and layout generated cohesively in real time.",
+      icon: <LightningBolt className="w-5 h-5 text-sky-600" />,
+    },
+    {
+      title: "Built‑in Hosting",
+      desc: "Deploy with a single click via Hostinger‑powered CDN.",
+      icon: <LightningBolt className="w-5 h-5 text-sky-600" />,
+    },
+    // … add more features as needed
+  ],
+  pricing: [
+    {
+      name: "Starter",
+      price: 0,
+      includes: [
+        "2 Landing Pages",
+        "Community Templates",
+        "LLM Basic Content",
+        "Email Support",
+      ],
+      cta: "/signup",
+      button: "Start Free",
+      popular: false,
+    },
+    {
+      name: "Pro",
+      price: 15,
+      includes: [
+        "20 Landing Pages",
+        "Pro Template Library",
+        "Advanced AI Content",
+        "Custom Domain",
+        "Priority Support",
+      ],
+      cta: "/signup?plan=pro",
+      button: "Get Pro",
+      popular: true,
+    },
+    {
+      name: "Business",
+      price: 49,
+      includes: [
+        "Unlimited Landing Pages",
+        "Team Collaboration",
+        "White‑label Code Export",
+        "Dedicated Success Manager",
+      ],
+      cta: "/contact-sales",
+      button: "Contact Sales",
+      popular: false,
+    },
+  ],
+  footer: [
+    {
+      heading: "Product",
+      links: [
+        { label: "Features", href: "#features" },
+        { label: "Templates", href: "/templates" },
+        { label: "Updates", href: "/blog" },
+      ],
+    },
+    {
+      heading: "Company",
+      links: [
+        { label: "About", href: "/about" },
+        { label: "Careers", href: "/careers" },
+      ],
+    },
+    {
+      heading: "Resources",
+      links: [
+        { label: "Help Center", href: "/help" },
+        { label: "API Docs", href: "/docs" },
+        { label: "Privacy Policy", href: "/privacy" },
+      ],
+    },
+  ],
+};
+*/
