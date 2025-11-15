@@ -701,9 +701,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               const projectName = project?.name || prompt.substring(0, 50).trim() || 'Untitled Project';
               try {
                 const savedProject = await saveProject(
-                  project?.id ? parseInt(project.id) : undefined,
+                  project?.sessionId,  // sessionId is a string, not the ID
                   projectName,
-                  project?.files || []
+                  project?.files || [],
+                  prompt  // Pass the prompt for slug generation
                 );
                 if (savedProject?.id) {
                   const navigateTo = savedProject.slug 

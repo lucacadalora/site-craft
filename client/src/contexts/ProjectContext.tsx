@@ -8,6 +8,7 @@ export interface ProjectFile {
 
 export interface Project {
   id?: string;
+  sessionId?: string;
   name: string;
   files: ProjectFile[];
   activeFile?: string;
@@ -29,7 +30,7 @@ interface ProjectContextType {
   addFile: (file: ProjectFile) => void;
   deleteFile: (fileName: string) => void;
   renameFile: (oldName: string, newName: string) => void;
-  saveProject: (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[]) => Promise<any | null>;
+  saveProject: (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[], promptText?: string) => Promise<any | null>;
   loadProject: (projectId: string) => Promise<void>;
   markAsClean: () => void;
   addPrompt: (prompt: string) => void;
