@@ -139,36 +139,148 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     const htmlFile = getFileByName('index.html');
     const cssFile = getFileByName('style.css');
     const jsFile = getFileByName('script.js');
+    const navbarFile = getFileByName('components/navbar.js');
+    const footerFile = getFileByName('components/footer.js');
     
     if (htmlFile) {
       let fullHtml = htmlFile.content;
       
-      // Inject CSS if exists
-      if (cssFile && !fullHtml.includes('<style>')) {
+      // Create a virtual file system for multi-page navigation
+      const allHtmlFiles = project.files.filter(f => f.name.endsWith('.html'));
+      const fileSystem = allHtmlFiles.reduce((acc, file) => {
+        acc[file.name] = file.content;
+        return acc;
+      }, {} as Record<string, string>);
+      
+      // Always inject CSS inline (remove any external references first)
+      if (cssFile) {
+        // Remove external CSS references
+        fullHtml = fullHtml.replace(/<link[^>]*href=["']style\.css["'][^>]*>/gi, '');
+        
+        // Inject CSS inline
         const headEnd = fullHtml.indexOf('</head>');
         if (headEnd > -1) {
           fullHtml = fullHtml.slice(0, headEnd) + 
-            `<style>${cssFile.content}</style>` + 
+            `\n<style>\n${cssFile.content}\n</style>\n` + 
             fullHtml.slice(headEnd);
         }
       }
       
-      // Inject JS if exists
-      if (jsFile && !fullHtml.includes('<script>')) {
+      // Build complete JavaScript including components
+      let completeJs = '';
+      
+      // Add component files first
+      if (navbarFile) {
+        completeJs += `\n// navbar.js\n${navbarFile.content}\n`;
+      }
+      if (footerFile) {
+        completeJs += `\n// footer.js\n${footerFile.content}\n`;
+      }
+      
+      // Add main script file
+      if (jsFile) {
+        completeJs += `\n// script.js\n${jsFile.content}\n`;
+      }
+      
+      // Add client-side routing for multi-page apps
+      if (allHtmlFiles.length > 1) {
+        completeJs += `
+// Client-side routing for multi-page preview
+(function() {
+  const fileSystem = ${JSON.stringify(fileSystem)};
+  
+  // Intercept all link clicks
+  document.addEventListener('click', function(e) {
+    const link = e.target.closest('a');
+    if (!link) return;
+    
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//')) {
+      return; // Let normal navigation happen for anchors and external links
+    }
+    
+    e.preventDefault();
+    
+    // Handle the navigation
+    let targetFile = href;
+    if (href === '/' || href === '') {
+      targetFile = 'index.html';
+    } else if (!href.endsWith('.html')) {
+      targetFile = href + '.html';
+    }
+    
+    // Strip leading slash if present
+    if (targetFile.startsWith('/')) {
+      targetFile = targetFile.substring(1);
+    }
+    
+    // Load the target page content
+    if (fileSystem[targetFile]) {
+      let newContent = fileSystem[targetFile];
+      
+      // Inject CSS into the new page
+      const cssContent = ${cssFile ? JSON.stringify(cssFile.content) : '""'};
+      if (cssContent && !newContent.includes('<style>')) {
+        // Remove external CSS references
+        newContent = newContent.replace(/<link[^>]*href=["']style\.css["'][^>]*>/gi, '');
+        
+        const headEnd = newContent.indexOf('</head>');
+        if (headEnd > -1) {
+          newContent = newContent.slice(0, headEnd) + 
+            '<style>' + cssContent + '</style>' + 
+            newContent.slice(headEnd);
+        }
+      }
+      
+      // Also remove external JS references from new content
+      newContent = newContent.replace(/<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi, '');
+      newContent = newContent.replace(/<script[^>]*src=["']components\/navbar\.js["'][^>]*><\/script>/gi, '');
+      newContent = newContent.replace(/<script[^>]*src=["']components\/footer\.js["'][^>]*><\/script>/gi, '');
+      
+      // Update the document
+      document.open();
+      document.write(newContent);
+      document.close();
+      
+      // Re-inject all JavaScript (components + main + routing)
+      const fullScript = document.createElement('script');
+      fullScript.textContent = ${JSON.stringify(completeJs)};
+      document.body.appendChild(fullScript);
+    } else {
+      console.warn('Page not found:', targetFile);
+    }
+  });
+})();
+`;
+      }
+      
+      // Always inject complete JS inline (remove any external references first)
+      if (completeJs) {
+        // Remove external script references
+        fullHtml = fullHtml.replace(/<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi, '');
+        fullHtml = fullHtml.replace(/<script[^>]*src=["']components\/navbar\.js["'][^>]*><\/script>/gi, '');
+        fullHtml = fullHtml.replace(/<script[^>]*src=["']components\/footer\.js["'][^>]*><\/script>/gi, '');
+        
+        // Inject complete JS inline
         const bodyEnd = fullHtml.indexOf('</body>');
         if (bodyEnd > -1) {
           fullHtml = fullHtml.slice(0, bodyEnd) + 
-            `<script>${jsFile.content}</script>` + 
+            `\n<script>\n${completeJs}\n</script>\n` + 
             fullHtml.slice(bodyEnd);
         }
       }
       
-      const iframeDoc = previewRef.current.contentDocument;
-      if (iframeDoc) {
-        iframeDoc.open();
-        iframeDoc.write(fullHtml);
-        iframeDoc.close();
-      }
+      // Update the iframe with a small delay to ensure proper rendering
+      setTimeout(() => {
+        if (previewRef.current) {
+          const iframeDoc = previewRef.current.contentDocument;
+          if (iframeDoc) {
+            iframeDoc.open();
+            iframeDoc.write(fullHtml);
+            iframeDoc.close();
+          }
+        }
+      }, 100);
     }
   }, [project?.files, project?.activeFile]);
 
@@ -933,13 +1045,40 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           </div>
 
           {/* Preview - 80% width */}
-          <div className="flex-1 bg-white">
+          <div className="flex-1 bg-white relative">
+            {/* Loading overlay for preview */}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-10 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
+                    <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
+                    Generating your website...
+                  </p>
+                  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+                    This may take a moment for complex layouts
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <iframe
               ref={previewRef}
               className="w-full h-full"
-              sandbox="allow-scripts allow-forms allow-same-origin"
+              sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
               title="Preview"
               data-testid="iframe-preview"
+              onLoad={() => {
+                // Remove any lingering loading indicators when iframe loads
+                if (previewRef.current?.contentDocument) {
+                  const doc = previewRef.current.contentDocument;
+                  // Check if content actually loaded
+                  if (doc.body && doc.body.innerHTML.trim()) {
+                    console.log('Preview loaded successfully');
+                  }
+                }
+              }}
             />
           </div>
 
