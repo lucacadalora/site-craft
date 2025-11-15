@@ -378,7 +378,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               setIsGenerating(false);
               return;
             } else if (eventType === 'complete') {
-              // Handle multi-file completion from backend
+              // Handle multi-file completion from backend (Cerebras batch mode)
               if (eventData.files && Array.isArray(eventData.files) && eventData.files.length > 0) {
                 console.log('Received multi-file completion from backend:', eventData.files.length, 'files');
                 
@@ -410,9 +410,59 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                 });
               });
               incompleteFiles.clear(); // Clear all incomplete markers
+              
+              // Convert current files to array for final update
+              const finalFilesArray = Array.from(currentFiles.values()).map(f => ({
+                name: f.name,
+                content: stripCursor(f.content),
+                language: f.language as 'html' | 'css' | 'javascript' | 'unknown'
+              }));
+              
+              // Update project files one final time before saving
+              setProjectFiles(finalFilesArray);
               updateFilesRealtime();
               setIsGenerating(false);
               eventSource.close();
+              
+              // Auto-save project after Cerebras batch completion
+              console.log('Checking auto-save condition for Cerebras batch:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId });
+              if (routeSessionId === 'new' || !routeSessionId) {
+                // Generate project name from prompt if not provided
+                const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
+                
+                // Save project immediately with explicit files
+                (async () => {
+                  try {
+                    console.log('Auto-saving project (Cerebras):', { autoName, filesCount: finalFilesArray.length });
+                    
+                    // Pass finalFilesArray explicitly to avoid stale closure
+                    const savedProject = await saveProject(undefined, autoName, finalFilesArray);
+                    
+                    if (savedProject?.id) {
+                      // Navigate using slug if available, otherwise fall back to ID
+                      const navigateTo = savedProject.slug 
+                        ? `/ide/${savedProject.slug}` 
+                        : `/ide/${savedProject.id}`;
+                      
+                      console.log('Navigating to saved project:', navigateTo, savedProject);
+                      navigate(navigateTo, { replace: true });
+                      
+                      toast({
+                        title: "✅ Project Saved",
+                        description: `Your project "${autoName}" has been saved successfully!`,
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Auto-save failed:', error);
+                    toast({
+                      title: "Auto-save Failed",
+                      description: "Your project wasn't saved. Please use the Save button.",
+                      variant: "destructive"
+                    });
+                  }
+                })();
+              }
+              
               return;
             } else if (eventType === 'token-usage-updated') {
               // Dispatch custom event for user profile to update stats in real-time
