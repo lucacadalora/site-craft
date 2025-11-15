@@ -109,29 +109,20 @@ export function GenerationProgressBar({
   };
 
   return (
-    <div className="absolute left-0 right-0 top-14 bg-gradient-to-b from-black/95 to-black/90 border-b border-gray-800 px-4 py-3 z-50">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-gradient-to-b from-black/95 to-black/90 border-b border-gray-800 px-4 py-2">
+      <div className="w-full">
         {/* Top row with title and stats */}
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <div className="flex items-center gap-3 text-gray-300">
+        <div className="flex items-center justify-between mb-1.5 text-xs">
+          <div className="flex items-center gap-2 text-gray-300">
             <span className="text-white font-medium">
               Generating with {prompt === 'cerebras' ? 'Cerebras' : 'SambaNova AI'}
             </span>
-            <span className="text-gray-400">|</span>
-            <span className="flex items-center gap-1">
-              <span className="text-blue-400">{formatTime(elapsedTime)}</span>
-              <span className="text-gray-500">elapsed</span>
-            </span>
-            <span className="text-gray-400">|</span>
-            <span className="flex items-center gap-1">
-              <span className="text-green-400">{tokensGenerated.toLocaleString()}</span>
-              <span className="text-gray-500">tokens</span>
-            </span>
-            <span className="text-gray-400">|</span>
-            <span className="flex items-center gap-1">
-              <span className="text-yellow-400">{tokensPerSecond}</span>
-              <span className="text-gray-500">tokens/s</span>
-            </span>
+            <span className="text-gray-500">•</span>
+            <span className="text-blue-400">{formatTime(elapsedTime)}</span>
+            <span className="text-gray-500">•</span>
+            <span className="text-green-400">{tokensGenerated.toLocaleString()} tokens</span>
+            <span className="text-gray-500">•</span>
+            <span className="text-yellow-400">{tokensPerSecond} tokens/s</span>
           </div>
           
           <div className="flex items-center gap-2">
@@ -147,19 +138,16 @@ export function GenerationProgressBar({
         </div>
 
         {/* Progress bar */}
-        <div className="relative h-6 bg-gray-900 rounded-full overflow-hidden border border-gray-700">
+        <div className="relative h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700">
           <div 
             className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400 transition-all duration-300 ease-out flex items-center justify-end pr-2"
             style={{ width: `${displayProgress}%` }}
           >
-            {displayProgress > 10 && (
-              <div className="flex items-center gap-2">
-                {/* Animated dots */}
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                </div>
+            {displayProgress > 15 && (
+              <div className="flex gap-0.5">
+                <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             )}
           </div>
@@ -171,20 +159,20 @@ export function GenerationProgressBar({
         </div>
 
         {/* Bottom row with stop button and status */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="text-xs text-gray-400">
+        <div className="flex items-center justify-between mt-1">
+          <div className="text-[11px] text-gray-400">
             {isStuck ? (
               <span className="text-orange-400">
-                Finalizing generation... This may take a moment for complex projects
+                Finalizing generation... Please wait
               </span>
             ) : displayProgress < 30 ? (
-              <span>Initializing AI model and preparing workspace...</span>
+              <span>Initializing AI model...</span>
             ) : displayProgress < 60 ? (
-              <span>Generating HTML structure and components...</span>
+              <span>Generating HTML structure...</span>
             ) : displayProgress < 90 ? (
-              <span>Adding styles and finishing touches...</span>
+              <span>Adding styles...</span>
             ) : (
-              <span>Finalizing and optimizing code...</span>
+              <span>Finalizing code...</span>
             )}
           </div>
           
@@ -193,9 +181,9 @@ export function GenerationProgressBar({
               size="sm"
               variant="destructive"
               onClick={onStop}
-              className="h-7 px-3 text-xs bg-red-600 hover:bg-red-700"
+              className="h-5 px-2 text-[10px] bg-red-600 hover:bg-red-700"
             >
-              <StopCircle className="w-3 h-3 mr-1" />
+              <StopCircle className="w-2.5 h-2.5 mr-0.5" />
               Stop
             </Button>
           )}
