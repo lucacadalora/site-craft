@@ -167,6 +167,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       let currentFiles: Map<string, { name: string; content: string; language: string; isComplete: boolean }> = new Map();
       let currentFileName: string | null = null;
       let isMultiFile = false;
+      let parsingState: 'project_name' | 'file_start' | 'file_content' | 'file_end' = 'project_name';
+      let projectName = '';
+      let currentFileContent = '';
+      let inCodeBlock = false;
       
       // Helper to add cursor effect
       const addCursor = (text: string) => text + '█';
@@ -184,6 +188,33 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
         }
       };
       
+      // Helper to start a new file
+      const startNewFile = (fileName: string) => {
+        // Mark previous file as complete
+        if (currentFileName && currentFiles.has(currentFileName)) {
+          const prevFile = currentFiles.get(currentFileName)!;
+          currentFiles.set(currentFileName, { ...prevFile, isComplete: true });
+        }
+        
+        currentFileName = fileName;
+        const extension = fileName.split('.').pop()?.toLowerCase();
+        let language: 'html' | 'css' | 'javascript' | 'unknown' = 'unknown';
+        
+        if (extension === 'html') language = 'html';
+        else if (extension === 'css') language = 'css';
+        else if (extension === 'js') language = 'javascript';
+        
+        currentFiles.set(currentFileName, {
+          name: currentFileName,
+          content: '',
+          language,
+          isComplete: false
+        });
+        
+        currentFileContent = '';
+        inCodeBlock = false;
+      };
+      
       eventSource.onmessage = (e) => {
         try {
           const event = JSON.parse(e.data);
@@ -194,52 +225,63 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               const contentChunk = event.content || '';
               accumulatedContent += contentChunk;
               
-              // Check for multi-file markers
-              if (accumulatedContent.includes('NEW_FILE_START') || accumulatedContent.includes('UPDATE_FILE_START')) {
+              // Parse the content using a state machine approach
+              // Look for markers: PROJECT_NAME_START/END, NEW_FILE_START/END
+              
+              // Check for project name
+              if (accumulatedContent.includes('<<<<<<< PROJECT_NAME_START')) {
                 isMultiFile = true;
-                
-                // Parse current file from accumulated content
-                const fileStartMatch = accumulatedContent.match(/(?:NEW_FILE_START|UPDATE_FILE_START): ([\w.-]+)/);
-                if (fileStartMatch && fileStartMatch[1] !== currentFileName) {
-                  // Starting a new file
-                  if (currentFileName && currentFiles.has(currentFileName)) {
-                    // Mark previous file as complete
-                    const prevFile = currentFiles.get(currentFileName)!;
-                    currentFiles.set(currentFileName, { ...prevFile, isComplete: true });
-                  }
-                  
-                  currentFileName = fileStartMatch[1];
-                  const extension = currentFileName.split('.').pop()?.toLowerCase();
-                  let language: 'html' | 'css' | 'javascript' | 'unknown' = 'unknown';
-                  
-                  if (extension === 'html') language = 'html';
-                  else if (extension === 'css') language = 'css';
-                  else if (extension === 'js') language = 'javascript';
-                  
-                  currentFiles.set(currentFileName, {
-                    name: currentFileName,
-                    content: '',
-                    language,
-                    isComplete: false
-                  });
+                const projectMatch = accumulatedContent.match(/<<<<<<< PROJECT_NAME_START\s*(.*?)\s*>>>>>>> PROJECT_NAME_END/);
+                if (projectMatch) {
+                  projectName = projectMatch[1];
+                  parsingState = 'file_start';
                 }
-                
-                // Extract content for current file
-                if (currentFileName) {
-                  const fileStartRegex = new RegExp(`(?:NEW_FILE_START|UPDATE_FILE_START): ${currentFileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n([\\s\\S]*?)(?:(?:NEW_FILE_END|UPDATE_FILE_END)|$)`);
-                  const fileMatch = accumulatedContent.match(fileStartRegex);
+              }
+              
+              // Check for file markers (with spaces as defined in prompts.ts)
+              // NEW_FILE_START = "<<<<<<< NEW_FILE_START "
+              // NEW_FILE_END = " >>>>>>> NEW_FILE_END"
+              if (isMultiFile) {
+                // Look for new file start
+                const fileStartRegex = /<<<<<<< NEW_FILE_START\s+([\w.-]+)\s+>>>>>>> NEW_FILE_END/g;
+                let match;
+                while ((match = fileStartRegex.exec(accumulatedContent)) !== null) {
+                  const fileName = match[1];
+                  const startIdx = match.index + match[0].length;
                   
-                  if (fileMatch && fileMatch[1]) {
-                    const file = currentFiles.get(currentFileName)!;
-                    currentFiles.set(currentFileName, {
+                  // Start the new file
+                  startNewFile(fileName);
+                  
+                  // Look for the code block after this marker
+                  const afterMarker = accumulatedContent.slice(startIdx);
+                  const codeBlockMatch = afterMarker.match(/```(?:html|css|javascript)?\n([\s\S]*?)```/);
+                  
+                  if (codeBlockMatch) {
+                    // We have the complete code block
+                    const fileContent = codeBlockMatch[1];
+                    const file = currentFiles.get(fileName)!;
+                    currentFiles.set(fileName, {
                       ...file,
-                      content: fileMatch[1]
+                      content: fileContent,
+                      isComplete: false // Keep cursor until fully done
                     });
+                  } else {
+                    // Code block not complete yet, extract partial content
+                    const partialMatch = afterMarker.match(/```(?:html|css|javascript)?\n([\s\S]*)/);
+                    if (partialMatch) {
+                      const partialContent = partialMatch[1];
+                      const file = currentFiles.get(fileName)!;
+                      currentFiles.set(fileName, {
+                        ...file,
+                        content: partialContent,
+                        isComplete: false
+                      });
+                    }
                   }
                 }
                 
                 updateFilesRealtime();
-              } else if (!isMultiFile) {
+              } else if (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html')) {
                 // Single file mode - treat as HTML
                 if (!currentFiles.has('index.html')) {
                   currentFiles.set('index.html', {

@@ -160,17 +160,22 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
 
       <div className="p-2">
         <div className="space-y-1">
-          {project.files.map((file) => (
-            <ContextMenu key={file.name}>
-              <ContextMenuTrigger asChild>
-                <div
-                  className={cn(
-                    "flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer",
-                    project.activeFile === file.name && "bg-accent"
-                  )}
-                  onClick={() => handleFileClick(file.name)}
-                  data-testid={`file-${file.name}`}
-                >
+          {project.files.map((file) => {
+            // Check if file is being generated (has cursor)
+            const isGenerating = file.content.includes('█');
+            
+            return (
+              <ContextMenu key={file.name}>
+                <ContextMenuTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer relative",
+                      project.activeFile === file.name && "bg-accent",
+                      isGenerating && "animate-pulse bg-blue-500/10 border-blue-500/30 border"
+                    )}
+                    onClick={() => handleFileClick(file.name)}
+                    data-testid={`file-${file.name}`}
+                  >
                   {renamingFile === file.name ? (
                     <>
                       <Input
@@ -234,7 +239,8 @@ export const FileBrowser = ({ className }: FileBrowserProps) => {
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
-          ))}
+            );
+          })}
         </div>
       </div>
 
