@@ -68,14 +68,14 @@ export function LoginForm() {
         });
         
         // Use a timeout to ensure the auth context is updated before redirecting
-        console.log('Login successful, redirecting to editor in 250ms...');
+        console.log('Login successful, redirecting to projects in 250ms...');
         
-        // Force navigation to editor after login using a longer timeout
+        // Force navigation to projects after login using a longer timeout
         // This ensures the auth context has time to update
         setTimeout(() => {
-          console.log('Executing redirect to editor now');
-          // We've already logged in above, but ensure we're in the editor
-          window.location.href = "/editor";
+          console.log('Executing redirect to projects now');
+          // Navigate to the projects dashboard
+          window.location.href = "/projects";
         }, 250);
       } else {
         const errorData = await response.json();

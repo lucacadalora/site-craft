@@ -75,7 +75,7 @@ export function RegisterForm() {
           description: "Your account has been created successfully.",
         });
         
-        setLocation("/editor");
+        setLocation("/projects");
       } else {
         toast({
           variant: "destructive",
