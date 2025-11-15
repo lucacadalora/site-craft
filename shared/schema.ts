@@ -68,6 +68,7 @@ export type EnhancedSettings = z.infer<typeof enhancedSettingsSchema>;
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").unique(), // Unique session ID for continuing projects
+  slug: text("slug").unique(), // URL-friendly slug like "hello-world-spark"
   name: text("name").notNull(),
   description: text("description"),
   prompt: text("prompt").notNull(),

@@ -331,8 +331,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                   const savedProject = await saveProject(undefined, autoName, finalFilesArray);
                   
                   if (savedProject?.id) {
-                    console.log('Navigating to saved project:', savedProject.id);
-                    navigate(`/ide/${savedProject.id}`, { replace: true });
+                    // Navigate using slug if available, otherwise fall back to ID
+                    const navigateTo = savedProject.slug 
+                      ? `/ide/${savedProject.slug}` 
+                      : `/ide/${savedProject.id}`;
+                    
+                    console.log('Navigating to saved project:', navigateTo, savedProject);
+                    navigate(navigateTo, { replace: true });
                     
                     toast({
                       title: "Project Saved",

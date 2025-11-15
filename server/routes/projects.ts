@@ -47,6 +47,22 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Helper function to generate slug from project name/prompt
+function generateSlug(text: string): string {
+  // V3-style slug generation
+  const baseSlug = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .split('-')
+    .filter(Boolean)
+    .join('-')
+    .slice(0, 96);
+  
+  // Add random suffix to ensure uniqueness
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  return `${baseSlug}-${randomSuffix}`;
+}
+
 // CREATE a new project
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -54,8 +70,12 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
+    // Generate slug from project name or prompt
+    const slug = generateSlug(req.body.name || req.body.prompt || 'untitled-project');
+
     const projectData = {
       ...req.body,
+      slug,
       userId: req.user.id
     };
 
