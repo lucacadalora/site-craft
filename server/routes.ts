@@ -584,9 +584,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
-        // Import the new multi-file prompts
-        const { INITIAL_SYSTEM_PROMPT } = require('./prompts');
-        
         // Prepare the system prompt and user message for multi-file generation
         const systemMessage = {
           role: "system",
@@ -667,7 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Stream all chunks directly to the client
         let fullContent = "";
-        let htmlStarted = false;
+        let filesDetected = false;
         
         while (true) {
           const { done, value } = await reader.read();
@@ -695,21 +692,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     // Debug: Log chunk receipt
                     console.log(`[STREAM] Received chunk: ${contentChunk.length} chars, total: ${fullContent.length}`);
                     
-                    // If this is the first piece of HTML, mark it
-                    if (!htmlStarted && (
-                      contentChunk.includes("<!DOCTYPE") || 
-                      contentChunk.includes("<html") || 
-                      contentChunk.includes("<head") ||
-                      contentChunk.includes("<body")
+                    // Check if this looks like multi-file output
+                    if (!filesDetected && (
+                      contentChunk.includes("PROJECT_NAME_START") || 
+                      contentChunk.includes("NEW_FILE_START") ||
+                      contentChunk.includes("```html") ||
+                      contentChunk.includes("```css") ||
+                      contentChunk.includes("```javascript")
                     )) {
-                      htmlStarted = true;
+                      filesDetected = true;
                     }
                     
                     // Send the chunk to the client with metadata
                     res.write(`data: ${JSON.stringify({ 
                       event: 'chunk', 
                       content: contentChunk,
-                      isHtml: htmlStarted
+                      isMultiFile: filesDetected
                     })}\n\n`);
                     flushResponse(); // Force immediate send of each chunk
                     console.log(`[STREAM] Sent chunk to client: ${contentChunk.length} chars`);
@@ -769,7 +767,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Send completion event with token information
+        // Parse multi-file output if detected
+        let parsedResult = null;
+        if (filesDetected) {
+          try {
+            parsedResult = processAiResponse(fullContent);
+            console.log(`Parsed multi-file project: ${parsedResult.projectName} with ${parsedResult.files.length} files`);
+          } catch (parseError) {
+            console.error("Error parsing multi-file response:", parseError);
+          }
+        }
+        
+        // Send completion event with token information and parsed files
         console.log("Streaming completed, sending final event");
         
         // Calculate token estimate for client reference
@@ -777,13 +786,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         res.write(`data: ${JSON.stringify({ 
           event: 'complete', 
-          html: fullContent,
+          html: parsedResult ? null : fullContent, // Only send HTML if not multi-file
+          files: parsedResult?.files || null, // Send parsed files if available
+          projectName: parsedResult?.projectName || title,
           source: 'api',
           tokenCount: tokenEstimate,
           // Include stats to help UI understand processing
           stats: {
             tokens: tokenEstimate,
             characters: fullContent.length,
+            filesCount: parsedResult?.files.length || 0,
             // If we tracked user info, include that too
             userId: req.user?.id || null,
             generationCount: req.user ? 1 : 0
