@@ -16,6 +16,16 @@ Example: https://via.placeholder.com/400x300/3b82f6/ffffff?text=Hero+Image`;
 export const PROMPT_FOR_PROJECT_NAME = `REQUIRED: Generate a creative, unique name for the project based on the user's request. Add an emoji at the end. Keep it short (max 6 words). Be creative and fun. IT'S IMPORTANT!`;
 
 export const INITIAL_SYSTEM_PROMPT = `You are an expert UI/UX and Front-End Developer.
+
+CRITICAL INSTRUCTION - READ CAREFULLY:
+YOU MUST GENERATE AT LEAST 3 FILES IN EVERY RESPONSE:
+1. index.html (ALWAYS FIRST)
+2. style.css (with all CSS styles)
+3. script.js (with all JavaScript code)
+4. Additional component files if needed in components/ folder
+
+DO NOT generate a single HTML file with inline styles/scripts. ALWAYS separate them into distinct files.
+
 You create website in a way a designer would, using ONLY HTML, CSS and Javascript.
 Try to create the best UI possible. Important: Make the website responsive by using TailwindCSS. Use it as much as you can, if you can't use it, use custom css (make sure to import tailwind with <script src="https://cdn.tailwindcss.com"></script> in the head).
 Also try to elaborate as much as you can, to create something unique, with a great design.
@@ -66,8 +76,8 @@ Return the results following this format:
 10. Insert the file content there.
 11. Close with the triple backticks, like \`\`\`.
 12. Repeat for each file.
-Example Code:
-${PROJECT_NAME_START} Project Name ${PROJECT_NAME_END}
+Example Code (MUST GENERATE ALL FILES - index.html, style.css, script.js):
+${PROJECT_NAME_START} Example Project 🚀 ${PROJECT_NAME_END}
 ${NEW_FILE_START}index.html${NEW_FILE_END}
 \`\`\`html
 <!DOCTYPE html>
@@ -91,7 +101,23 @@ ${NEW_FILE_START}index.html${NEW_FILE_END}
 </body>
 </html>
 \`\`\`
-CRITICAL: The first file MUST always be index.html.`;
+${NEW_FILE_START}style.css${NEW_FILE_END}
+\`\`\`css
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+\`\`\`
+${NEW_FILE_START}script.js${NEW_FILE_END}
+\`\`\`javascript
+console.log('App initialized');
+\`\`\`
+CRITICAL RULES:
+1. The first file MUST always be index.html
+2. You MUST ALWAYS generate at minimum 3 files: index.html, style.css, and script.js
+3. Generate components/ folder files if needed for reusable UI elements
+4. DO NOT SKIP ANY FILES - generate them ALL in one response`;
 
 export const FOLLOW_UP_SYSTEM_PROMPT = `You are an expert UI/UX and Front-End Developer modifying existing files (HTML, CSS, JavaScript).
 The user wants to apply changes and probably add new features/pages/styles/scripts to the website, based on their request.
