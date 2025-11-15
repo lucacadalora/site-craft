@@ -6,6 +6,7 @@ import { useState } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import HomeRevamped from "@/pages/home-revamped";
+import Landing from "@/pages/Landing";
 import Editor from "@/pages/editor";
 import EditorIDE from "@/pages/editor-ide";
 import Projects from "@/pages/projects";
@@ -27,9 +28,12 @@ import { ProtectedRoute } from "@/components/protected-route";
 function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateApiConfig: (newConfig: ApiConfig) => void }) {
   return (
     <Switch>
-      <Route path="/" component={HomeRevamped} />
-      <Route path="/original" component={Home} />
+      <Route path="/" component={Landing} />
+      <Route path="/lp-legacy" component={HomeRevamped} />
+      <Route path="/lp-legacy-original" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/auth/login" component={Login} />
+      <Route path="/auth/signup" component={Login} />
       <Route path="/editor">
         {() => (
           <ProtectedRoute>
@@ -46,16 +50,12 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
       </Route>
       <Route path="/ide">
         {() => (
-          <ProtectedRoute>
-            <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
-          </ProtectedRoute>
+          <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
         )}
       </Route>
       <Route path="/ide/:sessionId">
         {(params) => (
-          <ProtectedRoute>
-            <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
-          </ProtectedRoute>
+          <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
         )}
       </Route>
       <Route path="/projects">

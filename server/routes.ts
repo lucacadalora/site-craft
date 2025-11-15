@@ -15,7 +15,7 @@ import { deploymentsStorage } from './db/deployments-storage';
 import { db } from './db';
 import { processAiResponse, ProjectFile } from './format-ai-response';
 import { INITIAL_SYSTEM_PROMPT, FOLLOW_UP_SYSTEM_PROMPT } from './prompts';
-import { anonymousRateLimiter, incrementGenerationCount, getRemainingGenerations } from './middleware/rateLimiter';
+import { anonymousRateLimiter, incrementGenerationCount, getRemainingGenerations, checkRateLimit } from './middleware/rateLimiter';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -1623,6 +1623,19 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
     }
   });
   
+  // Rate limit check endpoint for anonymous users
+  app.get("/api/check-rate-limit", (req, res) => {
+    const { remaining } = checkRateLimit(req);
+    
+    res.setHeader('X-RateLimit-Limit', '3');
+    res.setHeader('X-RateLimit-Remaining', (remaining + 1).toString());
+    
+    res.json({ 
+      remaining: remaining + 1,
+      limit: 3 
+    });
+  });
+
   // Add a specific endpoint for updating token usage manually - WITH DATA PROTECTION
   app.post("/api/usage/record", optionalAuth, async (req: AuthRequest, res) => {
     try {
