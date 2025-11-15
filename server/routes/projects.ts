@@ -20,16 +20,20 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET a single project by ID
+// GET a single project by ID or slug
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const projectId = parseInt(req.params.id);
+    const idParam = req.params.id;
+    let project;
     
-    if (isNaN(projectId)) {
-      return res.status(400).json({ error: 'Invalid project ID' });
+    // Check if it's a numeric ID
+    const projectId = parseInt(idParam);
+    if (!isNaN(projectId)) {
+      project = await storage.getProject(projectId);
+    } else {
+      // Otherwise, treat as slug
+      project = await storage.getProjectBySlug(idParam);
     }
-
-    const project = await storage.getProject(projectId);
     
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });

@@ -177,6 +177,11 @@ export class PgStorage implements IStorage {
     return results[0];
   }
 
+  async getProjectBySlug(slug: string): Promise<Project | undefined> {
+    const results = await db.select().from(projects).where(eq(projects.slug, slug));
+    return results[0];
+  }
+
   async getAllProjects(): Promise<Project[]> {
     return await db.select().from(projects);
   }
