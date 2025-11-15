@@ -598,9 +598,11 @@ export default function Editor({
           
           // Decode the chunk data
           const chunkText = decoder.decode(value, { stream: true });
+          console.log("[FRONTEND] Received raw data from stream:", chunkText.length, "bytes");
           
           // Process each event (lines starting with "data: ")
           const eventLines = chunkText.split("\n\n");
+          console.log("[FRONTEND] Split into", eventLines.length, "event lines");
           for (const eventLine of eventLines) {
             if (!eventLine.trim().startsWith("data:")) continue;
             
@@ -608,6 +610,7 @@ export default function Editor({
               // Parse the event data
               const jsonStr = eventLine.trim().substring(5).trim();
               const event = JSON.parse(jsonStr);
+              console.log("[FRONTEND] Parsed event type:", event.event);
               
               // Handle different event types
               switch (event.event) {
@@ -620,6 +623,7 @@ export default function Editor({
                 case 'chunk':
                   // We received a content chunk, add it to our HTML
                   const contentChunk = event.content;
+                  console.log("[FRONTEND] Received chunk:", contentChunk.length, "chars");
                   
                   if (event.isHtml && !isHtmlStarted) {
                     isHtmlStarted = true;
