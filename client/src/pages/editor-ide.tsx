@@ -316,6 +316,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             eventSource.close();
             
             // Auto-save project after generation completes
+            console.log('Checking auto-save condition:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId });
             if (routeSessionId === 'new' || !routeSessionId) {
               // Generate project name from prompt if not provided
               const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
