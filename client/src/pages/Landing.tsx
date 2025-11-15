@@ -79,7 +79,8 @@ export default function Landing() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('sambanova');
+  const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('cerebras');
+  const [enhanceEnabled, setEnhanceEnabled] = useState(true);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
 
@@ -137,10 +138,10 @@ export default function Landing() {
       return;
     }
 
-    // For anonymous users, redirect to /ide/new with the prompt and model
+    // For anonymous users, redirect to /ide/new with the prompt, model, and enhance settings
     // The IDE will handle the actual generation and rate limiting
     const encodedPrompt = encodeURIComponent(prompt);
-    setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}`);
+    setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}&enhance=${enhanceEnabled}`);
   };
 
   const handleExampleClick = (example: Example) => {
@@ -337,6 +338,8 @@ export default function Landing() {
                         <Zap className="w-3.5 h-3.5" />
                         <span>Enhance</span>
                         <Switch
+                          checked={enhanceEnabled}
+                          onCheckedChange={setEnhanceEnabled}
                           className="scale-75"
                         />
                       </div>
