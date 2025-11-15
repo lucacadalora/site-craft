@@ -115,7 +115,7 @@ export function GenerationProgressBar({
         <div className="flex items-center justify-between mb-1.5 text-xs">
           <div className="flex items-center gap-2 text-gray-300">
             <span className="text-white font-medium">
-              Generating with {prompt === 'cerebras' ? 'Cerebras' : 'SambaNova AI'}
+              Generating with Jatevo LLM Inference
             </span>
             <span className="text-gray-500">•</span>
             <span className="text-blue-400">{formatTime(elapsedTime)}</span>

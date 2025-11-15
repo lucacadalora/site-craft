@@ -315,11 +315,25 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             setIsGenerating(false);
             eventSource.close();
             
+            // Show success notification for generation completion
+            toast({
+              title: "✨ Generation Complete!",
+              description: `Successfully generated ${finalFilesArray.length} files using Jatevo LLM Inference`,
+              className: "bg-green-900 border-green-700 text-white",
+            });
+            
             // Auto-save project after generation completes
             console.log('Checking auto-save condition:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId });
             if (routeSessionId === 'new' || !routeSessionId) {
               // Generate project name from prompt if not provided
               const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
+              
+              // Show saving notification
+              toast({
+                title: "💾 Saving Project...",
+                description: `Saving your project as "${autoName}"`,
+                className: "bg-blue-900 border-blue-700 text-white",
+              });
               
               // Save project immediately with explicit files (no delay needed!)
               // Pass finalFilesArray directly to avoid closure/state timing issues
@@ -340,19 +354,27 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                     navigate(navigateTo, { replace: true });
                     
                     toast({
-                      title: "Project Saved",
-                      description: `Saved as "${autoName}"`,
+                      title: "✅ Project Saved Successfully!",
+                      description: `Your project "${autoName}" has been saved with ID: ${savedProject.id}`,
+                      className: "bg-green-900 border-green-700 text-white",
                     });
                   }
                 } catch (error) {
                   console.error('Auto-save failed:', error);
                   toast({
-                    title: "Auto-save Failed",
-                    description: "Your project wasn't saved. Please use the Save button.",
+                    title: "❌ Auto-save Failed",
+                    description: "Your project couldn't be saved automatically. Please use the Save button.",
                     variant: "destructive"
                   });
                 }
               })();
+            } else {
+              // Project already has an ID, just update it
+              toast({
+                title: "✨ Generation Complete!",
+                description: "Your changes have been applied successfully.",
+                className: "bg-green-900 border-green-700 text-white",
+              });
             }
             
             return;
