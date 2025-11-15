@@ -512,7 +512,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       {/* Header */}
       <header className="border-b px-4 py-2 flex items-center justify-between bg-[#0a0a0a]">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">DeepSite</h1>
+          <h1 className="text-lg font-semibold text-white">Jatevo Web Builder</h1>
           {project && (
             <span className="text-sm text-gray-400">
               {project.name}
@@ -635,7 +635,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
               {/* Prompt Input */}
               <Textarea
-                placeholder="Ask DeepSite for edits"
+                placeholder="Ask Jatevo Web Builder for edits"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
