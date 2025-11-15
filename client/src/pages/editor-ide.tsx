@@ -164,7 +164,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       };
       
       let accumulatedContent = '';
-      let currentFiles: Map<string, { name: string; content: string; language: string; isComplete: boolean }> = new Map();
+      let currentFiles: Map<string, ProjectFile> = new Map();
+      let incompleteFiles: Set<string> = new Set(); // Track which files are still streaming
       let currentFileName: string | null = null;
       let isMultiFile = false;
       let parsingState: 'project_name' | 'file_start' | 'file_content' | 'file_end' = 'project_name';
@@ -182,7 +183,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       const updateFilesRealtime = () => {
         const filesArray = Array.from(currentFiles.values()).map(f => ({
           name: f.name,
-          content: f.isComplete ? stripCursor(f.content) : addCursor(stripCursor(f.content)),
+          content: incompleteFiles.has(f.name) ? addCursor(stripCursor(f.content)) : stripCursor(f.content),
           language: f.language as 'html' | 'css' | 'javascript' | 'unknown'
         }));
         
@@ -195,8 +196,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       const startNewFile = (fileName: string) => {
         // Mark previous file as complete
         if (currentFileName && currentFiles.has(currentFileName)) {
-          const prevFile = currentFiles.get(currentFileName)!;
-          currentFiles.set(currentFileName, { ...prevFile, isComplete: true });
+          incompleteFiles.delete(currentFileName); // Mark as complete by removing from incomplete set
         }
         
         currentFileName = fileName;
@@ -210,9 +210,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
         currentFiles.set(currentFileName, {
           name: currentFileName,
           content: '',
-          language,
-          isComplete: false
+          language
         });
+        incompleteFiles.add(currentFileName); // Mark as incomplete
         
         currentFileContent = '';
         inCodeBlock = false;
@@ -226,10 +226,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             currentFiles.forEach((file, name) => {
               currentFiles.set(name, { 
                 ...file, 
-                content: stripCursor(file.content),
-                isComplete: true 
+                content: stripCursor(file.content)
               });
             });
+            incompleteFiles.clear(); // Clear all incomplete markers
             updateFilesRealtime();
             setIsGenerating(false);
             eventSource.close();
@@ -260,10 +260,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               currentFiles.forEach((file, name) => {
                 currentFiles.set(name, { 
                   ...file, 
-                  content: stripCursor(file.content),
-                  isComplete: true 
+                  content: stripCursor(file.content)
                 });
               });
+              incompleteFiles.clear(); // Clear all incomplete markers
               updateFilesRealtime();
               setIsGenerating(false);
               eventSource.close();
@@ -280,98 +280,59 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
           if (!contentChunk) return;
           
           accumulatedContent += contentChunk;
+          
+          // Try to parse accumulated content using the enhanced parser
+          try {
+            const parsed = processAiResponse(accumulatedContent);
+            
+            if (parsed.projectName) {
+              projectName = parsed.projectName;
+              isMultiFile = true;
+            }
+            
+            if (parsed.files.length > 0) {
+              isMultiFile = true;
               
-              // Parse the content using a state machine approach
-              // Look for markers: PROJECT_NAME_START/END, NEW_FILE_START/END
+              // Get existing files for search/replace operations
+              const existingFilesArray = Array.from(currentFiles.values());
               
-              // Check for project name
-              if (accumulatedContent.includes('<<<<<<< PROJECT_NAME_START')) {
-                isMultiFile = true;
-                const projectMatch = accumulatedContent.match(/<<<<<<< PROJECT_NAME_START\s*(.*?)\s*>>>>>>> PROJECT_NAME_END/);
-                if (projectMatch) {
-                  projectName = projectMatch[1];
-                  parsingState = 'file_start';
-                }
+              // Convert parsed files to project files with search/replace support
+              const newFiles = convertToProjectFiles(parsed.files, existingFilesArray);
+              
+              // Merge new files with existing ones
+              const mergedFiles = new Map(currentFiles);
+              
+              for (const file of newFiles) {
+                // Update or add each file
+                mergedFiles.set(file.name, file);
+                incompleteFiles.add(file.name); // Mark as incomplete during streaming
               }
               
-              // Check for file markers (with spaces as defined in prompts.ts)
-              // NEW_FILE_START = "<<<<<<< NEW_FILE_START "
-              // NEW_FILE_END = " >>>>>>> NEW_FILE_END"
-              if (isMultiFile) {
-                // Process files sequentially
-                let processBuffer = accumulatedContent;
-                
-                // Look for new file start markers
-                const fileStartPattern = /<<<<<<< NEW_FILE_START\s+([\w.-]+)\s+>>>>>>> NEW_FILE_END/;
-                const fileMatch = processBuffer.match(fileStartPattern);
-                
-                if (fileMatch) {
-                  const fileName = fileMatch[1];
-                  const markerEndIdx = fileMatch.index! + fileMatch[0].length;
-                  
-                  // Start the new file
-                  if (fileName !== currentFileName) {
-                    startNewFile(fileName);
-                  }
-                  
-                  // Look for code block after this marker
-                  const afterMarker = processBuffer.slice(markerEndIdx);
-                  
-                  // Check if we have a complete code block
-                  const codeBlockRegex = /```(?:html|css|javascript)?\n([\s\S]*?)```/;
-                  const codeMatch = afterMarker.match(codeBlockRegex);
-                  
-                  if (codeMatch) {
-                    // Complete code block found
-                    const fileContent = codeMatch[1];
-                    const file = currentFiles.get(fileName);
-                    if (file) {
-                      currentFiles.set(fileName, {
-                        ...file,
-                        content: fileContent,
-                        isComplete: false // Will be marked complete when next file starts
-                      });
-                    }
-                  } else {
-                    // Incomplete code block - extract partial content
-                    const partialRegex = /```(?:html|css|javascript)?\n([\s\S]*)/;
-                    const partialMatch = afterMarker.match(partialRegex);
-                    
-                    if (partialMatch) {
-                      const partialContent = partialMatch[1];
-                      const file = currentFiles.get(fileName);
-                      if (file) {
-                        currentFiles.set(fileName, {
-                          ...file,
-                          content: partialContent,
-                          isComplete: false
-                        });
-                      }
-                    }
-                  }
-                }
-                
-                updateFilesRealtime();
-              } else if (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html')) {
-                // Single file mode - treat as HTML
-                if (!currentFiles.has('index.html')) {
-                  currentFiles.set('index.html', {
-                    name: 'index.html',
-                    content: '',
-                    language: 'html',
-                    isComplete: false
-                  });
-                  currentFileName = 'index.html';
-                }
-                
-                const file = currentFiles.get('index.html')!;
+              currentFiles = mergedFiles;
+              updateFilesRealtime();
+            } else if (!isMultiFile && (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html'))) {
+              // Fallback: Single file mode - treat as HTML
+              if (!currentFiles.has('index.html')) {
                 currentFiles.set('index.html', {
-                  ...file,
-                  content: accumulatedContent
+                  name: 'index.html',
+                  content: '',
+                  language: 'html'
                 });
-                
-                updateFilesRealtime();
+                incompleteFiles.add('index.html'); // Mark as incomplete
               }
+              
+              const file = currentFiles.get('index.html')!;
+              currentFiles.set('index.html', {
+                ...file,
+                content: accumulatedContent
+              });
+              
+              updateFilesRealtime();
+            }
+          } catch (parseError) {
+            // If parsing fails during streaming, continue accumulating
+            // This is normal as content builds up progressively
+          }
         } catch (e) {
           console.error('Error parsing SSE data:', e);
         }
