@@ -343,20 +343,20 @@ export default function Landing() {
                 </div>
                 
                 {/* What Can You Build Section */}
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-center mb-4 text-gray-300">What Can You Build?</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="mt-8 bg-white dark:bg-gray-900 rounded-xl p-6">
+                  <h3 className="text-xl font-semibold text-center mb-6 text-gray-900 dark:text-white">What Can You Build?</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {examples.map((example, index) => (
                       <Card 
                         key={index}
-                        className="p-4 bg-gray-900 border-gray-800 hover:bg-gray-800 cursor-pointer transition-colors"
+                        className="p-4 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:shadow-lg hover:scale-105 cursor-pointer transition-all duration-200"
                         onClick={() => handleExampleClick(example)}
                       >
-                        <Badge variant="outline" className="mb-2 text-xs">
+                        <Badge variant="secondary" className="mb-2 text-xs">
                           {example.category}
                         </Badge>
-                        <h4 className="text-sm font-medium mb-1">{example.title}</h4>
-                        <p className="text-xs text-gray-500">
+                        <h4 className="text-sm font-semibold mb-1 text-gray-900 dark:text-white">{example.title}</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
                           {example.description}
                         </p>
                       </Card>
