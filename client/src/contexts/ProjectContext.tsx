@@ -84,11 +84,11 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
       files: [
         {
           name: 'index.html',
-          content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>New Project</title>\n    <link rel="stylesheet" href="styles.css">\n</head>\n<body>\n    <h1>Welcome to your new project!</h1>\n    <script src="script.js"></script>\n</body>\n</html>',
+          content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>New Project</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Welcome to your new project!</h1>\n    <script src="script.js"></script>\n</body>\n</html>',
           language: 'html'
         },
         {
-          name: 'styles.css',
+          name: 'style.css',
           content: '/* Add your styles here */\nbody {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n    background-color: #f5f5f5;\n}\n\nh1 {\n    color: #333;\n}',
           language: 'css'
         },
@@ -226,7 +226,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           body: JSON.stringify({
             name: project.name,
             html: project.files.find(f => f.name === 'index.html')?.content || '',
-            css: project.files.find(f => f.name === 'styles.css')?.content || '',
+            css: project.files.find(f => f.name === 'style.css')?.content || '',
             files: project.files,
             prompts: project.prompts
           })

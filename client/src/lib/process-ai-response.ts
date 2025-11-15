@@ -41,14 +41,14 @@ export function processAiResponse(response: string): ParsedResponse {
     files: []
   };
 
-  // Extract project name if present
-  const projectNameMatch = response.match(/<<<<<<\s*PROJECT_NAME_START\s*([\s\S]*?)\s*>>>>>>>\s*PROJECT_NAME_END/);
+  // Extract project name if present (7 '<' characters to match prompts)
+  const projectNameMatch = response.match(/<<<<<<<\s*PROJECT_NAME_START\s*([\s\S]*?)\s*>>>>>>>\s*PROJECT_NAME_END/);
   if (projectNameMatch) {
     result.projectName = projectNameMatch[1].trim();
   }
 
-  // Parse NEW_FILE sections
-  const newFileRegex = /<<<<<<\s*NEW_FILE_START\s*(.*?)\s*>>>>>>>\s*NEW_FILE_END\s*```[a-z]*\n([\s\S]*?)```/g;
+  // Parse NEW_FILE sections (7 '<' and '>' characters to match prompts)
+  const newFileRegex = /<<<<<<<\s*NEW_FILE_START\s*(.*?)\s*>>>>>>>\s*NEW_FILE_END\s*```[a-z]*\n([\s\S]*?)```/g;
   let match;
   
   while ((match = newFileRegex.exec(response)) !== null) {
@@ -64,8 +64,8 @@ export function processAiResponse(response: string): ParsedResponse {
     }
   }
 
-  // Parse UPDATE_FILE sections with SEARCH/REPLACE support
-  const updateFileRegex = /<<<<<<\s*UPDATE_FILE_START\s*(.*?)\s*>>>>>>>\s*UPDATE_FILE_END([\s\S]*?)(?=<<<<<<\s*(?:UPDATE_FILE_START|NEW_FILE_START)|$)/g;
+  // Parse UPDATE_FILE sections with SEARCH/REPLACE support (7 '<' and '>' characters to match prompts)
+  const updateFileRegex = /<<<<<<<\s*UPDATE_FILE_START\s*(.*?)\s*>>>>>>>\s*UPDATE_FILE_END([\s\S]*?)(?=<<<<<<<\s*(?:UPDATE_FILE_START|NEW_FILE_START)|$)/g;
   
   while ((match = updateFileRegex.exec(response)) !== null) {
     const fileName = match[1].trim();
@@ -142,7 +142,7 @@ export function processAiResponse(response: string): ParsedResponse {
     const cssMatch = response.match(/```css\n([\s\S]*?)```/);
     if (cssMatch) {
       result.files.push({
-        path: 'styles.css',
+        path: 'style.css',
         content: cssMatch[1].trim(),
         action: 'create'
       });
