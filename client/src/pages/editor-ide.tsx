@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-context';
 import { useProject, ProjectFile } from '@/contexts/ProjectContext';
 import { FileBrowser } from '@/components/FileBrowser';
 import { EditorTabs } from '@/components/EditorTabs';
@@ -50,6 +51,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const { sessionId: routeSessionId } = useParams(); // Changed from id to sessionId
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth(); // Add auth context
   const { 
     project, 
     createNewProject, 
@@ -322,9 +324,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               className: "bg-green-900 border-green-700 text-white",
             });
             
-            // Auto-save project after generation completes
-            console.log('Checking auto-save condition:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId });
-            if (routeSessionId === 'new' || !routeSessionId) {
+            // Auto-save project after generation completes (only if authenticated)
+            console.log('Checking auto-save condition:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId, user: !!user });
+            if (user && (routeSessionId === 'new' || !routeSessionId)) {
               // Generate project name from prompt if not provided
               const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
               
@@ -368,6 +370,23 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                   });
                 }
               })();
+            } else if (!user && (routeSessionId === 'new' || !routeSessionId)) {
+              // Not authenticated - show login prompt
+              toast({
+                title: "🔐 Login to Save",
+                description: "Sign up or login to save your project",
+                className: "bg-yellow-900 border-yellow-700 text-white",
+                action: (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="bg-yellow-800 text-white border-yellow-600 hover:bg-yellow-700"
+                    onClick={() => navigate('/auth/signup')}
+                  >
+                    Sign Up
+                  </Button>
+                )
+              });
             } else {
               // Project already has an ID, just update it
               toast({
@@ -446,9 +465,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               setIsGenerating(false);
               eventSource.close();
               
-              // Auto-save project after Cerebras batch completion
-              console.log('Checking auto-save condition for Cerebras batch:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId });
-              if (routeSessionId === 'new' || !routeSessionId) {
+              // Auto-save project after Cerebras batch completion (only if authenticated)
+              console.log('Checking auto-save condition for Cerebras batch:', { routeSessionId, isNew: routeSessionId === 'new', isUndefined: !routeSessionId, user: !!user });
+              if (user && (routeSessionId === 'new' || !routeSessionId)) {
                 // Generate project name from prompt if not provided
                 const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
                 
@@ -483,6 +502,23 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                     });
                   }
                 })();
+              } else if (!user && (routeSessionId === 'new' || !routeSessionId)) {
+                // Not authenticated - show login prompt
+                toast({
+                  title: "🔐 Login to Save",
+                  description: "Sign up or login to save your project",
+                  className: "bg-yellow-900 border-yellow-700 text-white",
+                  action: (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="bg-yellow-800 text-white border-yellow-600 hover:bg-yellow-700"
+                      onClick={() => navigate('/auth/signup')}
+                    >
+                      Sign Up
+                    </Button>
+                  )
+                });
               }
               
               return;
@@ -714,6 +750,26 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             variant="outline"
             size="sm"
             onClick={async () => {
+              // Check authentication first
+              if (!user) {
+                toast({
+                  title: "🔐 Login Required",
+                  description: "Please sign up or login to save your project",
+                  className: "bg-yellow-900 border-yellow-700 text-white",
+                  action: (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="bg-yellow-800 text-white border-yellow-600 hover:bg-yellow-700"
+                      onClick={() => navigate('/auth/signup')}
+                    >
+                      Sign Up
+                    </Button>
+                  )
+                });
+                return;
+              }
+              
               const projectName = project?.name || prompt.substring(0, 50).trim() || 'Untitled Project';
               try {
                 const savedProject = await saveProject(
