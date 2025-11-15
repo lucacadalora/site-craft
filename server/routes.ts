@@ -603,7 +603,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const completionOptions = {
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage]
+          messages: [systemMessage, userMessage],
+          max_tokens: 64000
         };
         
         // Call the AI Accelerate Inference API with streaming

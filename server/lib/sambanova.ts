@@ -164,7 +164,7 @@ export async function generateLandingPageHtmlWithDeepSeek(
       stream: true,
       model: "DeepSeek-V3-0324", // Corrected model name with proper capitalization
       messages: [systemMessage, userMessage],
-      max_tokens: 32000
+      max_tokens: 64000
     };
     
     // Log API request for debugging
