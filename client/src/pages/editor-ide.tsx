@@ -463,91 +463,92 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* File Explorer Overlay */}
-        {showFileExplorer && (
-          <>
-            {/* Background overlay */}
-            <div 
-              className="absolute inset-0 bg-black/50 z-40 transition-opacity"
-              onClick={() => setShowFileExplorer(false)}
-            />
+        {/* File Explorer Overlay - Always rendered but visibility controlled by CSS */}
+        <>
+          {/* Background overlay */}
+          <div 
+            className={cn(
+              "absolute inset-0 bg-black/50 z-40 transition-opacity duration-300",
+              showFileExplorer ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            onClick={() => setShowFileExplorer(false)}
+          />
+          
+          {/* Explorer Panel */}
+          <div className={cn(
+            "absolute left-0 top-0 bottom-0 w-80 bg-[#1e1e1e] border-r border-gray-800 z-50",
+            "transform transition-transform duration-300 ease-in-out",
+            showFileExplorer ? "translate-x-0" : "-translate-x-full"
+          )}>
+            {/* Explorer Header */}
+            <div className="flex items-center justify-between p-3 border-b border-gray-800">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-200">EXPLORER</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFileExplorer(false)}
+                className="h-6 w-6 p-0 hover:bg-gray-800"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </Button>
+            </div>
             
-            {/* Explorer Panel */}
-            <div className={cn(
-              "absolute left-0 top-0 bottom-0 w-80 bg-[#1e1e1e] border-r border-gray-800 z-50",
-              "transform transition-transform duration-300 ease-in-out",
-              showFileExplorer ? "translate-x-0" : "-translate-x-full"
-            )}>
-              {/* Explorer Header */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-800">
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-200">EXPLORER</span>
-                </div>
+            {/* File Browser */}
+            <FileBrowser className="flex-1 overflow-auto" />
+            
+            {/* Prompt Input */}
+            <div className="p-4 border-t border-gray-800">
+              <Textarea
+                placeholder={project && project.prompts.length > 0 
+                  ? "Enter a follow-up prompt to modify the project..." 
+                  : "Describe what you want to build..."}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    handleGenerate();
+                  }
+                }}
+                className="min-h-[100px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-500"
+                disabled={isGenerating}
+                data-testid="input-prompt"
+              />
+              
+              <div className="flex gap-2">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFileExplorer(false)}
-                  className="h-6 w-6 p-0 hover:bg-gray-800"
+                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
+                  disabled={!prompt.trim() && !isGenerating}
+                  className="flex-1"
+                  variant={isGenerating ? "destructive" : "default"}
+                  data-testid="button-generate"
                 >
-                  <X className="w-4 h-4 text-gray-400" />
+                  {isGenerating ? (
+                    <>Stop Generation</>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Generate
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => createNewProject()}
+                  title="New Project"
+                  className="bg-transparent border-gray-700 hover:bg-gray-800"
+                  data-testid="button-new-project"
+                >
+                  <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              
-              {/* File Browser */}
-              <FileBrowser className="flex-1 overflow-auto" />
-              
-              {/* Prompt Input */}
-              <div className="p-4 border-t border-gray-800">
-                <Textarea
-                  placeholder={project && project.prompts.length > 0 
-                    ? "Enter a follow-up prompt to modify the project..." 
-                    : "Describe what you want to build..."}
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                      handleGenerate();
-                    }
-                  }}
-                  className="min-h-[100px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-500"
-                  disabled={isGenerating}
-                  data-testid="input-prompt"
-                />
-                
-                <div className="flex gap-2">
-                  <Button
-                    onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                    disabled={!prompt.trim() && !isGenerating}
-                    className="flex-1"
-                    variant={isGenerating ? "destructive" : "default"}
-                    data-testid="button-generate"
-                  >
-                    {isGenerating ? (
-                      <>Stop Generation</>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        Generate
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => createNewProject()}
-                    title="New Project"
-                    className="bg-transparent border-gray-700 hover:bg-gray-800"
-                    data-testid="button-new-project"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
             </div>
-          </>
-        )}
+          </div>
+        </>
 
         {/* Editor and Preview Container */}
         <div className="flex-1 flex">
