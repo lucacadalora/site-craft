@@ -221,7 +221,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     if (!project) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const nameToUse = projectName || project.name;
       
       if (project.id) {
@@ -296,7 +296,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/projects/${projectId}`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
