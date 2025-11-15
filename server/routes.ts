@@ -772,15 +772,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // Debug: Log first 500 chars of AI response to see format
+        console.log('=== AI RESPONSE DEBUG ===');
+        console.log('First 500 chars:', fullContent.substring(0, 500));
+        console.log('Has PROJECT_NAME_START:', fullContent.includes('PROJECT_NAME_START'));
+        console.log('Has NEW_FILE_START:', fullContent.includes('NEW_FILE_START'));
+        console.log('Has ```html:', fullContent.includes('```html'));
+        console.log('filesDetected flag:', filesDetected);
+        console.log('========================');
+        
         // Parse multi-file output if detected
         let parsedResult = null;
-        if (filesDetected) {
-          try {
-            parsedResult = processAiResponse(fullContent);
-            console.log(`Parsed multi-file project: ${parsedResult.projectName} with ${parsedResult.files.length} files`);
-          } catch (parseError) {
-            console.error("Error parsing multi-file response:", parseError);
+        try {
+          parsedResult = processAiResponse(fullContent);
+          console.log(`Parsed AI response: projectName="${parsedResult.projectName}", files=${parsedResult.files.length}`);
+          if (parsedResult.files.length > 0) {
+            console.log('Files detected:', parsedResult.files.map(f => f.path).join(', '));
           }
+        } catch (parseError) {
+          console.error("Error parsing AI response:", parseError);
         }
         
         // Send completion event with token information and parsed files
