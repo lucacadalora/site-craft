@@ -961,7 +961,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage]
+          messages: [systemMessage, userMessage],
+          max_tokens: 64000
         })
       });
 
