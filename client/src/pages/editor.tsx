@@ -839,6 +839,31 @@ export default function Editor({
                       }, 500);
                     }
                   }, 500);
+                  
+                  // CRITICAL: Clean up after completion
+                  setTimeout(() => {
+                    // Close EventSource connection
+                    eventSource.close();
+                    console.log("[EventSource] Connection closed after completion");
+                    
+                    // Clear progress interval
+                    if (progressInterval) {
+                      clearInterval(progressInterval);
+                      progressInterval = undefined;
+                    }
+                    
+                    // Hide generating UI
+                    window.inTypingPhase = false;
+                    setIsGenerating(false);
+                    
+                    // Clear stream controller reference
+                    streamControllerRef.current = null;
+                    
+                    // Dispatch custom event to notify completion
+                    window.dispatchEvent(new CustomEvent('landing-page-generated', { 
+                      detail: { tokenCount: event.tokenCount || Math.round(collectedHtml.length / 4) }
+                    }));
+                  }, 1000);
                   break;
                   
                 default:
