@@ -7,6 +7,7 @@ import { EditorTabs } from '@/components/EditorTabs';
 import { MultiFileEditor } from '@/components/MultiFileEditor';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { UserProfile } from '@/components/user-profile';
 import { DeployButton } from '@/components/deploy-button';
 import { GenerationStatus } from '@/components/ui/generation-status';
@@ -37,6 +38,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
+import { rewritePrompt } from '@/lib/rewrite-prompt';
+import { EnhancedSettings } from '@shared/schema';
 
 interface EditorIDEProps {
   initialApiConfig?: any;
@@ -66,6 +69,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [selectedModel, setSelectedModel] = useState('cerebras-glm-4.6');
+  
+  // Enhanced Settings with localStorage persistence
+  const [enhancedSettings, setEnhancedSettings] = useState<EnhancedSettings>(() => {
+    const saved = localStorage.getItem('enhanced_settings');
+    return saved ? JSON.parse(saved) : { isActive: true };
+  });
+  
+  // Persist enhancedSettings to localStorage
+  useEffect(() => {
+    localStorage.setItem('enhanced_settings', JSON.stringify(enhancedSettings));
+  }, [enhancedSettings]);
   
   // Refs
   const previewRef = useRef<HTMLIFrameElement>(null);
@@ -143,7 +157,26 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     }
 
     setIsGenerating(true);
-    addPrompt(prompt);
+    
+    // Enhance prompt if enhancement is enabled
+    let finalPrompt = prompt;
+    if (enhancedSettings.isActive) {
+      try {
+        toast({
+          title: "Enhancing prompt...",
+          description: "Adding more details for better results",
+        });
+        finalPrompt = await rewritePrompt(prompt);
+        console.log('Original prompt:', prompt);
+        console.log('Enhanced prompt:', finalPrompt);
+      } catch (error) {
+        console.error('Failed to enhance prompt:', error);
+        // Continue with original prompt if enhancement fails
+        finalPrompt = prompt;
+      }
+    }
+    
+    addPrompt(finalPrompt);
     
     // Create a new AbortController for this generation
     const controller = new AbortController();
@@ -155,7 +188,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       
       // Create session with POST to avoid URL length limitations
       const sessionPayload: any = {
-        prompt,
+        prompt: finalPrompt,
         useMultiFile: true
       };
       
@@ -748,6 +781,18 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                     <Edit3 className="w-3.5 h-3.5 mr-1.5" />
                     Edit
                   </Button>
+                  
+                  {/* Enhance Toggle */}
+                  <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-l border-gray-800/50 ml-1 pl-3">
+                    <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500")} />
+                    <span>Enhance</span>
+                    <Switch
+                      checked={enhancedSettings.isActive}
+                      onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
+                      className="scale-75"
+                      data-testid="switch-enhance"
+                    />
+                  </div>
                 </div>
                 
                 {/* Send/Stop Button */}
