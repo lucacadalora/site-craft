@@ -43,7 +43,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     addPrompt,
     saveProject,
     loadProject,
-    getFileByName 
+    getFileByName,
+    openFile
   } = useProject();
   
   // UI State
@@ -351,7 +352,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               else if (extension === 'js') language = 'javascript';
               
               // Create or update the file immediately
-              if (!currentFiles.has(fileName)) {
+              const isNewFile = !currentFiles.has(fileName);
+              
+              if (isNewFile) {
                 // NEW FILE DETECTED - show it immediately in file browser!
                 currentFiles.set(fileName, {
                   name: fileName,
@@ -372,6 +375,19 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             
             // Update UI immediately to show new files
             updateFilesRealtime();
+            
+            // AUTO-SWITCH TO LATEST FILE (v3 behavior)
+            // When a new file starts generating, switch to it automatically
+            if (fileMatches.length > 0) {
+              const latestFile = fileMatches[fileMatches.length - 1][1];
+              // Check if this is actually a new file being created
+              const latestFileInCurrentFiles = currentFiles.get(latestFile);
+              if (latestFileInCurrentFiles && project?.activeFile !== latestFile) {
+                // Switch to this file in the editor tabs
+                openFile(latestFile);
+                console.log(`📂 Auto-switched to: ${latestFile}`);
+              }
+            }
             
           } else if (!isMultiFile && (accumulatedContent.includes('<!DOCTYPE html') || accumulatedContent.includes('<html'))) {
             // Fallback: Single file mode - treat as HTML
