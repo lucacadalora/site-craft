@@ -697,6 +697,48 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
           <Button
             variant="outline"
             size="sm"
+            onClick={async () => {
+              const projectName = project?.name || prompt.substring(0, 50).trim() || 'Untitled Project';
+              try {
+                const savedProject = await saveProject(
+                  project?.id ? parseInt(project.id) : undefined,
+                  projectName,
+                  projectFiles
+                );
+                if (savedProject?.id) {
+                  const navigateTo = savedProject.slug 
+                    ? `/ide/${savedProject.slug}` 
+                    : `/ide/${savedProject.id}`;
+                  
+                  if (routeSessionId === 'new') {
+                    navigate(navigateTo, { replace: true });
+                  }
+                  
+                  toast({
+                    title: "✅ Project Saved",
+                    description: `Your project "${projectName}" has been saved successfully!`,
+                  });
+                }
+              } catch (error) {
+                console.error('Manual save failed:', error);
+                toast({
+                  title: "Save Failed",
+                  description: "Unable to save your project. Please try again.",
+                  variant: "destructive"
+                });
+              }
+            }}
+            disabled={!projectFiles || projectFiles.length === 0 || isGenerating}
+            className="bg-transparent border-gray-700 hover:bg-gray-900 text-gray-300"
+            data-testid="button-save-project"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Save
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleDownloadProject}
             disabled={!project || project.files.length === 0}
             className="bg-transparent border-gray-700 hover:bg-gray-900 text-gray-300"
