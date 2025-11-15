@@ -104,20 +104,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     if (htmlFile) {
       let fullHtml = htmlFile.content;
       
-      // Inject CSP meta tag to allow external HTTPS images
-      const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data: blob:; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'none';">`;
-      const headEnd = fullHtml.indexOf('</head>');
-      if (headEnd > -1 && !fullHtml.includes('Content-Security-Policy')) {
-        fullHtml = fullHtml.slice(0, headEnd) + cspMetaTag + fullHtml.slice(headEnd);
-      }
-      
       // Inject CSS if exists
       if (cssFile && !fullHtml.includes('<style>')) {
-        const headEndAfterCSP = fullHtml.indexOf('</head>');
-        if (headEndAfterCSP > -1) {
-          fullHtml = fullHtml.slice(0, headEndAfterCSP) + 
+        const headEnd = fullHtml.indexOf('</head>');
+        if (headEnd > -1) {
+          fullHtml = fullHtml.slice(0, headEnd) + 
             `<style>${cssFile.content}</style>` + 
-            fullHtml.slice(headEndAfterCSP);
+            fullHtml.slice(headEnd);
         }
       }
       

@@ -589,50 +589,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log("Generating HTML with AI Accelerate Inference API using streaming for prompt:", prompt.substring(0, 50) + "...");
         
-        // Detect follow-up vs initial generation
-        let existingFiles: any[] = [];
-        let previousPrompts: string[] = [];
-        let isFollowUp = false;
-
-        try {
-          if (req.body.existingFiles && Array.isArray(req.body.existingFiles)) {
-            existingFiles = req.body.existingFiles;
-          }
-          if (req.body.previousPrompts && Array.isArray(req.body.previousPrompts)) {
-            previousPrompts = req.body.previousPrompts;
-          }
-          isFollowUp = existingFiles.length > 0 && previousPrompts.length > 0;
-        } catch (parseError) {
-          console.error("Failed to parse follow-up params:", parseError);
-          res.write(`data: ${JSON.stringify({ 
-            event: 'error', 
-            message: 'Invalid existingFiles or previousPrompts format'
-          })}\n\n`);
-          return res.end();
-        }
-
-        // Use appropriate system prompt
+        // Prepare the system prompt and user message for multi-file generation
         const systemMessage = {
           role: "system",
-          content: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
+          content: INITIAL_SYSTEM_PROMPT
         };
-
-        // Build user message with context for follow-ups
-        let userContent = '';
-        if (isFollowUp) {
-          // Build context string with existing files
-          const fileContext = existingFiles.map(file => 
-            `File: ${file.name}\n${file.content.substring(0, 300)}${file.content.length > 300 ? '...' : ''}`
-          ).join('\n\n');
-          
-          userContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n${fileContext}\n\nUser request: ${prompt}`;
-        } else {
-          userContent = `Create a landing page for: ${prompt}`;
-        }
-
+        
         const userMessage = {
           role: "user",
-          content: userContent
+          content: `Create a landing page for: ${prompt}`
         };
         
         const completionOptions = {
@@ -976,46 +941,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
       console.log("Generating HTML with AI Accelerate (GET/EventSource) for prompt:", prompt.substring(0, 50) + "...");
 
-      // Detect follow-up vs initial generation
-      let existingFiles: any[] = [];
-      let previousPrompts: string[] = [];
-      let isFollowUp = false;
-
-      try {
-        if (req.query.existingFiles && typeof req.query.existingFiles === 'string') {
-          existingFiles = JSON.parse(req.query.existingFiles);
-        }
-        if (req.query.previousPrompts && typeof req.query.previousPrompts === 'string') {
-          previousPrompts = JSON.parse(req.query.previousPrompts);
-        }
-        isFollowUp = existingFiles.length > 0 && previousPrompts.length > 0;
-      } catch (parseError) {
-        console.error("Failed to parse follow-up params:", parseError);
-        return res.status(400).json({ message: "Invalid existingFiles or previousPrompts format" });
-      }
-
-      // Use appropriate system prompt
+      // Use v3 multi-file system prompt for IDE
       const systemMessage = {
         role: "system",
-        content: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
+        content: INITIAL_SYSTEM_PROMPT
       };
-
-      // Build user message with context for follow-ups
-      let userContent = '';
-      if (isFollowUp) {
-        // Build context string with existing files
-        const fileContext = existingFiles.map(file => 
-          `File: ${file.name}\n${file.content.substring(0, 300)}${file.content.length > 300 ? '...' : ''}`
-        ).join('\n\n');
-        
-        userContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n${fileContext}\n\nUser request: ${prompt}`;
-      } else {
-        userContent = `Create a landing page for: ${prompt}`;
-      }
 
       const userMessage = {
         role: "user",
-        content: userContent
+        content: `Create a landing page for: ${prompt}`
       };
 
       const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
@@ -1027,8 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage],
-          max_tokens: 64000
+          messages: [systemMessage, userMessage]
         })
       });
 
