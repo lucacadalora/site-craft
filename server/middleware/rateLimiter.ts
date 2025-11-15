@@ -51,10 +51,15 @@ export function checkRateLimit(req: Request): {
   const ipData = ipGenerationCounts.get(ip);
   
   if (!ipData) {
-    // First generation for this IP
+    // First generation for this IP - initialize the counter
+    ipGenerationCounts.set(ip, {
+      count: 0, // Start at 0, will be incremented when generation completes
+      firstAttempt: now,
+      lastAttempt: now
+    });
     return {
       allowed: true,
-      remaining: MAX_GENERATIONS - 1
+      remaining: MAX_GENERATIONS // Full count available
     };
   }
   
@@ -103,8 +108,16 @@ export function incrementGenerationCount(req: Request): void {
 }
 
 export function getRemainingGenerations(req: Request): number {
-  const { remaining } = checkRateLimit(req);
-  return remaining + 1; // Add 1 because remaining doesn't count the current attempt
+  const ip = getClientIp(req);
+  const MAX_GENERATIONS = 3;
+  const ipData = ipGenerationCounts.get(ip);
+  
+  if (!ipData) {
+    return MAX_GENERATIONS;
+  }
+  
+  // Return the actual remaining count
+  return Math.max(0, MAX_GENERATIONS - ipData.count);
 }
 
 // Middleware for anonymous generation rate limiting
@@ -127,9 +140,13 @@ export function anonymousRateLimiter(req: Request, res: Response, next: NextFunc
     });
   }
   
-  // Add rate limit info to response headers
+  // Increment generation count immediately for anonymous users
+  incrementGenerationCount(req);
+  
+  // Add rate limit info to response headers (after incrementing)
+  const newRemaining = getRemainingGenerations(req);
   res.setHeader('X-RateLimit-Limit', '3');
-  res.setHeader('X-RateLimit-Remaining', remaining.toString());
+  res.setHeader('X-RateLimit-Remaining', newRemaining.toString());
   
   next();
 }

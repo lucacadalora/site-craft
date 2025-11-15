@@ -1185,11 +1185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })}\n\n`);
       flushResponse();
 
-      // Increment generation count for anonymous users
-      if (!userId) {
-        incrementGenerationCount(req);
-        console.log(`Anonymous generation completed for IP, remaining: ${getRemainingGenerations(req)}`);
-      }
+      // Anonymous generation count is now handled by the middleware
 
       // Clean up connection tracking and end response
       const connection = streamConnections.get(sessionId);
@@ -1591,11 +1587,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       })}\n\n`);
       flushResponse();
 
-      // Increment generation count for anonymous users
-      if (!userId) {
-        incrementGenerationCount(req);
-        console.log(`Anonymous generation completed for IP, remaining: ${getRemainingGenerations(req)}`);
-      }
+      // Anonymous generation count is now handled by the middleware
 
       // Clean up connection tracking and end response
       const connection = streamConnections.get(sessionId);
@@ -1625,13 +1617,13 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
   
   // Rate limit check endpoint for anonymous users
   app.get("/api/check-rate-limit", (req, res) => {
-    const { remaining } = checkRateLimit(req);
+    const remaining = getRemainingGenerations(req);
     
     res.setHeader('X-RateLimit-Limit', '3');
-    res.setHeader('X-RateLimit-Remaining', (remaining + 1).toString());
+    res.setHeader('X-RateLimit-Remaining', remaining.toString());
     
     res.json({ 
-      remaining: remaining + 1,
+      remaining: remaining,
       limit: 3 
     });
   });

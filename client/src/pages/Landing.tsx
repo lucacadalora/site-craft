@@ -121,6 +121,27 @@ export default function Landing() {
         })
       });
 
+      // Check response status first
+      if (response.status === 429) {
+        const errorData = await response.json();
+        toast({
+          title: "Generation limit reached",
+          description: errorData.message || "You've used all 3 free generations. Please sign up to continue.",
+          variant: "destructive",
+          action: (
+            <Button size="sm" onClick={() => setLocation('/auth/signup')}>
+              Sign Up
+            </Button>
+          )
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.sessionId) {
@@ -130,7 +151,7 @@ export default function Landing() {
     } catch (error: any) {
       console.error('Generation error:', error);
       
-      if (error.status === 429) {
+      if (error.message?.includes('429')) {
         toast({
           title: "Generation limit reached",
           description: user 
@@ -167,11 +188,9 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
-              <Link href="/">
-                <a className="flex items-center space-x-2">
-                  <Sparkles className="h-6 w-6 text-purple-600" />
-                  <span className="font-bold text-xl">Jatevo Builder</span>
-                </a>
+              <Link href="/" className="flex items-center space-x-2">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+                <span className="font-bold text-xl">Jatevo Builder</span>
               </Link>
               
               <div className="hidden md:flex space-x-6">
@@ -234,20 +253,20 @@ export default function Landing() {
               <a href="#generate" className="block py-2">Generate</a>
               {user ? (
                 <>
-                  <Link href="/projects">
-                    <a className="block py-2">My Projects</a>
+                  <Link href="/projects" className="block py-2">
+                    My Projects
                   </Link>
-                  <Link href="/profile">
-                    <a className="block py-2">Profile</a>
+                  <Link href="/profile" className="block py-2">
+                    Profile
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/login">
-                    <a className="block py-2">Login</a>
+                  <Link href="/auth/login" className="block py-2">
+                    Login
                   </Link>
-                  <Link href="/auth/signup">
-                    <a className="block py-2">Sign Up</a>
+                  <Link href="/auth/signup" className="block py-2">
+                    Sign Up
                   </Link>
                 </>
               )}
@@ -464,10 +483,10 @@ export default function Landing() {
               {!user && (
                 <p className="text-center text-sm text-gray-600 dark:text-gray-400">
                   No signup required for your first 3 generations.
-                  <Link href="/auth/signup">
-                    <a className="ml-1 text-purple-600 hover:underline">Sign up</a>
+                  <Link href="/auth/signup" className="ml-1 text-purple-600 hover:underline">
+                    Sign up
                   </Link>
-                  for unlimited access.
+                  {' '}for unlimited access.
                 </p>
               )}
             </div>
