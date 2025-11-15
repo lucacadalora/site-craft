@@ -81,6 +81,8 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
 
   const createNewProject = useCallback((name: string = 'Untitled Project') => {
     const newProject: Project = {
+      id: undefined,  // Explicitly clear ID to ensure new projects are truly new
+      sessionId: undefined,  // Clear sessionId as well
       name,
       files: [
         {
@@ -249,7 +251,8 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         if (!response.ok) {
           const errorData = await response.text();
           console.error('Update project failed:', response.status, errorData);
-          throw new Error(`Failed to update project: ${response.status}`);
+          console.error('Attempted to update project with ID:', project.id);
+          throw new Error(`Failed to update project: ${response.status} - ${errorData}`);
         }
 
         const savedProject = await response.json();
@@ -292,7 +295,8 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         if (!response.ok) {
           const errorData = await response.text();
           console.error('Create project failed:', response.status, errorData);
-          throw new Error(`Failed to save project: ${response.status}`);
+          console.error('Create payload was:', createPayload);
+          throw new Error(`Failed to save project: ${response.status} - ${errorData}`);
         }
 
         const savedProject = await response.json();
