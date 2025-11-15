@@ -53,6 +53,11 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
           <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
         )}
       </Route>
+      <Route path="/ide/new">
+        {() => (
+          <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} isDisposable={true} />
+        )}
+      </Route>
       <Route path="/ide/:sessionId">
         {(params) => (
           <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />

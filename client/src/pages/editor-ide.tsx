@@ -45,9 +45,10 @@ import { EnhancedSettings } from '@shared/schema';
 interface EditorIDEProps {
   initialApiConfig?: any;
   onApiConfigChange?: (newConfig: any) => void;
+  isDisposable?: boolean;
 }
 
-export default function EditorIDE({ initialApiConfig, onApiConfigChange }: EditorIDEProps) {
+export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDisposable = false }: EditorIDEProps) {
   const { sessionId: routeSessionId } = useParams(); // Changed from id to sessionId
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -63,14 +64,29 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     openFile
   } = useProject();
   
+  // Get URL parameters for disposable generation
+  const [urlParams] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        prompt: params.get('prompt') || '',
+        model: params.get('model') || 'cerebras'
+      };
+    }
+    return { prompt: '', model: 'cerebras' };
+  });
+  
   // UI State
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(urlParams.prompt ? decodeURIComponent(urlParams.prompt) : '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
-  const [selectedModel, setSelectedModel] = useState('cerebras-glm-4.6');
+  const [selectedModel, setSelectedModel] = useState(
+    urlParams.model === 'sambanova' ? 'sambanova-deepseek-v3' :
+    urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
+  );
   
   // Enhanced Settings with localStorage persistence
   const [enhancedSettings, setEnhancedSettings] = useState<EnhancedSettings>(() => {
@@ -94,6 +110,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
         if (routeSessionId === 'new' || !routeSessionId) {
           // Create a fresh new project
           createNewProject();
+          
+          // If this is a disposable session with URL params, auto-start generation
+          if (isDisposable && urlParams.prompt) {
+            // Wait a bit for the project to initialize
+            setTimeout(() => {
+              handleGenerate();
+            }, 500);
+          }
         } else {
           // Try to load existing project by sessionId
           await loadProject(routeSessionId);

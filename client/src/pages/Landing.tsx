@@ -93,7 +93,7 @@ export default function Landing() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (!prompt.trim()) {
       toast({
         title: "Please enter a prompt",
@@ -103,76 +103,10 @@ export default function Landing() {
       return;
     }
 
-    setIsGenerating(true);
-    const sessionId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    try {
-      // Create session
-      const endpoint = selectedModel === 'cerebras' ? '/api/cerebras/stream' : '/api/sambanova/stream';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          prompt,
-          existingFiles: '',
-          previousPrompts: ''
-        })
-      });
-
-      // Check response status first
-      if (response.status === 429) {
-        const errorData = await response.json();
-        toast({
-          title: "Generation limit reached",
-          description: errorData.message || "You've used all 3 free generations. Please sign up to continue.",
-          variant: "destructive",
-          action: (
-            <Button size="sm" onClick={() => setLocation('/auth/signup')}>
-              Sign Up
-            </Button>
-          )
-        });
-        setIsGenerating(false);
-        return;
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.sessionId) {
-        // Redirect to IDE with the session
-        setLocation(`/ide?sessionId=${data.sessionId}&model=${selectedModel}`);
-      }
-    } catch (error: any) {
-      console.error('Generation error:', error);
-      
-      if (error.message?.includes('429')) {
-        toast({
-          title: "Generation limit reached",
-          description: user 
-            ? "You've reached your generation limit. Please try again later."
-            : "You've used all 3 free generations. Please sign up to continue.",
-          variant: "destructive",
-          action: !user ? (
-            <Button size="sm" onClick={() => setLocation('/auth/signup')}>
-              Sign Up
-            </Button>
-          ) : undefined
-        });
-      } else {
-        toast({
-          title: "Generation failed",
-          description: error.message || "Failed to start generation",
-          variant: "destructive"
-        });
-      }
-      setIsGenerating(false);
-    }
+    // For anonymous users, redirect to /ide/new with the prompt and model
+    // The IDE will handle the actual generation and rate limiting
+    const encodedPrompt = encodeURIComponent(prompt);
+    setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}`);
   };
 
   const handleExampleClick = (example: Example) => {
