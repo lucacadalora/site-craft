@@ -940,9 +940,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
       console.log("Generating HTML with AI Accelerate (GET/EventSource) for prompt:", prompt.substring(0, 50) + "...");
 
+      // Use v3 multi-file system prompt for IDE
       const systemMessage = {
         role: "system",
-        content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
+        content: INITIAL_SYSTEM_PROMPT
       };
 
       const userMessage = {
@@ -1051,6 +1052,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Debug: Log AI response to see format
+      console.log('=== AI RESPONSE DEBUG (GET/SSE) ===');
+      console.log('First 500 chars:', fullContent.substring(0, 500));
+      console.log('Has PROJECT_NAME_START:', fullContent.includes('PROJECT_NAME_START'));
+      console.log('Has NEW_FILE_START:', fullContent.includes('NEW_FILE_START'));
+      console.log('Has ```html:', fullContent.includes('```html'));
+      console.log('========================');
+      
+      // Parse multi-file output using v3 logic
+      let parsedResult = null;
+      try {
+        parsedResult = processAiResponse(fullContent);
+        console.log(`Parsed AI response: projectName="${parsedResult.projectName}", files=${parsedResult.files.length}`);
+        if (parsedResult.files.length > 0) {
+          console.log('Files detected:', parsedResult.files.map(f => f.path).join(', '));
+        }
+      } catch (parseError) {
+        console.error("Error parsing AI response:", parseError);
+      }
+      
       // Track usage if user is authenticated
       const tokensToUse = Math.ceil(fullContent.length / 4);
       if (userId) {
@@ -1071,12 +1092,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Send completion
+      // Send completion with multi-file support
       res.write(`data: ${JSON.stringify({ 
         type: 'complete', 
-        html: fullContent,
+        html: parsedResult ? null : fullContent, // Only send HTML if not multi-file
+        files: parsedResult?.files || null, // Send parsed files if available
+        projectName: parsedResult?.projectName || title,
         source: 'api',
-        tokenCount: tokensToUse
+        tokenCount: tokensToUse,
+        stats: {
+          tokens: tokensToUse,
+          characters: fullContent.length,
+          filesCount: parsedResult?.files.length || 0
+        }
       })}\n\n`);
       flushResponse();
 
