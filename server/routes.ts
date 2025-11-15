@@ -15,6 +15,7 @@ import { deploymentsStorage } from './db/deployments-storage';
 import { db } from './db';
 import { processAiResponse, ProjectFile } from './format-ai-response';
 import { INITIAL_SYSTEM_PROMPT, FOLLOW_UP_SYSTEM_PROMPT } from './prompts';
+import { anonymousRateLimiter, incrementGenerationCount, getRemainingGenerations } from './middleware/rateLimiter';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -886,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET endpoint for true real-time SSE streaming (EventSource API)
-  app.get("/api/sambanova/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
+  app.get("/api/sambanova/stream/:sessionId", optionalAuth, anonymousRateLimiter, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
     
     // Try to get data from session storage first (for POST-created sessions)
@@ -1184,6 +1185,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })}\n\n`);
       flushResponse();
 
+      // Increment generation count for anonymous users
+      if (!userId) {
+        incrementGenerationCount(req);
+        console.log(`Anonymous generation completed for IP, remaining: ${getRemainingGenerations(req)}`);
+      }
+
       // Clean up connection tracking and end response
       const connection = streamConnections.get(sessionId);
       if (connection) {
@@ -1289,7 +1296,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
   });
 
   // GET endpoint for Cerebras (zai-glm-4.6) SSE streaming (EventSource API)
-  app.get("/api/cerebras/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
+  app.get("/api/cerebras/stream/:sessionId", optionalAuth, anonymousRateLimiter, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
     
     // Try to get data from session storage first (for POST-created sessions)
@@ -1583,6 +1590,12 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
         }
       })}\n\n`);
       flushResponse();
+
+      // Increment generation count for anonymous users
+      if (!userId) {
+        incrementGenerationCount(req);
+        console.log(`Anonymous generation completed for IP, remaining: ${getRemainingGenerations(req)}`);
+      }
 
       // Clean up connection tracking and end response
       const connection = streamConnections.get(sessionId);
