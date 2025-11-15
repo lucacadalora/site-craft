@@ -1,0 +1,44 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  basePath: '/deepsite',
+  assetPrefix: '/deepsite',
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/deepsite',
+        permanent: true,
+        basePath: false,
+      },
+    ];
+  },
+  webpack(config, options) {
+    const { isServer } = options;
+    config.module.rules.push({
+      test: /\.(ogg|mp3|wav|mpe?g)$/i,
+      exclude: config.exclude,
+      use: [
+        {
+          loader: require.resolve("url-loader"),
+          options: {
+            limit: config.inlineImageLimit,
+            fallback: require.resolve("file-loader"),
+            publicPath: `${config.assetPrefix}/_next/static/images/`,
+            outputPath: `${isServer ? "../" : ""}static/images/`,
+            name: "[name]-[hash].[ext]",
+            esModule: config.esModule || false,
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
+  images: {
+    remotePatterns: [new URL('https://huggingface.co/**')],
+  },
+};
+
+export default nextConfig;
