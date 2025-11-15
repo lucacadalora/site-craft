@@ -29,7 +29,7 @@ interface ProjectContextType {
   addFile: (file: ProjectFile) => void;
   deleteFile: (fileName: string) => void;
   renameFile: (oldName: string, newName: string) => void;
-  saveProject: () => Promise<void>;
+  saveProject: (sessionId?: string, projectName?: string) => Promise<void>;
   loadProject: (projectId: string) => Promise<void>;
   markAsClean: () => void;
   addPrompt: (prompt: string) => void;
@@ -217,11 +217,12 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     });
   }, []);
 
-  const saveProject = useCallback(async () => {
+  const saveProject = useCallback(async (sessionId?: string, projectName?: string) => {
     if (!project) return;
     
     try {
       const token = localStorage.getItem('token');
+      const nameToUse = projectName || project.name;
       
       if (project.id) {
         // Update existing project
@@ -232,7 +233,8 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
-            name: project.name,
+            name: nameToUse,
+            sessionId: sessionId,
             html: project.files.find(f => f.name === 'index.html')?.content || '',
             css: project.files.find(f => f.name === 'style.css')?.content || '',
             files: project.files,
@@ -247,6 +249,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         const savedProject = await response.json();
         setProjectState(prev => prev ? {
           ...prev,
+          name: nameToUse,
           isDirty: false,
           updatedAt: new Date()
         } : null);
@@ -259,7 +262,13 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
-            name: project.name,
+            name: nameToUse,
+            sessionId: sessionId,
+            prompt: project.prompts[0] || '',
+            templateId: 'default',
+            category: 'general',
+            html: project.files.find(f => f.name === 'index.html')?.content || '',
+            css: project.files.find(f => f.name === 'style.css')?.content || '',
             files: project.files,
             prompts: project.prompts
           })
@@ -273,7 +282,9 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         setProjectState(prev => prev ? {
           ...prev,
           id: savedProject.id?.toString(),
+          name: nameToUse,
           isDirty: false,
+          createdAt: new Date(),
           updatedAt: new Date()
         } : null);
       }

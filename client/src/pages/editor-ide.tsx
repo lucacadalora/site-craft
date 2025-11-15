@@ -75,21 +75,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   useEffect(() => {
     const initProject = async () => {
       try {
-        if (sessionId) {
-          // Try to load project by sessionId
-          await loadProject(sessionId);
-        } else if (!project) {
-          // Create new project with a sessionId
-          const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        if (sessionId === 'new' || !sessionId) {
+          // Create a fresh new project
           createNewProject();
+        } else {
+          // Try to load existing project by sessionId
+          await loadProject(sessionId);
         }
       } catch (error) {
         console.error('Failed to initialize project:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load project",
-          variant: "destructive"
-        });
+        // If loading fails, create new project instead
+        createNewProject();
       }
     };
     
@@ -276,6 +272,29 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             updateFilesRealtime();
             setIsGenerating(false);
             eventSource.close();
+            
+            // Auto-save project after generation completes
+            if (sessionId === 'new' || !sessionId) {
+              // Generate project name from prompt if not provided
+              const autoName = projectName || prompt.substring(0, 50).trim() || 'Untitled Project';
+              const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+              
+              // Save project with auto-generated sessionId and name
+              setTimeout(async () => {
+                try {
+                  await saveProject(newSessionId, autoName);
+                  // Update URL to reflect the saved sessionId
+                  navigate(`/ide/${newSessionId}`, { replace: true });
+                  toast({
+                    title: "Project Saved",
+                    description: `Saved as "${autoName}"`,
+                  });
+                } catch (error) {
+                  console.error('Auto-save failed:', error);
+                }
+              }, 500);
+            }
+            
             return;
           }
           

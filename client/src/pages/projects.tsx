@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,8 +51,6 @@ export default function Projects() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; projectId?: number }>({ open: false });
-  const [newProjectDialog, setNewProjectDialog] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
   
   // Get username from user email or display name
   const username = user?.displayName || user?.email?.split('@')[0] || 'user';
@@ -88,41 +85,9 @@ export default function Projects() {
     }
   });
 
-  // Create new project mutation
-  const createProjectMutation = useMutation({
-    mutationFn: async () => {
-      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      return apiRequest('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newProjectName || 'Untitled Project',
-          sessionId,
-          prompt: '',
-          templateId: 'default',
-          category: 'general',
-          files: [],
-          prompts: []
-        })
-      });
-    },
-    onSuccess: (data) => {
-      // Navigate to IDE with the new session ID
-      navigate(`/ide/${data.sessionId}`);
-    },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to create a new project. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  });
-
   const handleCreateProject = () => {
-    createProjectMutation.mutate();
-    setNewProjectDialog(false);
-    setNewProjectName('');
+    // Simply navigate to /ide/new - no need to create project yet
+    navigate('/ide/new');
   };
 
   const handleOpenProject = (project: ProjectDisplay) => {
@@ -285,7 +250,7 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
             {/* Create New Project Card */}
             <Card 
               className="bg-gray-900/50 border-gray-800 hover:border-gray-700 cursor-pointer group transition-all duration-200"
-              onClick={() => setNewProjectDialog(true)}
+              onClick={handleCreateProject}
             >
               <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-lg flex items-center justify-center">
                 <div className="text-center">
@@ -384,42 +349,6 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
           </div>
         )}
       </main>
-
-      {/* New Project Dialog */}
-      <Dialog open={newProjectDialog} onOpenChange={setNewProjectDialog}>
-        <DialogContent className="bg-[#1a1a1a] border-gray-800 text-gray-100">
-          <DialogHeader>
-            <DialogTitle className="text-gray-100">Create New Project</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Give your project a name to get started. You can change this later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder="Project name (optional)"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              className="bg-gray-900 border-gray-700"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateProject();
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewProjectDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleCreateProject}
-              disabled={createProjectMutation.isPending}
-            >
-              {createProjectMutation.isPending ? 'Creating...' : 'Create Project'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open })}>
