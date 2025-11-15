@@ -175,11 +175,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       // Helper to add cursor effect
       const addCursor = (text: string) => text + '█';
       
+      // Helper to strip cursor from text
+      const stripCursor = (text: string) => text.replace(/█/g, '');
+      
       // Helper to update files in real-time
       const updateFilesRealtime = () => {
         const filesArray = Array.from(currentFiles.values()).map(f => ({
           name: f.name,
-          content: f.isComplete ? f.content : addCursor(f.content),
+          content: f.isComplete ? stripCursor(f.content) : addCursor(stripCursor(f.content)),
           language: f.language as 'html' | 'css' | 'javascript' | 'unknown'
         }));
         
@@ -217,13 +220,66 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       
       eventSource.onmessage = (e) => {
         try {
-          const event = JSON.parse(e.data);
-          const eventType = event.type || event.event;
+          // Handle stream completion
+          if (e.data === '[DONE]') {
+            // Mark all files as complete and remove cursors
+            currentFiles.forEach((file, name) => {
+              currentFiles.set(name, { 
+                ...file, 
+                content: stripCursor(file.content),
+                isComplete: true 
+              });
+            });
+            updateFilesRealtime();
+            setIsGenerating(false);
+            eventSource.close();
+            return;
+          }
           
-          switch (eventType) {
-            case 'chunk':
-              const contentChunk = event.content || '';
-              accumulatedContent += contentChunk;
+          // Ignore keepalive messages
+          if (e.data === ': keepalive' || e.data.startsWith(':')) {
+            return;
+          }
+          
+          let eventData;
+          let contentChunk = '';
+          
+          // Try to parse as JSON first
+          try {
+            eventData = JSON.parse(e.data);
+            const eventType = eventData.type || eventData.event;
+            
+            if (eventType === 'chunk' || eventType === 'content') {
+              contentChunk = eventData.content || '';
+            } else if (eventType === 'error') {
+              console.error('Stream error:', eventData.message);
+              setIsGenerating(false);
+              return;
+            } else if (eventType === 'complete') {
+              // Mark all files as complete and remove cursors
+              currentFiles.forEach((file, name) => {
+                currentFiles.set(name, { 
+                  ...file, 
+                  content: stripCursor(file.content),
+                  isComplete: true 
+                });
+              });
+              updateFilesRealtime();
+              setIsGenerating(false);
+              eventSource.close();
+              return;
+            } else if (eventType === 'stats') {
+              // Handle stats if needed
+              return;
+            }
+          } catch (parseError) {
+            // If not JSON, treat as plain text token
+            contentChunk = e.data;
+          }
+          
+          if (!contentChunk) return;
+          
+          accumulatedContent += contentChunk;
               
               // Parse the content using a state machine approach
               // Look for markers: PROJECT_NAME_START/END, NEW_FILE_START/END
@@ -242,40 +298,55 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               // NEW_FILE_START = "<<<<<<< NEW_FILE_START "
               // NEW_FILE_END = " >>>>>>> NEW_FILE_END"
               if (isMultiFile) {
-                // Look for new file start
-                const fileStartRegex = /<<<<<<< NEW_FILE_START\s+([\w.-]+)\s+>>>>>>> NEW_FILE_END/g;
-                let match;
-                while ((match = fileStartRegex.exec(accumulatedContent)) !== null) {
-                  const fileName = match[1];
-                  const startIdx = match.index + match[0].length;
+                // Process files sequentially
+                let processBuffer = accumulatedContent;
+                
+                // Look for new file start markers
+                const fileStartPattern = /<<<<<<< NEW_FILE_START\s+([\w.-]+)\s+>>>>>>> NEW_FILE_END/;
+                const fileMatch = processBuffer.match(fileStartPattern);
+                
+                if (fileMatch) {
+                  const fileName = fileMatch[1];
+                  const markerEndIdx = fileMatch.index! + fileMatch[0].length;
                   
                   // Start the new file
-                  startNewFile(fileName);
+                  if (fileName !== currentFileName) {
+                    startNewFile(fileName);
+                  }
                   
-                  // Look for the code block after this marker
-                  const afterMarker = accumulatedContent.slice(startIdx);
-                  const codeBlockMatch = afterMarker.match(/```(?:html|css|javascript)?\n([\s\S]*?)```/);
+                  // Look for code block after this marker
+                  const afterMarker = processBuffer.slice(markerEndIdx);
                   
-                  if (codeBlockMatch) {
-                    // We have the complete code block
-                    const fileContent = codeBlockMatch[1];
-                    const file = currentFiles.get(fileName)!;
-                    currentFiles.set(fileName, {
-                      ...file,
-                      content: fileContent,
-                      isComplete: false // Keep cursor until fully done
-                    });
-                  } else {
-                    // Code block not complete yet, extract partial content
-                    const partialMatch = afterMarker.match(/```(?:html|css|javascript)?\n([\s\S]*)/);
-                    if (partialMatch) {
-                      const partialContent = partialMatch[1];
-                      const file = currentFiles.get(fileName)!;
+                  // Check if we have a complete code block
+                  const codeBlockRegex = /```(?:html|css|javascript)?\n([\s\S]*?)```/;
+                  const codeMatch = afterMarker.match(codeBlockRegex);
+                  
+                  if (codeMatch) {
+                    // Complete code block found
+                    const fileContent = codeMatch[1];
+                    const file = currentFiles.get(fileName);
+                    if (file) {
                       currentFiles.set(fileName, {
                         ...file,
-                        content: partialContent,
-                        isComplete: false
+                        content: fileContent,
+                        isComplete: false // Will be marked complete when next file starts
                       });
+                    }
+                  } else {
+                    // Incomplete code block - extract partial content
+                    const partialRegex = /```(?:html|css|javascript)?\n([\s\S]*)/;
+                    const partialMatch = afterMarker.match(partialRegex);
+                    
+                    if (partialMatch) {
+                      const partialContent = partialMatch[1];
+                      const file = currentFiles.get(fileName);
+                      if (file) {
+                        currentFiles.set(fileName, {
+                          ...file,
+                          content: partialContent,
+                          isComplete: false
+                        });
+                      }
                     }
                   }
                 }
