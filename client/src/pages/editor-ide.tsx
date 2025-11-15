@@ -258,6 +258,30 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               setIsGenerating(false);
               return;
             } else if (eventType === 'complete') {
+              // Handle multi-file completion from backend
+              if (eventData.files && Array.isArray(eventData.files) && eventData.files.length > 0) {
+                console.log('Received multi-file completion from backend:', eventData.files.length, 'files');
+                
+                // Get existing files for search/replace operations
+                const existingFilesArray = Array.from(currentFiles.values());
+                
+                // Convert parsed files to project files
+                const newFiles = convertToProjectFiles(eventData.files, existingFilesArray);
+                
+                // Clear current files and set new ones
+                currentFiles.clear();
+                for (const file of newFiles) {
+                  currentFiles.set(file.name, {
+                    ...file,
+                    content: stripCursor(file.content)
+                  });
+                }
+                
+                if (eventData.projectName) {
+                  projectName = eventData.projectName;
+                }
+              }
+              
               // Mark all files as complete and remove cursors
               currentFiles.forEach((file, name) => {
                 currentFiles.set(name, { 
