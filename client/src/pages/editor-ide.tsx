@@ -61,18 +61,24 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
 
   // Load project if ID is provided
   useEffect(() => {
-    if (id) {
-      loadProject(id).catch(error => {
+    const initProject = async () => {
+      try {
+        if (id) {
+          await loadProject(id);
+        } else if (!project) {
+          createNewProject();
+        }
+      } catch (error) {
+        console.error('Failed to initialize project:', error);
         toast({
           title: "Error",
           description: "Failed to load project",
           variant: "destructive"
         });
-        console.error('Failed to load project:', error);
-      });
-    } else if (!project) {
-      createNewProject();
-    }
+      }
+    };
+    
+    initProject();
   }, [id]);
 
   // Update preview when active file changes
