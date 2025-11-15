@@ -60,20 +60,22 @@ export type RegisterCredentials = z.infer<typeof registerSchema>;
 // Project schema - Enhanced to support multi-file projects
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
+  sessionId: text("session_id").unique(), // Unique session ID for continuing projects
   name: text("name").notNull(),
   description: text("description"),
   prompt: text("prompt").notNull(),
+  thumbnail: text("thumbnail"), // Base64 or URL for project preview
   templateId: text("template_id").notNull(),
   category: text("category").notNull(),
   html: text("html"), // Kept for backward compatibility
   css: text("css"), // Kept for backward compatibility
-  files: json("files"), // New: Array of {path: string, content: string} for multi-file support
+  files: json("files"), // New: Array of {name: string, content: string, language: string} for multi-file support
   prompts: json("prompts"), // New: Array of conversation history for follow-up editing
   currentCommit: text("current_commit"), // New: Track current version/commit
   settings: json("settings"),
   published: boolean("published").default(false),
   publishPath: text("publish_path"),
-  userId: integer("user_id"),
+  userId: integer("user_id").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
