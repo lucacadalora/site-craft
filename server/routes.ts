@@ -549,10 +549,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user is authenticated, we'll track token usage later
       
-      // Enable streaming HTTP response
+      // Enable streaming HTTP response with anti-buffering headers
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+      res.setHeader('Content-Encoding', 'identity'); // Explicitly disable compression
+      res.flushHeaders(); // Immediately send headers to establish the connection
+      
+      // Minimize TCP buffering for immediate chunk delivery
+      if (res.socket) {
+        res.socket.setNoDelay(true);
+      }
       
       // Generate the landing page HTML
       const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
@@ -596,11 +604,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const errorText = await apiResponse.text();
           console.error("AI Accelerate Inference API error:", apiResponse.status, errorText);
           
+          // Helper function to flush response
+          const flushResponse = () => {
+            if (typeof (res as any).flush === 'function') {
+              (res as any).flush();
+            }
+          };
+          
           // Send error and then fallback content as a stream event
           res.write(`data: ${JSON.stringify({ 
             event: 'error', 
             message: `API error: ${apiResponse.status} - ${errorText}`
           })}\n\n`);
+          flushResponse();
           
           // Send fallback HTML
           const fallbackHtml = generateFallbackHtml(title, prompt);
@@ -609,6 +625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             html: fallbackHtml,
             source: 'fallback'
           })}\n\n`);
+          flushResponse();
           
           return res.end();
         }
@@ -620,11 +637,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error("Response body is not readable");
         }
         
+        // Helper function to flush response immediately after each write
+        const flushResponse = () => {
+          if (typeof (res as any).flush === 'function') {
+            (res as any).flush();
+          }
+        };
+        
         // Send an initial message
         res.write(`data: ${JSON.stringify({ 
           event: 'start',
           message: 'Generation started' 
         })}\n\n`);
+        flushResponse(); // Force immediate send
         
         // Stream all chunks directly to the client
         let fullContent = "";
@@ -653,6 +678,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     const contentChunk = delta.content;
                     fullContent += contentChunk;
                     
+                    // Debug: Log chunk receipt
+                    console.log(`[STREAM] Received chunk: ${contentChunk.length} chars, total: ${fullContent.length}`);
+                    
                     // If this is the first piece of HTML, mark it
                     if (!htmlStarted && (
                       contentChunk.includes("<!DOCTYPE") || 
@@ -669,6 +697,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       content: contentChunk,
                       isHtml: htmlStarted
                     })}\n\n`);
+                    flushResponse(); // Force immediate send of each chunk
+                    console.log(`[STREAM] Sent chunk to client: ${contentChunk.length} chars`);
                   }
                 }
               } catch (e) {
@@ -715,6 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 tokenUsage: updatedUser.tokenUsage || tokensToUse, 
                 generationCount: updatedUser.generationCount || 1
               })}\n\n`);
+              flushResponse();
               
               // Log the values being sent for debugging
               console.log(`Sending token usage update event with tokenUsage:${updatedUser.tokenUsage}, generationCount:${updatedUser.generationCount}`);
@@ -744,14 +775,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             generationCount: req.user ? 1 : 0
           }
         })}\n\n`);
+        flushResponse();
       } catch (error) {
         console.error("Error streaming from AI Accelerate Inference API:", error);
+        
+        // Helper function to flush response
+        const flushResponse = () => {
+          if (typeof (res as any).flush === 'function') {
+            (res as any).flush();
+          }
+        };
         
         // Send error as a stream event
         res.write(`data: ${JSON.stringify({ 
           event: 'error', 
           message: error instanceof Error ? error.message : "Error streaming from API"
         })}\n\n`);
+        flushResponse();
         
         // Send fallback content
         const fallbackHtml = generateFallbackHtml(title, prompt);
@@ -760,6 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           html: fallbackHtml,
           source: 'fallback'
         })}\n\n`);
+        flushResponse();
       }
       
       return res.end();
