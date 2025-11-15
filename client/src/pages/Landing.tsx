@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle } from 'lucide-react';
+import { Sparkles, Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import { queryClient } from '@/lib/queryClient';
@@ -177,8 +177,8 @@ export default function Landing() {
 
   const handleExampleClick = (example: Example) => {
     setPrompt(example.prompt);
-    // Scroll to generation section
-    document.getElementById('generate')?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to top where generation prompt is
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -200,32 +200,13 @@ export default function Landing() {
                 <a href="#examples" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
                   Examples
                 </a>
-                <a href="#generate" className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
-                  Generate
-                </a>
               </div>
             </div>
 
             <div className="hidden md:flex items-center space-x-4">
-              {user ? (
-                <>
-                  <Link href="/projects">
-                    <Button variant="ghost">My Projects</Button>
-                  </Link>
-                  <Link href="/profile">
-                    <Button variant="outline">{user.email}</Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/login">
-                    <Button variant="ghost">Login</Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button>Sign Up</Button>
-                  </Link>
-                </>
-              )}
+              <Link href="/auth/login">
+                <Button>Login</Button>
+              </Link>
             </div>
 
             <button
@@ -250,26 +231,9 @@ export default function Landing() {
             <div className="container mx-auto px-4 py-4 space-y-4">
               <a href="#features" className="block py-2">Features</a>
               <a href="#examples" className="block py-2">Examples</a>
-              <a href="#generate" className="block py-2">Generate</a>
-              {user ? (
-                <>
-                  <Link href="/projects" className="block py-2">
-                    My Projects
-                  </Link>
-                  <Link href="/profile" className="block py-2">
-                    Profile
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/login" className="block py-2">
-                    Login
-                  </Link>
-                  <Link href="/auth/signup" className="block py-2">
-                    Sign Up
-                  </Link>
-                </>
-              )}
+              <Link href="/auth/login" className="block py-2 font-semibold">
+                Login
+              </Link>
             </div>
           </motion.div>
         )}
@@ -309,22 +273,76 @@ export default function Landing() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="group"
-                onClick={() => document.getElementById('generate')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Start Building
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => document.getElementById('examples')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                View Examples
-              </Button>
+            {/* DeepSite-style Generation Prompt */}
+            <div className="mt-8">
+              <div className="max-w-3xl mx-auto">
+                {!user && remainingGenerations === 0 && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                    <div className="flex items-center justify-center space-x-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      <p className="text-sm text-red-800 dark:text-red-200">
+                        You've used all your free generations. 
+                        <Link href="/auth/signup" className="ml-1 font-semibold underline">
+                          Sign up to continue
+                        </Link>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="relative bg-gray-900 rounded-2xl p-6 shadow-2xl border border-gray-800">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !isGenerating && prompt.trim() && (user || (remainingGenerations !== null && remainingGenerations > 0))) {
+                            handleGenerate();
+                          }
+                        }}
+                        placeholder="Ask Jatevo to build anything..."
+                        className="w-full px-4 py-3 bg-gray-800 text-white placeholder-gray-400 rounded-lg border border-gray-700 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                        disabled={isGenerating || (!user && remainingGenerations === 0)}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Tabs value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'sambanova' | 'cerebras')}>
+                        <TabsList className="bg-gray-800 border border-gray-700">
+                          <TabsTrigger value="sambanova" className="data-[state=active]:bg-gray-700">
+                            <Sparkles className="h-4 w-4 mr-1" />
+                            DeepSeek-V3
+                          </TabsTrigger>
+                          <TabsTrigger value="cerebras" className="data-[state=active]:bg-gray-700">
+                            <Zap className="h-4 w-4 mr-1" />
+                            GLM-4.6
+                          </TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      
+                      <Button
+                        onClick={handleGenerate}
+                        disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 h-full"
+                      >
+                        {isGenerating ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {!user && remainingGenerations !== null && remainingGenerations > 0 && (
+                    <p className="text-center text-xs text-gray-500 mt-4">
+                      No signup required • {remainingGenerations} free generation{remainingGenerations !== 1 ? 's' : ''} remaining
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -402,117 +420,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Generation Section */}
-      <section id="generate" className="container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto">
-          <Card className="p-8">
-            <h2 className="text-3xl font-bold text-center mb-8">
-              Generate Your Website
-            </h2>
-
-            {!user && remainingGenerations === 0 && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                <div className="flex items-start space-x-2">
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-red-800 dark:text-red-200">
-                      You've used all your free generations. Sign up to continue building amazing websites!
-                    </p>
-                    <Link href="/auth/signup">
-                      <Button size="sm" variant="destructive" className="mt-2">
-                        Sign Up Now
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="model">AI Model</Label>
-                <Tabs value={selectedModel} onValueChange={(v) => setSelectedModel(v as 'sambanova' | 'cerebras')}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="sambanova">
-                      <div className="flex items-center space-x-2">
-                        <Sparkles className="h-4 w-4" />
-                        <span>DeepSeek V3 (Streaming)</span>
-                      </div>
-                    </TabsTrigger>
-                    <TabsTrigger value="cerebras">
-                      <div className="flex items-center space-x-2">
-                        <Zap className="h-4 w-4" />
-                        <span>GLM-4.6 (Fast)</span>
-                      </div>
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-
-              <div>
-                <Label htmlFor="prompt">Describe Your Website</Label>
-                <Textarea
-                  id="prompt"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="E.g., Create a modern portfolio website for a photographer with gallery, about section, and contact form..."
-                  className="min-h-[120px]"
-                  disabled={isGenerating || (!user && remainingGenerations === 0)}
-                />
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="mr-2 h-4 w-4" />
-                    Generate Website
-                  </>
-                )}
-              </Button>
-
-              {!user && (
-                <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-                  No signup required for your first 3 generations.
-                  <Link href="/auth/signup" className="ml-1 text-purple-600 hover:underline">
-                    Sign up
-                  </Link>
-                  {' '}for unlimited access.
-                </p>
-              )}
-            </div>
-          </Card>
-        </div>
-      </section>
 
       {/* CTA Section */}
-      {!user && (
+      {!user && remainingGenerations === 0 && (
         <section className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-12 text-white">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Ready to Build More?
             </h2>
             <p className="text-xl mb-8 text-purple-100">
-              Sign up for unlimited generations and deploy your websites instantly.
+              Log in to unlock unlimited generations and deploy your websites instantly.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signup">
-                <Button size="lg" variant="secondary">
-                  Get Started Free
-                </Button>
-              </Link>
+            <div className="flex justify-center">
               <Link href="/auth/login">
-                <Button size="lg" variant="outline" className="bg-white/10 border-white text-white hover:bg-white/20">
-                  Login
+                <Button size="lg" variant="secondary" className="px-8">
+                  Login to Continue
                 </Button>
               </Link>
             </div>
