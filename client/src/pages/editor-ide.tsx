@@ -20,7 +20,9 @@ import {
   Eye,
   EyeOff,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  X,
+  Files
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -48,7 +50,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   
@@ -417,11 +419,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <header className="border-b px-4 py-2 flex items-center justify-between">
+      <header className="border-b px-4 py-2 flex items-center justify-between bg-[#0a0a0a]">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold">DeepSite IDE</h1>
+          <h1 className="text-lg font-semibold text-white">DeepSite</h1>
           {project && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-gray-400">
               {project.name}
             </span>
           )}
@@ -440,6 +442,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             size="sm"
             onClick={handleDownloadProject}
             disabled={!project || project.files.length === 0}
+            className="bg-transparent border-gray-700 hover:bg-gray-900 text-gray-300"
             data-testid="button-download-project"
           >
             <Download className="w-4 h-4 mr-2" />
@@ -459,113 +462,129 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        {showSidebar && (
-          <div className="w-64 border-r flex flex-col">
-            <FileBrowser className="flex-1 overflow-auto" />
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* File Explorer Overlay */}
+        {showFileExplorer && (
+          <>
+            {/* Background overlay */}
+            <div 
+              className="absolute inset-0 bg-black/50 z-40 transition-opacity"
+              onClick={() => setShowFileExplorer(false)}
+            />
             
-            {/* Prompt Input */}
-            <div className="p-4 border-t">
-              <Textarea
-                placeholder={project && project.prompts.length > 0 
-                  ? "Enter a follow-up prompt to modify the project..." 
-                  : "Describe what you want to build..."}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    handleGenerate();
-                  }
-                }}
-                className="min-h-[100px] resize-none mb-2"
-                disabled={isGenerating}
-                data-testid="input-prompt"
-              />
-              
-              <div className="flex gap-2">
+            {/* Explorer Panel */}
+            <div className={cn(
+              "absolute left-0 top-0 bottom-0 w-80 bg-[#1e1e1e] border-r border-gray-800 z-50",
+              "transform transition-transform duration-300 ease-in-out",
+              showFileExplorer ? "translate-x-0" : "-translate-x-full"
+            )}>
+              {/* Explorer Header */}
+              <div className="flex items-center justify-between p-3 border-b border-gray-800">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-200">EXPLORER</span>
+                </div>
                 <Button
-                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                  disabled={!prompt.trim() && !isGenerating}
-                  className="flex-1"
-                  variant={isGenerating ? "destructive" : "default"}
-                  data-testid="button-generate"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFileExplorer(false)}
+                  className="h-6 w-6 p-0 hover:bg-gray-800"
                 >
-                  {isGenerating ? (
-                    <>Stop Generation</>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => createNewProject()}
-                  title="New Project"
-                  data-testid="button-new-project"
-                >
-                  <Plus className="w-4 h-4" />
+                  <X className="w-4 h-4 text-gray-400" />
                 </Button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Toggle Sidebar Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowSidebar(!showSidebar)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10"
-          data-testid="button-toggle-sidebar"
-        >
-          {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
-        </Button>
-
-        {/* Editor and Preview */}
-        <div className="flex-1 flex flex-col">
-          <EditorTabs />
-          
-          <div className="flex-1 flex overflow-hidden">
-            {/* Code Editor */}
-            <div className={cn(
-              "flex-1 flex flex-col",
-              showPreview && "border-r"
-            )}>
-              <MultiFileEditor 
-                className="flex-1"
-                onRunCode={() => setShowPreview(true)}
-              />
-            </div>
-
-            {/* Preview */}
-            {showPreview && (
-              <div className="flex-1 flex flex-col">
-                <div className="px-4 py-2 border-b flex items-center justify-between bg-background">
-                  <span className="text-sm font-medium">Preview</span>
+              
+              {/* File Browser */}
+              <FileBrowser className="flex-1 overflow-auto" />
+              
+              {/* Prompt Input */}
+              <div className="p-4 border-t border-gray-800">
+                <Textarea
+                  placeholder={project && project.prompts.length > 0 
+                    ? "Enter a follow-up prompt to modify the project..." 
+                    : "Describe what you want to build..."}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      handleGenerate();
+                    }
+                  }}
+                  className="min-h-[100px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-500"
+                  disabled={isGenerating}
+                  data-testid="input-prompt"
+                />
+                
+                <div className="flex gap-2">
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPreview(false)}
-                    data-testid="button-hide-preview"
+                    onClick={isGenerating ? handleStopGeneration : handleGenerate}
+                    disabled={!prompt.trim() && !isGenerating}
+                    className="flex-1"
+                    variant={isGenerating ? "destructive" : "default"}
+                    data-testid="button-generate"
                   >
-                    <EyeOff className="w-4 h-4" />
+                    {isGenerating ? (
+                      <>Stop Generation</>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
+                        Generate
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => createNewProject()}
+                    title="New Project"
+                    className="bg-transparent border-gray-700 hover:bg-gray-800"
+                    data-testid="button-new-project"
+                  >
+                    <Plus className="w-4 h-4" />
                   </Button>
                 </div>
-                
-                <iframe
-                  ref={previewRef}
-                  className="flex-1 w-full bg-white"
-                  sandbox="allow-scripts allow-forms allow-same-origin"
-                  title="Preview"
-                  data-testid="iframe-preview"
-                />
               </div>
-            )}
+            </div>
+          </>
+        )}
+
+        {/* Editor and Preview Container */}
+        <div className="flex-1 flex">
+          {/* Code Editor - 20% width */}
+          <div className="w-[20%] min-w-[300px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
+            {/* Editor Header with Files Button */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFileExplorer(!showFileExplorer)}
+                className="flex items-center gap-2 text-gray-300 hover:bg-gray-800 px-2"
+                data-testid="button-toggle-explorer"
+              >
+                <Files className="w-4 h-4" />
+                <span className="text-sm">Files</span>
+              </Button>
+              
+              <EditorTabs />
+            </div>
+            
+            {/* Code Editor */}
+            <MultiFileEditor 
+              className="flex-1 overflow-auto"
+              onRunCode={() => setShowPreview(true)}
+            />
+          </div>
+
+          {/* Preview - 80% width */}
+          <div className="flex-1 bg-white">
+            <iframe
+              ref={previewRef}
+              className="w-full h-full"
+              sandbox="allow-scripts allow-forms allow-same-origin"
+              title="Preview"
+              data-testid="iframe-preview"
+            />
           </div>
         </div>
       </div>
