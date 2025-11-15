@@ -77,7 +77,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     if (!project || !previewRef.current) return;
     
     const htmlFile = getFileByName('index.html');
-    const cssFile = getFileByName('styles.css');
+    const cssFile = getFileByName('style.css');
     const jsFile = getFileByName('script.js');
     
     if (htmlFile) {
@@ -449,7 +449,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
           {project && project.files.length > 0 && (
             <DeployButton 
               html={getFileByName('index.html')?.content || ''}
-              css={getFileByName('styles.css')?.content}
+              css={getFileByName('style.css')?.content}
               projectId={project.id ? parseInt(project.id) : null}
             />
           )}
