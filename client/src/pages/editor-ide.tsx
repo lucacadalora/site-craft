@@ -387,6 +387,21 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               setIsGenerating(false);
               eventSource.close();
               return;
+            } else if (eventType === 'token-usage-updated') {
+              // Dispatch custom event for user profile to update stats in real-time
+              const tokenUpdateEvent = new CustomEvent('token-usage-updated', {
+                detail: {
+                  tokenUsage: eventData.tokenUsage,
+                  generationCount: eventData.generationCount
+                }
+              });
+              window.dispatchEvent(tokenUpdateEvent);
+              console.log('Dispatched token-usage-updated event:', eventData);
+              
+              // Also update local state
+              if (eventData.tokenUsage) setTokenUsage(eventData.tokenUsage);
+              if (eventData.generationCount) setGenerationCount(eventData.generationCount);
+              return;
             } else if (eventType === 'stats') {
               // Handle stats if needed
               return;
