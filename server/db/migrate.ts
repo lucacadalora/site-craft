@@ -48,39 +48,6 @@ async function runMigration() {
             END IF;
           END $$;
         `);
-        
-        // Add prompts and updated_at columns to projects table if they don't exist
-        await db.execute(`
-          DO $$
-          BEGIN
-            -- Add prompts column
-            IF NOT EXISTS (
-              SELECT FROM information_schema.columns 
-              WHERE table_schema = 'public' 
-              AND table_name = 'projects' 
-              AND column_name = 'prompts'
-            ) THEN
-              ALTER TABLE projects ADD COLUMN prompts JSON;
-            END IF;
-            
-            -- Add updated_at column
-            IF NOT EXISTS (
-              SELECT FROM information_schema.columns 
-              WHERE table_schema = 'public' 
-              AND table_name = 'projects' 
-              AND column_name = 'updated_at'
-            ) THEN
-              ALTER TABLE projects ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-            END IF;
-            
-            -- Make prompt column nullable (for multi-file projects)
-            ALTER TABLE projects ALTER COLUMN prompt DROP NOT NULL;
-            
-            -- Make template_id and category nullable (not all projects use templates)
-            ALTER TABLE projects ALTER COLUMN template_id DROP NOT NULL;
-            ALTER TABLE projects ALTER COLUMN category DROP NOT NULL;
-          END $$;
-        `);
       } else {
         console.log('Found users table but it has no records. Creating initial schema...');
       }
@@ -106,27 +73,16 @@ async function runMigration() {
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
-        prompt TEXT,
-        prompts JSON,
-        template_id TEXT,
-        category TEXT,
+        prompt TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        category TEXT NOT NULL,
         html TEXT,
         css TEXT,
         settings JSON,
         published BOOLEAN DEFAULT FALSE,
         publish_path TEXT,
-        user_id INTEGER REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-      
-      CREATE TABLE IF NOT EXISTS files (
-        id SERIAL PRIMARY KEY,
-        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        path TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
       CREATE TABLE IF NOT EXISTS templates (

@@ -12,8 +12,6 @@ import { PgStorage } from './db/pg-storage';
 import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
 import { db } from './db';
-import { INITIAL_SYSTEM_PROMPT, FOLLOW_UP_SYSTEM_PROMPT } from './lib/prompts';
-import { parseAiResponse, extractProjectName } from './lib/format-ai-response';
 
 // Initialize the database schema and tables only on first run
 import './db/migrate'; // This now only creates tables if they don't exist
@@ -906,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const systemMessage = {
         role: "system",
-        content: INITIAL_SYSTEM_PROMPT
+        content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
       };
 
       const userMessage = {
@@ -1035,21 +1033,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Parse multi-file AI response
-      const pages = parseAiResponse(fullContent);
-      const projectName = extractProjectName(fullContent);
-      
-      console.log(`[Multi-file] Parsed ${pages.length} files from AI response`);
-      if (projectName) {
-        console.log(`[Multi-file] Project name: ${projectName}`);
-      }
-      
-      // Send completion with multi-file structure
+      // Send completion
       res.write(`data: ${JSON.stringify({ 
         type: 'complete', 
         html: fullContent,
-        pages: pages,
-        projectName: projectName,
         source: 'api',
         tokenCount: tokensToUse
       })}\n\n`);
