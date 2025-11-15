@@ -106,12 +106,15 @@ DeepSite is an advanced full-stack AI-powered landing page generator that levera
   - Implemented file browser sidebar and tab navigation for open files
   - Created ProjectContext for centralized state management
   - Added project management API endpoints (save, load, list, delete)
-  - Implemented AI response parsing for multi-file generation
+  - Implemented AI response parsing for multi-file generation using v3 markers (<<<<<<< NEW_FILE_START)
   - Added follow-up prompting to modify existing projects
   - Created /projects page for managing saved projects
   - Added project export as ZIP functionality
   - Maintained backward compatibility with legacy single-file editor at /editor
   - New IDE interface available at /ide route
+  - Updated AI prompts to enforce multi-file generation (minimum 3 files: index.html, style.css, script.js)
+  - Added explicit multi-file example in system prompt to guide AI behavior
+  - Integrated v3 prompt architecture with Web Components support in components/ folder
 
 ## User Preferences
 
