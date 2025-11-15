@@ -21,6 +21,9 @@ const pgStorage = new PgStorage();
 // Keep memStorage for backward compatibility
 const memStorage = new MemStorage();
 
+// Global connection tracking for SSE streams (EventSource API)
+const streamConnections = new Map<string, { res: any, sessionId: string, heartbeat: NodeJS.Timeout }>();
+
 // Helper function to track token usage - WITH DATA PROTECTION
 async function trackTokenUsage(userId: number, tokenCount: number, incrementGenerationCount: boolean = false, res?: any): Promise<void> {
   if (!userId) {
@@ -816,6 +819,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         return res.end();
       }
+    }
+  });
+
+  // GET endpoint for true real-time SSE streaming (EventSource API)
+  app.get("/api/sambanova/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
+    const sessionId = req.params.sessionId;
+    const prompt = req.query.prompt as string;
+    
+    if (!prompt) {
+      return res.status(400).json({ message: "Missing required query parameter: prompt" });
+    }
+
+    try {
+      // Set SSE headers for EventSource compatibility
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
+        'Content-Encoding': 'none' // Disable compression
+      });
+      
+      // Disable TCP buffering immediately
+      if (res.socket) {
+        res.socket.setNoDelay(true);
+        res.socket.setTimeout(0);
+      }
+
+      // Helper function to flush response immediately
+      const flushResponse = () => {
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
+        }
+      };
+      
+      // Send padding to break buffering (2KB minimum for most buffers)
+      res.write(':' + ' '.repeat(2048) + '\n\n');
+      flushResponse();
+      
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ 
+        type: 'connected',
+        sessionId,
+        timestamp: new Date().toISOString()
+      })}\n\n`);
+      flushResponse();
+
+      // Setup heartbeat to keep connection alive
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+        } catch (error) {
+          console.error('Error sending heartbeat:', error);
+          clearInterval(heartbeat);
+        }
+      }, 30000);
+
+      // Store connection for cleanup
+      streamConnections.set(sessionId, { res, sessionId, heartbeat });
+
+      // Cleanup on disconnect
+      req.on('close', () => {
+        console.log(`SSE connection closed for session: ${sessionId}`);
+        clearInterval(heartbeat);
+        streamConnections.delete(sessionId);
+      });
+
+      // Get authenticated user if available
+      const userId = req.user?.id || null;
+      const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
+
+      // Send start event
+      res.write(`data: ${JSON.stringify({ 
+        type: 'start',
+        message: 'Generation started' 
+      })}\n\n`);
+      flushResponse();
+
+      // Call the AI API
+      const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
+      console.log("Generating HTML with AI Accelerate (GET/EventSource) for prompt:", prompt.substring(0, 50) + "...");
+
+      const systemMessage = {
+        role: "system",
+        content: `ONLY USE HTML, CSS AND JAVASCRIPT. Your response must begin with <!DOCTYPE html> and contain only valid HTML. If you want to use icons make sure to import the library first. Try to create the best UI possible by using only HTML, CSS and JAVASCRIPT. Use as much as you can TailwindCSS for the CSS, if you can't do something with TailwindCSS, then use custom CSS (make sure to import <script src="https://cdn.tailwindcss.com"></script> in the head). Create something unique and directly relevant to the prompt. DO NOT include irrelevant content about places like Surakarta (Solo) or any other unrelated topics - stick strictly to what's requested in the prompt. DO NOT include any explanation, feature list, or description text before or after the HTML code. ALWAYS GIVE THE RESPONSE AS A SINGLE HTML FILE STARTING WITH <!DOCTYPE html>`
+      };
+
+      const userMessage = {
+        role: "user",
+        content: `Create a landing page for: ${prompt}`
+      };
+
+      const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          stream: true,
+          model: "DeepSeek-V3-0324",
+          messages: [systemMessage, userMessage]
+        })
+      });
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error("AI API error:", apiResponse.status, errorText);
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: `API error: ${apiResponse.status}`
+        })}\n\n`);
+        
+        const fallbackHtml = generateFallbackHtml(title, prompt);
+        res.write(`data: ${JSON.stringify({ 
+          type: 'complete', 
+          html: fallbackHtml,
+          source: 'fallback'
+        })}\n\n`);
+        
+        return res.end();
+      }
+
+      // Stream the response with proper SSE buffering
+      const reader = apiResponse.body?.getReader();
+      if (!reader) {
+        throw new Error("Response body is not readable");
+      }
+
+      let fullContent = "";
+      let htmlStarted = false;
+      let sseBuffer = ""; // Buffer for incomplete SSE frames
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode chunk and add to buffer
+        const chunk = new TextDecoder().decode(value, { stream: true });
+        sseBuffer += chunk;
+        
+        // Process complete SSE messages (ending with \n\n)
+        let boundary = sseBuffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const message = sseBuffer.substring(0, boundary);
+          sseBuffer = sseBuffer.substring(boundary + 2);
+          
+          // Parse the SSE message
+          const lines = message.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.choices?.[0]?.delta?.content) {
+                  const contentChunk = jsonData.choices[0].delta.content;
+                  fullContent += contentChunk;
+
+                  if (!htmlStarted && (
+                    contentChunk.includes("<!DOCTYPE") || 
+                    contentChunk.includes("<html") || 
+                    contentChunk.includes("<head") ||
+                    contentChunk.includes("<body")
+                  )) {
+                    htmlStarted = true;
+                  }
+
+                  // Send chunk to client with EventSource format
+                  res.write(`data: ${JSON.stringify({ 
+                    type: 'chunk', 
+                    content: contentChunk,
+                    isHtml: htmlStarted
+                  })}\n\n`);
+                  
+                  // CRITICAL: Flush immediately to prevent buffering
+                  flushResponse();
+                  
+                  console.log(`[SSE] Sent chunk: ${contentChunk.length} chars to session ${sessionId}`);
+                }
+              } catch (e) {
+                console.error("Error parsing JSON chunk:", e, jsonStr.substring(0, 100));
+              }
+            }
+          }
+          
+          // Check for next boundary
+          boundary = sseBuffer.indexOf('\n\n');
+        }
+      }
+
+      // Track usage if user is authenticated
+      const tokensToUse = Math.ceil(fullContent.length / 4);
+      if (userId) {
+        try {
+          await pgStorage.updateUserTokenUsage(userId, tokensToUse, true);
+          const updatedUser = await pgStorage.getUser(userId);
+          
+          if (updatedUser) {
+            res.write(`data: ${JSON.stringify({ 
+              type: 'token-usage-updated',
+              tokenUsage: updatedUser.tokenUsage,
+              generationCount: updatedUser.generationCount
+            })}\n\n`);
+            flushResponse();
+          }
+        } catch (error) {
+          console.error(`Error updating token usage for user ${userId}:`, error);
+        }
+      }
+
+      // Send completion
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        html: fullContent,
+        source: 'api',
+        tokenCount: tokensToUse
+      })}\n\n`);
+      flushResponse();
+
+      // Clean up connection tracking and end response
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      res.end();
+      console.log(`SSE stream completed for session: ${sessionId}`);
+
+    } catch (error) {
+      console.error("Error in SSE stream:", error);
+      
+      // Clean up on error
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      
+      if (!res.headersSent) {
+        return res.status(500).json({ message: "Stream error" });
+      }
+      res.end();
     }
   });
   

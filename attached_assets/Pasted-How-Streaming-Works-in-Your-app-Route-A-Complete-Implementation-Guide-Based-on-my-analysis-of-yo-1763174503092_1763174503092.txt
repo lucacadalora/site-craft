@@ -1,0 +1,143 @@
+How Streaming Works in Your /app Route - A Complete Implementation Guide
+Based on my analysis of your codebase, your application uses Server-Sent Events (SSE) for real-time streaming. Here's a detailed breakdown of the approach that you can implement in other projects:
+
+1. Server-Side SSE Implementation
+Setting Up the SSE Endpoint:
+app.get("/api/stream/:sessionId", (req: Request, res: Response) => {
+  // Essential SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+  
+  // Send initial connection message
+  res.write(`data: ${JSON.stringify({ 
+    type: 'connected',
+    sessionId,
+    timestamp: new Date().toISOString()
+  })}\n\n`);
+
+Key Components:
+Global Connection Management: Your app uses global Maps to track active connections:
+global.narrativeClients = new Map();
+global.progressConnections = new Map();
+
+Heartbeat Mechanism: Keeps connections alive (crucial for long-running streams):
+const heartbeat = setInterval(() => {
+  res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+}, 30000); // Every 30 seconds
+
+Cleanup on Disconnect: Prevents memory leaks:
+req.on('close', () => {
+  clearInterval(heartbeat);
+  global.narrativeClients?.delete(sessionId);
+});
+
+Broadcasting Pattern: Send updates to specific sessions:
+function broadcastProgress(sessionId: string, data: any) {
+  if (!global.progressConnections) return;
+  
+  for (const [connectionId, connection] of global.progressConnections.entries()) {
+    if (connection.sessionId === sessionId) {
+      try {
+        connection.res.write(`data: ${JSON.stringify({
+          ...data,
+          timestamp: new Date().toISOString()
+        })}\n\n`);
+      } catch (error) {
+        // Handle and clean up failed connections
+        global.progressConnections.delete(connectionId);
+      }
+    }
+  }
+}
+
+2. Client-Side EventSource Implementation
+Establishing the Connection:
+const eventSource = new EventSource(`/api/stream/${sessionId}`);
+eventSource.onopen = () => {
+  console.log('SSE connection opened');
+  setIsConnected(true);
+};
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  if (data.type === 'update') {
+    // Handle streaming updates
+    setStreamingContent(data.content);
+  } else if (data.type === 'heartbeat') {
+    // Acknowledge heartbeat (optional)
+  }
+};
+eventSource.onerror = (error) => {
+  console.error('SSE error:', error);
+  setIsConnected(false);
+  // Optionally implement reconnection logic
+};
+
+Cleanup in React Components:
+useEffect(() => {
+  const eventSource = new EventSource(`/api/stream/${sessionId}`);
+  // ... setup handlers
+  
+  return () => {
+    eventSource.close();
+  };
+}, [sessionId]);
+
+3. Critical Implementation Details
+SSE Data Format:
+Always use data: prefix
+JSON stringify your payload
+End with double newline \n\n
+res.write(`data: ${JSON.stringify(payload)}\n\n`);
+
+Session Management Pattern:
+Your app uses a session-based approach where:
+
+Each streaming session gets a unique ID
+Multiple clients can connect to the same session
+Connections are tracked globally for broadcasting
+4. Best Practices from Your Implementation
+Connection Pooling: Store active connections in a global Map for efficient broadcasting
+Heartbeat for Keep-Alive: Prevents proxy/firewall timeouts
+Error Recovery: Clean up failed connections immediately
+Type Safety: Use TypeScript interfaces for message types
+Progressive Enhancement: Stream updates while maintaining fallback non-streaming endpoints
+5. Applying This to Other Projects
+To implement this streaming approach in other projects:
+
+Server Setup:
+
+Set proper SSE headers
+Implement connection tracking (Map or similar)
+Add heartbeat mechanism
+Handle cleanup on disconnect
+Client Setup:
+
+Use native EventSource API
+Parse JSON messages
+Implement reconnection logic
+Clean up on component unmount
+Data Flow:
+
+Generate unique session IDs
+Store response objects globally for broadcasting
+Send typed messages with consistent structure
+Use the data: JSON\n\n format
+Scalability Considerations:
+
+In production, consider using Redis pub/sub for multi-server setups
+Implement connection limits per user
+Add authentication to SSE endpoints
+Monitor connection pools for memory leaks
+This SSE approach is perfect for:
+
+Real-time notifications
+Live data feeds
+Progress updates
+Chat applications
+Streaming AI responses
+The beauty of this implementation is its simplicity - it uses standard HTTP, works through proxies/firewalls, and has automatic reconnection support in modern browsers.

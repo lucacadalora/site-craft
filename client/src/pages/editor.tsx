@@ -441,51 +441,32 @@ export default function Editor({
         console.log("Initial measurements - lineHeight:", lineHeight, "editorHeight:", editorHeight, "visibleLines:", visibleLines);
       }
       
-      // Create fetch request to streaming endpoint
-      // Get the base URL for API calls (will work on both custom domain and Replit domain)
+      // Use EventSource API for true real-time SSE streaming (no buffering)
       const baseUrl = window.location.origin;
-      console.log("Using base URL for streaming API:", baseUrl);
+      console.log("Using base URL for streaming API (EventSource):", baseUrl);
       
-      // Create an AbortController to allow stopping the stream
-      const controller = new AbortController();
+      // Generate unique session ID for this stream
+      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log("Created session ID:", sessionId);
+      
+      // Encode prompt for URL query parameter
+      const encodedPrompt = encodeURIComponent(prompt);
+      
+      // Create EventSource connection (native SSE API - no buffering!)
+      const eventSource = new EventSource(
+        `${baseUrl}/api/sambanova/stream/${sessionId}?prompt=${encodedPrompt}`
+      );
+      
       // Save reference to allow stopping from stop button
-      streamControllerRef.current = controller;
-      
-      const response = await fetch(`${baseUrl}/api/sambanova/generate-stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          prompt, 
-          apiConfig: {
-            ...apiConfig,
-            apiKey: apiConfig?.apiKey || "9f5d2696-9a9f-43a6-9778-ebe727cd2968"
-          }
-        }),
-        signal: controller.signal, // Add the abort signal to the fetch request
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      // Create a reader from the response body stream
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("Response body is not readable");
-      }
-      
-      // Setup a TextDecoder to convert the stream chunks to text
-      const decoder = new TextDecoder();
+      // EventSource doesn't have AbortController, so we create a compatible interface
+      streamControllerRef.current = { 
+        abort: () => eventSource.close(),
+        signal: null as any // EventSource doesn't use signals
+      };
       
       // Status variables 
-      let done = false;
       let isCompleted = false;
       let totalContent = "";
-      
-      // Buffer for incomplete SSE data
-      let buffer = "";
       
       // Create a more natural progress update based on both time and content
       // This creates a gradual increase that better reflects real API response times
@@ -587,44 +568,27 @@ export default function Editor({
         }
       }, 600);
       
-      // Main loop to process stream data
-      while (!done) {
+      // EventSource event handlers (native SSE - streams in real-time!)
+      eventSource.onopen = () => {
+        console.log("[EventSource] Connection opened - streaming enabled");
+      };
+      
+      eventSource.onmessage = (e) => {
         try {
-          // Read the next chunk from the stream
-          const { value, done: streamDone } = await reader.read();
-          done = streamDone;
+          const event = JSON.parse(e.data);
+          const eventType = event.type || event.event; // Support both 'type' and 'event' fields
           
-          if (done) {
-            // Stream is complete
-            break;
-          }
+          console.log("[EventSource] Real-time event:", eventType, event.content ? `(${event.content.length} chars)` : '');
           
-          // Decode the chunk data and add to buffer
-          const chunkText = decoder.decode(value, { stream: true });
-          buffer += chunkText;
-          
-          console.log("[FRONTEND] Received", chunkText.length, "bytes, buffer size:", buffer.length);
-          
-          // Process complete SSE messages (separated by \n\n)
-          let boundary = buffer.indexOf('\n\n');
-          while (boundary !== -1) {
-            // Extract one complete SSE message
-            const message = buffer.substring(0, boundary);
-            buffer = buffer.substring(boundary + 2);
-            
-            // Process the message if it's a data event
-            const lines = message.split('\n');
-            for (const line of lines) {
-              if (!line.trim().startsWith('data:')) continue;
-              
-              try {
-                // Parse the event data
-                const jsonStr = line.trim().substring(5).trim();
-                const event = JSON.parse(jsonStr);
-                console.log("[FRONTEND] Real-time event:", event.event, event.content ? `(${event.content.length} chars)` : '');
-              
-              // Handle different event types
-              switch (event.event) {
+          // Handle different event types
+          switch (eventType) {
+                case 'connected':
+                  console.log("EventSource connected:", event.sessionId);
+                  break;
+                  
+                case 'heartbeat':
+                  // Keep-alive heartbeat - no action needed
+                  break;
                 case 'start':
                   console.log("Stream started:", event.message);
                   // Don't add duplicate stream started message
@@ -878,94 +842,41 @@ export default function Editor({
                   break;
                   
                 default:
-                  console.log("Unknown stream event type:", event);
+                  console.log("Unknown stream event type:", eventType);
               }
-              } catch (e) {
-                console.error("Error parsing event:", e, line);
-              }
-            }
-            
-            // Check for next message boundary
-            boundary = buffer.indexOf('\n\n');
-          }
-        } catch (e) {
-          console.error("Stream reading error:", e);
-          setStreamingOutput(prev => [...prev, `⚠️ Error reading stream: ${e instanceof Error ? e.message : "Unknown error"}`]);
-          done = true;
+        } catch (parseError) {
+          console.error("Error parsing EventSource message:", parseError, e.data);
         }
-      }
+      };
       
-      console.log("Stream processing complete");
-      
-      // Final clean up
-      clearInterval(progressInterval);
-      
-      // Delay setting isGenerating to false to allow time to see completion status
-      setTimeout(() => {
-        window.inTypingPhase = false;
-        setIsGenerating(false);
+      // Handle errors
+      eventSource.onerror = (error) => {
+        console.error("[EventSource] Connection error:", error);
+        eventSource.close();
         
-        // Get the actual token count displayed in the UI
-        const tokenCountElement = document.querySelector('.token-count');
-        const displayedTokenCount = tokenCountElement ? 
-          parseInt(tokenCountElement.textContent?.replace(/[^\d]/g, '') || '0') : 
-          Math.round(htmlContent.length / 4);
-        
-        console.log(`Detected token count: ${displayedTokenCount}`);
-        
-        // Record the token usage using our manual tracking method
-        if (displayedTokenCount > 0 && (window as any).recordTokenUsage) {
-          console.log(`Recording token usage of ${displayedTokenCount} tokens (not incrementing generation count)`);
-          // Just update token usage without incrementing generation count
-          (window as any).recordTokenUsage(displayedTokenCount, false);
+        if (!isCompleted) {
+          setStreamingOutput(prev => [...prev, "⚠️ Connection error during streaming"]);
+          setIsGenerating(false);
         }
         
-        // Dispatch custom event to notify token usage has been updated
-        window.dispatchEvent(new CustomEvent('landing-page-generated', { 
-          detail: { tokenCount: displayedTokenCount }
-        }));
-        console.log('Dispatched landing-page-generated event with token count:', displayedTokenCount);
-        
-        // Show a toast notification with completion message
-        // This will appear after the generation status popup disappears
-        toast({
-          title: "Generation Complete",
-          description: "✅ Content successfully generated by AI Accelerate LLM Inference!",
-          // Using default variant with custom styling to achieve success look
-          className: "bg-green-100 border-green-500 text-green-800",
-          duration: 5000, // Show for 5 seconds
-        });
-      }, 2000);
+        clearInterval(progressInterval);
+      };
       
-      // Final update with clean HTML (no cursor)
-      if (collectedHtml) {
-        setHtmlContent(collectedHtml);
-      } else {
-        throw new Error("No HTML content received from API");
-      }
+      // No while loop needed - EventSource handles streaming automatically!
+      // The connection stays open until the server closes it or we call eventSource.close()
+      
     } catch (error) {
-      console.error('Error setting up generation:', error);
+      console.error('Error setting up EventSource:', error);
       
-      // Check if this is an AbortError (from manually stopping generation)
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        console.log('Generation was stopped by user');
-        // No need to show error toast, already handled in handleStopGeneration
-      } else {
-        toast({
-          title: "Generation Failed",
-          description: error instanceof Error ? error.message : "An error occurred",
-          variant: "destructive",
-        });
-        setStreamingOutput(prev => [...prev, "Error: Generation failed"]);
-      }
-      
-      // Always clean up
+      toast({
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+      setStreamingOutput(prev => [...prev, "Error: Generation failed"]);
       setIsGenerating(false);
-      
-      // Reset the controller reference
       streamControllerRef.current = null;
-    } finally {
-      // Clear any intervals we may have set
+      
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = undefined;
