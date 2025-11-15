@@ -57,7 +57,7 @@ export const registerSchema = z.object({
 
 export type RegisterCredentials = z.infer<typeof registerSchema>;
 
-// Project schema
+// Project schema - Enhanced to support multi-file projects
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -65,13 +65,17 @@ export const projects = pgTable("projects", {
   prompt: text("prompt").notNull(),
   templateId: text("template_id").notNull(),
   category: text("category").notNull(),
-  html: text("html"),
-  css: text("css"),
+  html: text("html"), // Kept for backward compatibility
+  css: text("css"), // Kept for backward compatibility
+  files: json("files"), // New: Array of {path: string, content: string} for multi-file support
+  prompts: json("prompts"), // New: Array of conversation history for follow-up editing
+  currentCommit: text("current_commit"), // New: Track current version/commit
   settings: json("settings"),
   published: boolean("published").default(false),
   publishPath: text("publish_path"),
   userId: integer("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
