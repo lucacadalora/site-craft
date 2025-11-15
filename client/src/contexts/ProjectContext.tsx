@@ -217,12 +217,13 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     });
   }, []);
 
-  const saveProject = useCallback(async (sessionId?: string, projectName?: string) => {
-    if (!project) return;
+  const saveProject = useCallback(async (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[]) => {
+    if (!project) return null;
     
     try {
       const token = localStorage.getItem('auth_token');
       const nameToUse = projectName || project.name;
+      const filesToSave = explicitFiles || project.files; // Use explicit files if provided
       
       if (project.id) {
         // Update existing project
@@ -235,9 +236,9 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           body: JSON.stringify({
             name: nameToUse,
             sessionId: sessionId,
-            html: project.files.find(f => f.name === 'index.html')?.content || '',
-            css: project.files.find(f => f.name === 'style.css')?.content || '',
-            files: project.files,
+            html: filesToSave.find(f => f.name === 'index.html')?.content || '',
+            css: filesToSave.find(f => f.name === 'style.css')?.content || '',
+            files: filesToSave,
             prompts: project.prompts
           })
         });
@@ -253,6 +254,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           isDirty: false,
           updatedAt: new Date()
         } : null);
+        return savedProject;
       } else {
         // Create new project
         const response = await fetch('/api/projects', {
@@ -267,9 +269,9 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
             prompt: project.prompts[0] || '',
             templateId: 'default',
             category: 'general',
-            html: project.files.find(f => f.name === 'index.html')?.content || '',
-            css: project.files.find(f => f.name === 'style.css')?.content || '',
-            files: project.files,
+            html: filesToSave.find(f => f.name === 'index.html')?.content || '',
+            css: filesToSave.find(f => f.name === 'style.css')?.content || '',
+            files: filesToSave,
             prompts: project.prompts
           })
         });
@@ -287,6 +289,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           createdAt: new Date(),
           updatedAt: new Date()
         } : null);
+        return savedProject;
       }
     } catch (error) {
       console.error('Error saving project:', error);

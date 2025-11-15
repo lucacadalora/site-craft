@@ -319,20 +319,25 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             if (routeSessionId === 'new' || !routeSessionId) {
               // Generate project name from prompt if not provided
               const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
-              const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
               
-              // Save project with auto-generated sessionId and name
-              // Use longer delay to ensure project state is updated
-              setTimeout(async () => {
+              // Save project immediately with explicit files (no delay needed!)
+              // Pass finalFilesArray directly to avoid closure/state timing issues
+              (async () => {
                 try {
-                  console.log('Auto-saving project:', { newSessionId, autoName, filesCount: finalFilesArray.length });
-                  await saveProject(newSessionId, autoName);
-                  // Update URL to reflect the saved sessionId
-                  navigate(`/ide/${newSessionId}`, { replace: true });
-                  toast({
-                    title: "Project Saved",
-                    description: `Saved as "${autoName}"`,
-                  });
+                  console.log('Auto-saving project:', { autoName, filesCount: finalFilesArray.length });
+                  
+                  // Pass finalFilesArray explicitly to avoid stale closure
+                  const savedProject = await saveProject(undefined, autoName, finalFilesArray);
+                  
+                  if (savedProject?.id) {
+                    console.log('Navigating to saved project:', savedProject.id);
+                    navigate(`/ide/${savedProject.id}`, { replace: true });
+                    
+                    toast({
+                      title: "Project Saved",
+                      description: `Saved as "${autoName}"`,
+                    });
+                  }
                 } catch (error) {
                   console.error('Auto-save failed:', error);
                   toast({
@@ -341,7 +346,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                     variant: "destructive"
                   });
                 }
-              }, 1000); // Increased delay to ensure state update
+              })();
             }
             
             return;
