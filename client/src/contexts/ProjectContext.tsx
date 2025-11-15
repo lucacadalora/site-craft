@@ -84,17 +84,36 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
       files: [
         {
           name: 'index.html',
-          content: '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>New Project</title>\n    <link rel="stylesheet" href="style.css">\n</head>\n<body>\n    <h1>Welcome to your new project!</h1>\n    <script src="script.js"></script>\n</body>\n</html>',
+          content: `<!DOCTYPE html>
+<html>
+  <head>
+    <title>My app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="flex justify-center items-center h-screen overflow-hidden bg-white font-sans text-center px-6">
+    <div class="w-full">
+      <span class="text-xs rounded-full mb-2 inline-block px-2 py-1 border border-amber-500/15 bg-amber-500/15 text-amber-500">🔥 New version dropped!</span>
+      <h1 class="text-4xl lg:text-6xl font-bold font-sans">
+        <span class="text-2xl lg:text-4xl text-gray-400 block font-medium">I'm ready to work,</span>
+        Ask me anything.
+      </h1>
+    </div>
+      <img src="https://huggingface.co/deepsite/arrow.svg" class="absolute bottom-8 left-0 w-[100px] transform rotate-[30deg]" />
+    <script></script>
+  </body>
+</html>`,
           language: 'html'
         },
         {
           name: 'style.css',
-          content: '/* Add your styles here */\nbody {\n    font-family: Arial, sans-serif;\n    margin: 0;\n    padding: 20px;\n    background-color: #f5f5f5;\n}\n\nh1 {\n    color: #333;\n}',
+          content: '/* Add your styles here */',
           language: 'css'
         },
         {
           name: 'script.js',
-          content: '// Add your JavaScript code here\nconsole.log("Hello, World!");',
+          content: '// Add your JavaScript code here',
           language: 'javascript'
         }
       ],

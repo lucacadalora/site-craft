@@ -498,60 +498,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
             
             {/* File Browser */}
             <FileBrowser className="flex-1 overflow-auto" />
-            
-            {/* Prompt Input */}
-            <div className="p-4 border-t border-gray-800">
-              <Textarea
-                placeholder={project && project.prompts.length > 0 
-                  ? "Enter a follow-up prompt to modify the project..." 
-                  : "Describe what you want to build..."}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    handleGenerate();
-                  }
-                }}
-                className="min-h-[100px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-500"
-                disabled={isGenerating}
-                data-testid="input-prompt"
-              />
-              
-              <div className="flex gap-2">
-                <Button
-                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                  disabled={!prompt.trim() && !isGenerating}
-                  className="flex-1"
-                  variant={isGenerating ? "destructive" : "default"}
-                  data-testid="button-generate"
-                >
-                  {isGenerating ? (
-                    <>Stop Generation</>
-                  ) : (
-                    <>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => createNewProject()}
-                  title="New Project"
-                  className="bg-transparent border-gray-700 hover:bg-gray-800"
-                  data-testid="button-new-project"
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
           </div>
         </>
 
         {/* Editor and Preview Container */}
-        <div className="flex-1 flex">
+        <div className="flex-1 flex relative">
           {/* Code Editor - 20% width */}
           <div className="w-[20%] min-w-[300px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
             {/* Editor Header with Files Button */}
@@ -586,6 +537,54 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               title="Preview"
               data-testid="iframe-preview"
             />
+          </div>
+
+          {/* Prompt Input - Bottom Left Corner */}
+          <div className="absolute bottom-0 left-0 w-[300px] p-4 bg-[#1e1e1e]/95 backdrop-blur-sm border-t border-r border-gray-800 z-30">
+            <Textarea
+              placeholder="Ask DeepSite anything..."
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  handleGenerate();
+                }
+              }}
+              className="min-h-[80px] resize-none mb-2 bg-[#2d2d30] border-gray-700 text-gray-100 placeholder:text-gray-400 text-sm"
+              disabled={isGenerating}
+              data-testid="input-prompt"
+            />
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={isGenerating ? handleStopGeneration : handleGenerate}
+                disabled={!prompt.trim() && !isGenerating}
+                size="sm"
+                className="flex-1"
+                variant={isGenerating ? "destructive" : "default"}
+                data-testid="button-generate"
+              >
+                {isGenerating ? (
+                  <>Stop</>
+                ) : (
+                  <>
+                    <Zap className="w-3 h-3 mr-1" />
+                    Generate
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createNewProject()}
+                title="New Project"
+                className="bg-transparent border-gray-700 hover:bg-gray-800 px-2"
+                data-testid="button-new-project"
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
