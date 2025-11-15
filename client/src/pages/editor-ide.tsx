@@ -44,7 +44,7 @@ interface EditorIDEProps {
 }
 
 export default function EditorIDE({ initialApiConfig, onApiConfigChange }: EditorIDEProps) {
-  const { id } = useParams();
+  const { sessionId } = useParams(); // Changed from id to sessionId
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { 
@@ -71,13 +71,16 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const previewRef = useRef<HTMLIFrameElement>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
 
-  // Load project if ID is provided
+  // Load project if sessionId is provided
   useEffect(() => {
     const initProject = async () => {
       try {
-        if (id) {
-          await loadProject(id);
+        if (sessionId) {
+          // Try to load project by sessionId
+          await loadProject(sessionId);
         } else if (!project) {
+          // Create new project with a sessionId
+          const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           createNewProject();
         }
       } catch (error) {
@@ -91,7 +94,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     };
     
     initProject();
-  }, [id]);
+  }, [sessionId]);
 
   // Update preview when active file changes
   useEffect(() => {

@@ -51,7 +51,7 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
           </ProtectedRoute>
         )}
       </Route>
-      <Route path="/ide/:id">
+      <Route path="/ide/:sessionId">
         {(params) => (
           <ProtectedRoute>
             <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
