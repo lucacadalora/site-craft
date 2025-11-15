@@ -150,7 +150,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     streamControllerRef.current = controller;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const isFollowUp = project && project.files.length > 0 && project.prompts.length > 0;
       
       // Create session with POST to avoid URL length limitations
