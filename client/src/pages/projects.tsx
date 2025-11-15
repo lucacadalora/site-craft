@@ -91,9 +91,9 @@ export default function Projects() {
   };
 
   const handleOpenProject = (project: ProjectDisplay) => {
-    // Use sessionId if available, otherwise generate one
-    const sessionId = project.sessionId || `session-${project.id}-${Date.now()}`;
-    navigate(`/ide/${sessionId}`);
+    // Use slug if available, otherwise use sessionId or ID
+    const identifier = project.slug || project.sessionId || project.id.toString();
+    navigate(`/ide/${identifier}`);
   };
 
   const handleDeleteProject = async (projectId: number) => {
