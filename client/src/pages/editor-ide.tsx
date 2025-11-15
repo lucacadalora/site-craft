@@ -47,7 +47,7 @@ interface EditorIDEProps {
 }
 
 export default function EditorIDE({ initialApiConfig, onApiConfigChange }: EditorIDEProps) {
-  const { sessionId } = useParams(); // Changed from id to sessionId
+  const { sessionId: routeSessionId } = useParams(); // Changed from id to sessionId
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { 
@@ -89,12 +89,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   useEffect(() => {
     const initProject = async () => {
       try {
-        if (sessionId === 'new' || !sessionId) {
+        if (routeSessionId === 'new' || !routeSessionId) {
           // Create a fresh new project
           createNewProject();
         } else {
           // Try to load existing project by sessionId
-          await loadProject(sessionId);
+          await loadProject(routeSessionId);
         }
       } catch (error) {
         console.error('Failed to initialize project:', error);
@@ -104,7 +104,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
     };
     
     initProject();
-  }, [sessionId]);
+  }, [routeSessionId]);
 
   // Update preview when active file changes
   useEffect(() => {
@@ -302,19 +302,30 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
               });
             });
             incompleteFiles.clear(); // Clear all incomplete markers
-            updateFilesRealtime();
+            
+            // Convert current files to array for final update
+            const finalFilesArray = Array.from(currentFiles.values()).map(f => ({
+              name: f.name,
+              content: stripCursor(f.content),
+              language: f.language as 'html' | 'css' | 'javascript' | 'unknown'
+            }));
+            
+            // Update project files one final time before saving
+            setProjectFiles(finalFilesArray);
             setIsGenerating(false);
             eventSource.close();
             
             // Auto-save project after generation completes
-            if (sessionId === 'new' || !sessionId) {
+            if (routeSessionId === 'new' || !routeSessionId) {
               // Generate project name from prompt if not provided
-              const autoName = projectName || prompt.substring(0, 50).trim() || 'Untitled Project';
+              const autoName = projectName || finalPrompt.substring(0, 50).trim() || 'Untitled Project';
               const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
               
               // Save project with auto-generated sessionId and name
+              // Use longer delay to ensure project state is updated
               setTimeout(async () => {
                 try {
+                  console.log('Auto-saving project:', { newSessionId, autoName, filesCount: finalFilesArray.length });
                   await saveProject(newSessionId, autoName);
                   // Update URL to reflect the saved sessionId
                   navigate(`/ide/${newSessionId}`, { replace: true });
@@ -324,8 +335,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                   });
                 } catch (error) {
                   console.error('Auto-save failed:', error);
+                  toast({
+                    title: "Auto-save Failed",
+                    description: "Your project wasn't saved. Please use the Save button.",
+                    variant: "destructive"
+                  });
                 }
-              }, 500);
+              }, 1000); // Increased delay to ensure state update
             }
             
             return;
