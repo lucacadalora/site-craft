@@ -29,7 +29,7 @@ interface ProjectContextType {
   addFile: (file: ProjectFile) => void;
   deleteFile: (fileName: string) => void;
   renameFile: (oldName: string, newName: string) => void;
-  saveProject: (sessionId?: string, projectName?: string) => Promise<void>;
+  saveProject: (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[]) => Promise<any | null>;
   loadProject: (projectId: string) => Promise<void>;
   markAsClean: () => void;
   addPrompt: (prompt: string) => void;
