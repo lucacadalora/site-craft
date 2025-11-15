@@ -105,16 +105,6 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
   </body>
 </html>`,
           language: 'html'
-        },
-        {
-          name: 'style.css',
-          content: '/* Add your styles here */',
-          language: 'css'
-        },
-        {
-          name: 'script.js',
-          content: '// Add your JavaScript code here',
-          language: 'javascript'
         }
       ],
       activeFile: 'index.html',
