@@ -54,3 +54,13 @@
     @apply cursor-pointer px-3 py-2 rounded-md bg-primary text-white hover:bg-blue-600 text-sm flex justify-between items-center;
   }
 }
+
+/* Animation for generation progress bar */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

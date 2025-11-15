@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { UserProfile } from '@/components/user-profile';
 import { DeployButton } from '@/components/deploy-button';
-import { GenerationStatus } from '@/components/ui/generation-status';
+import { GenerationProgressBar } from '@/components/GenerationProgressBar';
 import {
   Select,
   SelectContent,
@@ -676,7 +676,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <header className="border-b px-4 py-2 flex items-center justify-between bg-[#0a0a0a]">
+      <header className="border-b px-4 py-2 flex items-center justify-between bg-[#0a0a0a] relative">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold text-white">Jatevo Web Builder</h1>
           {project && (
@@ -687,12 +687,6 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
         </div>
         
         <div className="flex items-center gap-2">
-          {isGenerating && (
-            <GenerationStatus 
-              status={["Generating..."]}
-              onStop={handleStopGeneration}
-            />
-          )}
           
           <Button
             variant="outline"
@@ -760,6 +754,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
           <UserProfile />
         </div>
       </header>
+
+      {/* Generation Progress Bar */}
+      <GenerationProgressBar
+        isGenerating={isGenerating}
+        onStop={handleStopGeneration}
+        tokenCount={0}
+        prompt={selectedModel === 'cerebras-glm-4.6' ? 'cerebras' : 'sambanova'}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden relative">
