@@ -217,13 +217,14 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     });
   }, []);
 
-  const saveProject = useCallback(async (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[]) => {
+  const saveProject = useCallback(async (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[], promptText?: string) => {
     if (!project) return null;
     
     try {
       const token = localStorage.getItem('auth_token');
-      const nameToUse = projectName || project.name;
+      const nameToUse = projectName || project.name || 'Untitled Project';
       const filesToSave = explicitFiles || project.files; // Use explicit files if provided
+      const promptToUse = promptText || project.prompts[0] || nameToUse; // Use provided prompt or fallback
       
       if (project.id) {
         // Update existing project
@@ -235,16 +236,19 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           },
           body: JSON.stringify({
             name: nameToUse,
-            sessionId: sessionId,
+            sessionId: sessionId || project.sessionId,
+            prompt: promptToUse,
             html: filesToSave.find(f => f.name === 'index.html')?.content || '',
-            css: filesToSave.find(f => f.name === 'style.css')?.content || '',
+            css: filesToSave.find(f => f.name === 'style.css' || f.name === 'styles.css')?.content || '',
             files: filesToSave,
             prompts: project.prompts
           })
         });
 
         if (!response.ok) {
-          throw new Error('Failed to update project');
+          const errorData = await response.text();
+          console.error('Update project failed:', response.status, errorData);
+          throw new Error(`Failed to update project: ${response.status}`);
         }
 
         const savedProject = await response.json();
@@ -256,34 +260,47 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         } : null);
         return savedProject;
       } else {
-        // Create new project
+        // Create new project - ensure we have all required fields
+        const createPayload = {
+          name: nameToUse,
+          sessionId: sessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+          prompt: promptToUse, // This is required by backend
+          templateId: 'default',
+          category: 'general',
+          html: filesToSave.find(f => f.name === 'index.html')?.content || '',
+          css: filesToSave.find(f => f.name === 'style.css' || f.name === 'styles.css')?.content || '',
+          files: filesToSave,
+          prompts: promptText ? [promptText, ...project.prompts] : project.prompts
+        };
+        
+        console.log('Creating new project with payload:', { 
+          name: createPayload.name, 
+          prompt: createPayload.prompt.substring(0, 50),
+          filesCount: createPayload.files.length 
+        });
+        
         const response = await fetch('/api/projects', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({
-            name: nameToUse,
-            sessionId: sessionId,
-            prompt: project.prompts[0] || '',
-            templateId: 'default',
-            category: 'general',
-            html: filesToSave.find(f => f.name === 'index.html')?.content || '',
-            css: filesToSave.find(f => f.name === 'style.css')?.content || '',
-            files: filesToSave,
-            prompts: project.prompts
-          })
+          body: JSON.stringify(createPayload)
         });
 
         if (!response.ok) {
-          throw new Error('Failed to save project');
+          const errorData = await response.text();
+          console.error('Create project failed:', response.status, errorData);
+          throw new Error(`Failed to save project: ${response.status}`);
         }
 
         const savedProject = await response.json();
+        console.log('Project created successfully:', savedProject.id, savedProject.slug);
+        
         setProjectState(prev => prev ? {
           ...prev,
           id: savedProject.id?.toString(),
+          sessionId: savedProject.sessionId,
           name: nameToUse,
           isDirty: false,
           createdAt: new Date(),

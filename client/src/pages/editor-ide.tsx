@@ -327,8 +327,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                 try {
                   console.log('Auto-saving project:', { autoName, filesCount: finalFilesArray.length });
                   
-                  // Pass finalFilesArray explicitly to avoid stale closure
-                  const savedProject = await saveProject(undefined, autoName, finalFilesArray);
+                  // Pass finalFilesArray and prompt explicitly to avoid stale closure
+                  const savedProject = await saveProject(undefined, autoName, finalFilesArray, finalPrompt);
                   
                   if (savedProject?.id) {
                     // Navigate using slug if available, otherwise fall back to ID
