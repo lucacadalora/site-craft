@@ -57,34 +57,58 @@ export const registerSchema = z.object({
 
 export type RegisterCredentials = z.infer<typeof registerSchema>;
 
-// Project schema
+// Project schema - updated for multi-file support
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  prompt: text("prompt").notNull(),
-  templateId: text("template_id").notNull(),
-  category: text("category").notNull(),
+  prompt: text("prompt"),
+  prompts: json("prompts").$type<string[]>().default([]),
+  templateId: text("template_id"),
+  category: text("category"),
   html: text("html"),
   css: text("css"),
   settings: json("settings"),
   published: boolean("published").default(false),
   publishPath: text("publish_path"),
-  userId: integer("user_id"),
+  userId: integer("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
-  html: true,
-  css: true,
-  published: true,
-  publishPath: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Project = typeof projects.$inferSelect;
+
+// Files table for multi-file projects (v3 approach)
+export const files = pgTable("files", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  path: text("path").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFileSchema = createInsertSchema(files).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFile = z.infer<typeof insertFileSchema>;
+export type ProjectFile = typeof files.$inferSelect;
+
+// V3-style Page interface for in-memory file management
+export interface Page {
+  path: string;
+  html: string;
+}
 
 // Template schema
 export const templates = pgTable("templates", {
