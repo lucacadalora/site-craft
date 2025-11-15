@@ -65,7 +65,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
-  const [selectedModel, setSelectedModel] = useState('deepseek-v3-0324');
+  const [selectedModel, setSelectedModel] = useState('cerebras-glm-4.6');
   
   // Refs
   const previewRef = useRef<HTMLIFrameElement>(null);
@@ -154,24 +154,32 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       const token = localStorage.getItem('token');
       const isFollowUp = project && project.files.length > 0 && project.prompts.length > 0;
       
-      // Use EventSource for real-time SSE streaming
-      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const encodedPrompt = encodeURIComponent(prompt);
-      
-      // Build query params
-      const params = new URLSearchParams({
-        prompt: encodedPrompt,
-        useMultiFile: 'true'
-      });
-      
-      if (token) {
-        params.append('token', token);
-      }
+      // Create session with POST to avoid URL length limitations
+      const sessionPayload: any = {
+        prompt,
+        useMultiFile: true
+      };
       
       if (isFollowUp) {
-        params.append('existingFiles', JSON.stringify(project.files));
-        params.append('previousPrompts', JSON.stringify(project.prompts));
+        sessionPayload.existingFiles = project.files;
+        sessionPayload.previousPrompts = project.prompts;
       }
+      
+      // Create session first
+      const sessionResponse = await fetch('/api/stream/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(sessionPayload)
+      });
+      
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to create session');
+      }
+      
+      const { sessionId } = await sessionResponse.json();
       
       const baseUrl = window.location.origin;
       // Select API endpoint based on model
@@ -179,8 +187,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
         ? `/api/cerebras/stream/${sessionId}`
         : `/api/sambanova/stream/${sessionId}`;
       
+      // Add token to query params if available
+      const params = new URLSearchParams();
+      if (token) {
+        params.append('token', token);
+      }
+      
       const eventSource = new EventSource(
-        `${baseUrl}${apiEndpoint}?${params.toString()}`
+        `${baseUrl}${apiEndpoint}${token ? '?' + params.toString() : ''}`
       );
       
       // Save reference for stop functionality

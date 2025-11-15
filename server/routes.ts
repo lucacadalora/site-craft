@@ -861,17 +861,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Session storage for long prompts
+  const sessionData = new Map<string, any>();
+
+  // POST endpoint to create a session with long prompt data (no URL length limitation)
+  app.post("/api/stream/session", (req, res) => {
+    const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    sessionData.set(sessionId, {
+      ...req.body,
+      createdAt: Date.now()
+    });
+    
+    // Clean up old sessions (older than 5 minutes)
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    const sessionsToDelete: string[] = [];
+    sessionData.forEach((data, sid) => {
+      if (data.createdAt < fiveMinutesAgo) {
+        sessionsToDelete.push(sid);
+      }
+    });
+    sessionsToDelete.forEach(sid => sessionData.delete(sid));
+    
+    res.json({ sessionId });
+  });
+
   // GET endpoint for true real-time SSE streaming (EventSource API)
   app.get("/api/sambanova/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
-    const promptRaw = req.query.prompt as string;
     
-    if (!promptRaw) {
-      return res.status(400).json({ message: "Missing required query parameter: prompt" });
+    // Try to get data from session storage first (for POST-created sessions)
+    let prompt: string;
+    let existingFilesParam: string | undefined;
+    let previousPromptsParam: string | undefined;
+    
+    if (sessionData.has(sessionId)) {
+      const data = sessionData.get(sessionId);
+      prompt = data.prompt;
+      existingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
+      previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
+      // Clean up session data after reading
+      sessionData.delete(sessionId);
+    } else {
+      // Fall back to query params (for backward compatibility)
+      const promptRaw = req.query.prompt as string;
+      if (!promptRaw) {
+        return res.status(400).json({ message: "Missing required parameter: prompt" });
+      }
+      prompt = decodeURIComponent(promptRaw);
+      existingFilesParam = req.query.existingFiles as string | undefined;
+      previousPromptsParam = req.query.previousPrompts as string | undefined;
     }
-    
-    // Decode URL-encoded prompt
-    const prompt = decodeURIComponent(promptRaw);
 
     try {
       // Set SSE headers for EventSource compatibility
@@ -951,10 +990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.end();
       }
       
-      // Check for follow-up context from query params
-      const existingFilesParam = req.query.existingFiles as string | undefined;
-      const previousPromptsParam = req.query.previousPrompts as string | undefined;
-      
+      // Check for follow-up context (already extracted above)
       const isFollowUp = existingFilesParam && previousPromptsParam;
       
       console.log(`Generating with DeepSeek (${isFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
@@ -969,9 +1005,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userContent = `Create a landing page for: ${prompt}`;
       if (isFollowUp) {
         try {
-          // Decode URL-encoded query params before parsing JSON
-          const existingFiles = JSON.parse(decodeURIComponent(existingFilesParam));
-          const previousPrompts = JSON.parse(decodeURIComponent(previousPromptsParam));
+          // Parse JSON (already decoded if from session storage)
+          const existingFiles = typeof existingFilesParam === 'string' ? JSON.parse(existingFilesParam) : existingFilesParam;
+          const previousPrompts = typeof previousPromptsParam === 'string' ? JSON.parse(previousPromptsParam) : previousPromptsParam;
           
           console.log(`Follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
           
@@ -1177,14 +1213,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET endpoint for Cerebras (zai-glm-4.6) SSE streaming (EventSource API)
   app.get("/api/cerebras/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
-    const promptRaw = req.query.prompt as string;
     
-    if (!promptRaw) {
-      return res.status(400).json({ message: "Missing required query parameter: prompt" });
+    // Try to get data from session storage first (for POST-created sessions)
+    let prompt: string;
+    let cerebrasExistingFilesParam: string | undefined;
+    let cerebrasPreviousPromptsParam: string | undefined;
+    
+    if (sessionData.has(sessionId)) {
+      const data = sessionData.get(sessionId);
+      prompt = data.prompt;
+      cerebrasExistingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
+      cerebrasPreviousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
+      // Clean up session data after reading
+      sessionData.delete(sessionId);
+    } else {
+      // Fall back to query params (for backward compatibility)
+      const promptRaw = req.query.prompt as string;
+      if (!promptRaw) {
+        return res.status(400).json({ message: "Missing required parameter: prompt" });
+      }
+      prompt = decodeURIComponent(promptRaw);
+      cerebrasExistingFilesParam = req.query.existingFiles as string | undefined;
+      cerebrasPreviousPromptsParam = req.query.previousPrompts as string | undefined;
     }
-    
-    // Decode URL-encoded prompt
-    const prompt = decodeURIComponent(promptRaw);
 
     try {
       // Set SSE headers for EventSource compatibility
@@ -1263,10 +1314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.end();
       }
 
-      // Check for follow-up context from query params
-      const cerebrasExistingFilesParam = req.query.existingFiles as string | undefined;
-      const cerebrasPreviousPromptsParam = req.query.previousPrompts as string | undefined;
-      
+      // Check for follow-up context (already extracted above)
       const cerebrasIsFollowUp = cerebrasExistingFilesParam && cerebrasPreviousPromptsParam;
       
       console.log(`Generating with Cerebras GLM-4.6 (${cerebrasIsFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
@@ -1281,9 +1329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let cerebrasUserContent = `Create a landing page for: ${prompt}`;
       if (cerebrasIsFollowUp) {
         try {
-          // Decode URL-encoded query params before parsing JSON
-          const existingFiles = JSON.parse(decodeURIComponent(cerebrasExistingFilesParam));
-          const previousPrompts = JSON.parse(decodeURIComponent(cerebrasPreviousPromptsParam));
+          // Parse JSON (already decoded if from session storage)
+          const existingFiles = typeof cerebrasExistingFilesParam === 'string' ? JSON.parse(cerebrasExistingFilesParam) : cerebrasExistingFilesParam;
+          const previousPrompts = typeof cerebrasPreviousPromptsParam === 'string' ? JSON.parse(cerebrasPreviousPromptsParam) : cerebrasPreviousPromptsParam;
           
           console.log(`Cerebras follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
           
