@@ -703,7 +703,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                 const savedProject = await saveProject(
                   project?.id ? parseInt(project.id) : undefined,
                   projectName,
-                  projectFiles
+                  project?.files || []
                 );
                 if (savedProject?.id) {
                   const navigateTo = savedProject.slug 
@@ -728,7 +728,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                 });
               }
             }}
-            disabled={!projectFiles || projectFiles.length === 0 || isGenerating}
+            disabled={!project || !project.files || project.files.length === 0 || isGenerating}
             className="bg-transparent border-gray-700 hover:bg-gray-900 text-gray-300"
             data-testid="button-save-project"
           >
