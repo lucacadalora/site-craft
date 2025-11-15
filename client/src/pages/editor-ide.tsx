@@ -372,45 +372,6 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                 
                 updateFilesRealtime();
               }
-              break;
-              
-            case 'complete':
-              // Mark all files as complete (remove cursors)
-              currentFiles.forEach((file, name) => {
-                currentFiles.set(name, { ...file, isComplete: true });
-              });
-              updateFilesRealtime();
-              
-              // Update token usage
-              if (event.tokenCount || event.stats?.tokens) {
-                const tokens = event.tokenCount || event.stats?.tokens || 0;
-                setTokenUsage(prev => prev + tokens);
-              }
-              if (event.generationCount) {
-                setGenerationCount(event.generationCount);
-              }
-              
-              eventSource.close();
-              setIsGenerating(false);
-              
-              toast({
-                title: "Success",
-                description: "Generation completed successfully"
-              });
-              break;
-              
-            case 'error':
-              console.error('Stream error:', event.message);
-              eventSource.close();
-              setIsGenerating(false);
-              
-              toast({
-                title: "Error",
-                description: event.message || "Generation failed",
-                variant: "destructive"
-              });
-              break;
-          }
         } catch (e) {
           console.error('Error parsing SSE data:', e);
         }
