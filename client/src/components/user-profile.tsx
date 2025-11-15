@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { User, Zap, FileText, LogOut } from 'lucide-react';
+import { User, Zap, FileText, LogOut, Plus, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import {
@@ -269,6 +269,14 @@ document.addEventListener('complete', () => {
     setLocation('/');
   };
 
+  const handleNewProject = () => {
+    setLocation('/ide/new');
+  };
+
+  const handleViewProjects = () => {
+    setLocation('/projects');
+  };
+
   if (!isAuthenticated) {
     return (
       <Button variant="outline" onClick={() => setLocation('/login')}>
@@ -283,48 +291,91 @@ document.addEventListener('complete', () => {
         <Button 
           variant="outline" 
           className="flex items-center gap-2 bg-blue-600/20 text-white border-blue-400 hover:bg-blue-700/40 hover:text-white"
+          data-testid="button-user-profile"
         >
           <User className="h-4 w-4" />
           <span className="truncate max-w-[150px]">{user?.email || user?.username}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80" align="end">
-        <DropdownMenuLabel className="text-base font-semibold">My Account</DropdownMenuLabel>
-        <DropdownMenuSeparator />
+      <DropdownMenuContent className="w-80 bg-[#1a1a1a] border-gray-800" align="end">
+        {/* Account Header */}
+        <DropdownMenuLabel className="text-lg font-semibold text-gray-100 pb-2">
+          My Account
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-gray-800" />
+        
+        {/* User Email */}
         <DropdownMenuGroup>
-          <DropdownMenuItem className="py-2">
+          <DropdownMenuItem className="py-2 text-gray-300 focus:bg-gray-800 focus:text-gray-100">
             <User className="mr-2 h-4 w-4 flex-shrink-0" />
-            <span className="text-sm font-medium break-all">{user?.email}</span>
+            <span className="text-sm break-all">{user?.email}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>Usage Statistics</DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-gray-800" />
+        
+        {/* Project Actions */}
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <Zap className="mr-2 h-4 w-4" />
-            <span>
+          <DropdownMenuItem 
+            onClick={handleNewProject}
+            className="py-2.5 text-gray-300 hover:bg-gray-800 hover:text-gray-100 focus:bg-gray-800 focus:text-gray-100 cursor-pointer"
+            data-testid="menu-new-project"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            <span className="font-medium">New Project</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={handleViewProjects}
+            className="py-2.5 text-gray-300 hover:bg-gray-800 hover:text-gray-100 focus:bg-gray-800 focus:text-gray-100 cursor-pointer"
+            data-testid="menu-view-projects"
+          >
+            <FolderOpen className="mr-2 h-4 w-4" />
+            <span className="font-medium">View Projects</span>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="bg-gray-800" />
+        
+        {/* Usage Statistics */}
+        <DropdownMenuLabel className="text-sm font-semibold text-gray-100 pb-1">
+          Usage Quota
+        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuItem className="py-2 text-gray-300 flex justify-between focus:bg-gray-800 focus:text-gray-100">
+            <div className="flex items-center">
+              <Zap className="mr-2 h-4 w-4" />
+              <span className="text-sm">Token Usage:</span>
+            </div>
+            <span className="font-medium text-gray-100">
               {isLoading ? (
-                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16 bg-gray-700" />
               ) : (
-                `Token Usage: ${userStats?.tokenUsage || 0}`
+                userStats?.tokenUsage?.toLocaleString() || '0'
               )}
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <FileText className="mr-2 h-4 w-4" />
-            <span>
+          <DropdownMenuItem className="py-2 text-gray-300 flex justify-between focus:bg-gray-800 focus:text-gray-100">
+            <div className="flex items-center">
+              <FileText className="mr-2 h-4 w-4" />
+              <span className="text-sm">Generations:</span>
+            </div>
+            <span className="font-medium text-gray-100">
               {isLoading ? (
-                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16 bg-gray-700" />
               ) : (
-                `Generations: ${userStats?.generationCount || 0}`
+                userStats?.generationCount || '0'
               )}
             </span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-500">
+        <DropdownMenuSeparator className="bg-gray-800" />
+        
+        {/* Logout */}
+        <DropdownMenuItem 
+          onClick={handleLogout} 
+          className="py-2.5 text-red-400 hover:text-red-300 hover:bg-red-950/30 focus:bg-red-950/30 focus:text-red-300 cursor-pointer font-medium"
+          data-testid="button-logout"
+        >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
