@@ -57,6 +57,13 @@ export const registerSchema = z.object({
 
 export type RegisterCredentials = z.infer<typeof registerSchema>;
 
+// Enhanced Settings for AI prompt enhancement
+export const enhancedSettingsSchema = z.object({
+  isActive: z.boolean().default(true),
+});
+
+export type EnhancedSettings = z.infer<typeof enhancedSettingsSchema>;
+
 // Project schema - Enhanced to support multi-file projects
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
