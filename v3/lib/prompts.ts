@@ -11,21 +11,25 @@ export const PROJECT_NAME_END = ">>>>>>> PROJECT_NAME_END";
 export const PROMPT_FOR_REWRITE_PROMPT = "<<<<<<< PROMPT_FOR_REWRITE_PROMPT ";
 export const PROMPT_FOR_REWRITE_PROMPT_END = " >>>>>>> PROMPT_FOR_REWRITE_PROMPT_END";
 
-export const PROMPT_FOR_IMAGE_GENERATION = `For image placeholders, use https://picsum.photos which provides high-quality, real photos that load reliably.
+export const PROMPT_FOR_IMAGE_GENERATION = `IMPORTANT: For ALL image placeholders, you MUST ONLY use https://picsum.photos - DO NOT use unsplash.com, pexels.com, or any other image services.
 
 Usage Format: https://picsum.photos/[width]/[height]
 - Use any dimensions (e.g., 800/600, 1200/800, 400/300, 1920/1080)
-- For different images on the same page, use ?random=1, ?random=2, etc.
+- For different images on the same page, use ?random=1, ?random=2, ?random=3, etc.
+- Each image on the page must have a different random number to avoid duplicates
 - For consistent seeded images, use /seed/[name]/[width]/[height] format
 
 Examples: 
-- https://picsum.photos/800/600?random=1 (different images with cache busting)
-- https://picsum.photos/800/600?random=2
-- https://picsum.photos/seed/food1/800/600 (consistent seeded image)
-- https://picsum.photos/1920/1080?random=5 (large hero banner)
-- https://picsum.photos/400/400?random=3 (square image for cards)
+- https://picsum.photos/800/600?random=1 (first image)
+- https://picsum.photos/800/600?random=2 (second image - different from first)
+- https://picsum.photos/800/600?random=3 (third image - different again)
+- https://picsum.photos/seed/hero/1920/1080 (consistent hero image)
+- https://picsum.photos/400/400?random=5 (square image for cards)
 
-IMPORTANT: Always add ?random=[number] when using multiple images on the same page to prevent showing duplicate images.`
+For profile pictures, use: https://randomuser.me/api/portraits/[women|men]/[1-99].jpg
+Example: https://randomuser.me/api/portraits/women/32.jpg
+
+CRITICAL: NEVER use images.unsplash.com or source.unsplash.com - ONLY use picsum.photos!`
 export const PROMPT_FOR_PROJECT_NAME = `REQUIRED: Generate a name for the project, based on the user's request. Try to be creative and unique. Add a emoji at the end of the name. It should be short, like 6 words. Be fancy, creative and funny. DON'T FORGET IT, IT'S IMPORTANT!`
 
 export const INITIAL_SYSTEM_PROMPT_LIGHT = `You are an expert UI/UX and Front-End Developer.
