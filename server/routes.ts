@@ -6,6 +6,7 @@ import path from "path";
 import { generateLandingPageHtml, generateFallbackHtml, validateSambanovaApiKey } from './lib/sambanova';
 import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
+import projectManagementRoutes from './routes/project-management';
 import sitesRoutes from './routes/sites';
 import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
@@ -84,6 +85,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register project routes
   console.log('Registering project routes at /api/projects');
   app.use('/api/projects', projectRoutes);
+  
+  // Register project management routes (multi-file IDE support)
+  console.log('Registering project management routes');
+  app.use(projectManagementRoutes);
   
   // Register sites routes for published sites
   console.log('Registering published sites routes at /sites');
