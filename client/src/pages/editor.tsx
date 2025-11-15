@@ -484,6 +484,9 @@ export default function Editor({
       let isCompleted = false;
       let totalContent = "";
       
+      // Buffer for incomplete SSE data
+      let buffer = "";
+      
       // Create a more natural progress update based on both time and content
       // This creates a gradual increase that better reflects real API response times
       let lastProgressPercent = 0;
@@ -596,21 +599,29 @@ export default function Editor({
             break;
           }
           
-          // Decode the chunk data
+          // Decode the chunk data and add to buffer
           const chunkText = decoder.decode(value, { stream: true });
-          console.log("[FRONTEND] Received raw data from stream:", chunkText.length, "bytes");
+          buffer += chunkText;
           
-          // Process each event (lines starting with "data: ")
-          const eventLines = chunkText.split("\n\n");
-          console.log("[FRONTEND] Split into", eventLines.length, "event lines");
-          for (const eventLine of eventLines) {
-            if (!eventLine.trim().startsWith("data:")) continue;
+          console.log("[FRONTEND] Received", chunkText.length, "bytes, buffer size:", buffer.length);
+          
+          // Process complete SSE messages (separated by \n\n)
+          let boundary = buffer.indexOf('\n\n');
+          while (boundary !== -1) {
+            // Extract one complete SSE message
+            const message = buffer.substring(0, boundary);
+            buffer = buffer.substring(boundary + 2);
             
-            try {
-              // Parse the event data
-              const jsonStr = eventLine.trim().substring(5).trim();
-              const event = JSON.parse(jsonStr);
-              console.log("[FRONTEND] Parsed event type:", event.event);
+            // Process the message if it's a data event
+            const lines = message.split('\n');
+            for (const line of lines) {
+              if (!line.trim().startsWith('data:')) continue;
+              
+              try {
+                // Parse the event data
+                const jsonStr = line.trim().substring(5).trim();
+                const event = JSON.parse(jsonStr);
+                console.log("[FRONTEND] Real-time event:", event.event, event.content ? `(${event.content.length} chars)` : '');
               
               // Handle different event types
               switch (event.event) {
@@ -869,9 +880,13 @@ export default function Editor({
                 default:
                   console.log("Unknown stream event type:", event);
               }
-            } catch (e) {
-              console.error("Error parsing event:", e, eventLine);
+              } catch (e) {
+                console.error("Error parsing event:", e, line);
+              }
             }
+            
+            // Check for next message boundary
+            boundary = buffer.indexOf('\n\n');
           }
         } catch (e) {
           console.error("Stream reading error:", e);
