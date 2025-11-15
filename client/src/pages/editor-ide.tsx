@@ -174,8 +174,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       }
       
       const baseUrl = window.location.origin;
+      // Select API endpoint based on model
+      const apiEndpoint = selectedModel === 'cerebras-glm-4.6' 
+        ? `/api/cerebras/stream/${sessionId}`
+        : `/api/sambanova/stream/${sessionId}`;
+      
       const eventSource = new EventSource(
-        `${baseUrl}/api/sambanova/stream/${sessionId}?${params.toString()}`
+        `${baseUrl}${apiEndpoint}?${params.toString()}`
       );
       
       // Save reference for stop functionality
@@ -678,13 +683,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-gray-700">
                       <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        deepseek-v3-0324
+                        DeepSeek V3
                       </SelectItem>
-                      <SelectItem value="gpt-4" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        gpt-4
-                      </SelectItem>
-                      <SelectItem value="claude-3" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        claude-3
+                      <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                        Cerebras GLM-4.6
                       </SelectItem>
                     </SelectContent>
                   </Select>

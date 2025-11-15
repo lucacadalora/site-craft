@@ -864,11 +864,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET endpoint for true real-time SSE streaming (EventSource API)
   app.get("/api/sambanova/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
     const sessionId = req.params.sessionId;
-    const prompt = req.query.prompt as string;
+    const promptRaw = req.query.prompt as string;
     
-    if (!prompt) {
+    if (!promptRaw) {
       return res.status(400).json({ message: "Missing required query parameter: prompt" });
     }
+    
+    // Decode URL-encoded prompt
+    const prompt = decodeURIComponent(promptRaw);
 
     try {
       // Set SSE headers for EventSource compatibility
@@ -937,19 +940,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })}\n\n`);
       flushResponse();
 
-      // Call the AI API
-      const apiKey = "9f5d2696-9a9f-43a6-9778-ebe727cd2968";
-      console.log("Generating HTML with AI Accelerate (GET/EventSource) for prompt:", prompt.substring(0, 50) + "...");
+      // Get API key from environment (SECURITY: Never hardcode API keys)
+      const apiKey = process.env.SAMBANOVA_API_KEY;
+      if (!apiKey) {
+        console.error('SambaNova API key not configured');
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: 'SambaNova API key not configured. Please set SAMBANOVA_API_KEY environment variable.'
+        })}\n\n`);
+        return res.end();
+      }
+      
+      // Check for follow-up context from query params
+      const existingFilesParam = req.query.existingFiles as string | undefined;
+      const previousPromptsParam = req.query.previousPrompts as string | undefined;
+      
+      const isFollowUp = existingFilesParam && previousPromptsParam;
+      
+      console.log(`Generating with DeepSeek (${isFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
 
-      // Use v3 multi-file system prompt for IDE
+      // Choose system prompt based on whether this is a follow-up
       const systemMessage = {
         role: "system",
-        content: INITIAL_SYSTEM_PROMPT
+        content: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
       };
+
+      // Build user message with context if follow-up
+      let userContent = `Create a landing page for: ${prompt}`;
+      if (isFollowUp) {
+        try {
+          // Decode URL-encoded query params before parsing JSON
+          const existingFiles = JSON.parse(decodeURIComponent(existingFilesParam));
+          const previousPrompts = JSON.parse(decodeURIComponent(previousPromptsParam));
+          
+          console.log(`Follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
+          
+          userContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n`;
+          for (const file of existingFiles) {
+            userContent += `\n${file.name}:\n${file.content}\n`;
+          }
+          userContent += `\n\nUser request: ${prompt}`;
+        } catch (e) {
+          console.error('Error parsing follow-up context (falling back to initial):', e);
+        }
+      }
 
       const userMessage = {
         role: "user",
-        content: `Create a landing page for: ${prompt}`
+        content: userContent
       };
 
       const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
@@ -1131,6 +1169,316 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!res.headersSent) {
         return res.status(500).json({ message: "Stream error" });
+      }
+      res.end();
+    }
+  });
+
+  // GET endpoint for Cerebras (zai-glm-4.6) SSE streaming (EventSource API)
+  app.get("/api/cerebras/stream/:sessionId", optionalAuth, async (req: AuthRequest, res) => {
+    const sessionId = req.params.sessionId;
+    const promptRaw = req.query.prompt as string;
+    
+    if (!promptRaw) {
+      return res.status(400).json({ message: "Missing required query parameter: prompt" });
+    }
+    
+    // Decode URL-encoded prompt
+    const prompt = decodeURIComponent(promptRaw);
+
+    try {
+      // Set SSE headers for EventSource compatibility
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no',
+        'Content-Encoding': 'none'
+      });
+      
+      // Disable TCP buffering immediately
+      if (res.socket) {
+        res.socket.setNoDelay(true);
+        res.socket.setTimeout(0);
+      }
+
+      // Helper function to flush response immediately
+      const flushResponse = () => {
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
+        }
+      };
+      
+      // Send padding to break buffering
+      res.write(':' + ' '.repeat(2048) + '\n\n');
+      flushResponse();
+      
+      // Send initial connection message
+      res.write(`data: ${JSON.stringify({ 
+        type: 'connected',
+        sessionId,
+        timestamp: new Date().toISOString()
+      })}\n\n`);
+      flushResponse();
+
+      // Setup heartbeat to keep connection alive
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+        } catch (error) {
+          console.error('Error sending heartbeat:', error);
+          clearInterval(heartbeat);
+        }
+      }, 30000);
+
+      // Store connection for cleanup
+      streamConnections.set(sessionId, { res, sessionId, heartbeat });
+
+      // Cleanup on disconnect
+      req.on('close', () => {
+        console.log(`Cerebras SSE connection closed for session: ${sessionId}`);
+        clearInterval(heartbeat);
+        streamConnections.delete(sessionId);
+      });
+
+      // Get authenticated user if available
+      const userId = req.user?.id || null;
+      const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
+
+      // Send start event
+      res.write(`data: ${JSON.stringify({ 
+        type: 'start',
+        message: 'Generation started with Cerebras GLM-4.6' 
+      })}\n\n`);
+      flushResponse();
+
+      // Get API key from environment
+      const apiKey = process.env.CEREBRAS_API_KEY;
+      if (!apiKey) {
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: 'Cerebras API key not configured. Please set CEREBRAS_API_KEY environment variable.'
+        })}\n\n`);
+        return res.end();
+      }
+
+      // Check for follow-up context from query params
+      const cerebrasExistingFilesParam = req.query.existingFiles as string | undefined;
+      const cerebrasPreviousPromptsParam = req.query.previousPrompts as string | undefined;
+      
+      const cerebrasIsFollowUp = cerebrasExistingFilesParam && cerebrasPreviousPromptsParam;
+      
+      console.log(`Generating with Cerebras GLM-4.6 (${cerebrasIsFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
+
+      // Choose system prompt based on whether this is a follow-up
+      const systemMessage = {
+        role: "system",
+        content: cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
+      };
+
+      // Build user message with context if follow-up
+      let cerebrasUserContent = `Create a landing page for: ${prompt}`;
+      if (cerebrasIsFollowUp) {
+        try {
+          // Decode URL-encoded query params before parsing JSON
+          const existingFiles = JSON.parse(decodeURIComponent(cerebrasExistingFilesParam));
+          const previousPrompts = JSON.parse(decodeURIComponent(cerebrasPreviousPromptsParam));
+          
+          console.log(`Cerebras follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
+          
+          cerebrasUserContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n`;
+          for (const file of existingFiles) {
+            cerebrasUserContent += `\n${file.name}:\n${file.content}\n`;
+          }
+          cerebrasUserContent += `\n\nUser request: ${prompt}`;
+        } catch (e) {
+          console.error('Error parsing Cerebras follow-up context (falling back to initial):', e);
+        }
+      }
+
+      const userMessage = {
+        role: "user",
+        content: cerebrasUserContent
+      };
+
+      const apiResponse = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          stream: true,
+          model: "zai-glm-4.6",
+          messages: [systemMessage, userMessage],
+          max_tokens: 64000,
+          temperature: 0.6,
+          top_p: 0.95
+        })
+      });
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error("Cerebras API error:", apiResponse.status, errorText);
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: `Cerebras API error: ${apiResponse.status}`
+        })}\n\n`);
+        
+        const fallbackHtml = generateFallbackHtml(title, prompt);
+        res.write(`data: ${JSON.stringify({ 
+          type: 'complete', 
+          html: fallbackHtml,
+          source: 'fallback'
+        })}\n\n`);
+        
+        return res.end();
+      }
+
+      // Stream the response with proper SSE buffering
+      const reader = apiResponse.body?.getReader();
+      if (!reader) {
+        throw new Error("Response body is not readable");
+      }
+
+      let fullContent = "";
+      let htmlStarted = false;
+      let sseBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode chunk and add to buffer
+        const chunk = new TextDecoder().decode(value, { stream: true });
+        sseBuffer += chunk;
+        
+        // Process complete SSE messages (ending with \n\n)
+        let boundary = sseBuffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const message = sseBuffer.substring(0, boundary);
+          sseBuffer = sseBuffer.substring(boundary + 2);
+          
+          // Parse the SSE message
+          const lines = message.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.choices?.[0]?.delta?.content) {
+                  const contentChunk = jsonData.choices[0].delta.content;
+                  fullContent += contentChunk;
+
+                  if (!htmlStarted && (
+                    contentChunk.includes("<!DOCTYPE") || 
+                    contentChunk.includes("<html") || 
+                    contentChunk.includes("<head") ||
+                    contentChunk.includes("<body")
+                  )) {
+                    htmlStarted = true;
+                  }
+
+                  // Send chunk to client with EventSource format
+                  res.write(`data: ${JSON.stringify({ 
+                    type: 'chunk', 
+                    content: contentChunk,
+                    isHtml: htmlStarted
+                  })}\n\n`);
+                  
+                  flushResponse();
+                  console.log(`[Cerebras SSE] Sent chunk: ${contentChunk.length} chars to session ${sessionId}`);
+                }
+              } catch (e) {
+                console.error("Error parsing Cerebras JSON chunk:", e, jsonStr.substring(0, 100));
+              }
+            }
+          }
+          
+          boundary = sseBuffer.indexOf('\n\n');
+        }
+      }
+
+      // Debug: Log AI response
+      console.log('=== CEREBRAS AI RESPONSE DEBUG ===');
+      console.log('First 500 chars:', fullContent.substring(0, 500));
+      console.log('Has PROJECT_NAME_START:', fullContent.includes('PROJECT_NAME_START'));
+      console.log('Has NEW_FILE_START:', fullContent.includes('NEW_FILE_START'));
+      console.log('========================');
+      
+      // Parse multi-file output
+      let parsedResult = null;
+      try {
+        parsedResult = processAiResponse(fullContent);
+        console.log(`Parsed Cerebras response: projectName="${parsedResult.projectName}", files=${parsedResult.files.length}`);
+        if (parsedResult.files.length > 0) {
+          console.log('Files detected:', parsedResult.files.map(f => f.path).join(', '));
+        }
+      } catch (parseError) {
+        console.error("Error parsing Cerebras AI response:", parseError);
+      }
+      
+      // Track usage if user is authenticated
+      const tokensToUse = Math.ceil(fullContent.length / 4);
+      if (userId) {
+        try {
+          await pgStorage.updateUserTokenUsage(userId, tokensToUse, true);
+          const updatedUser = await pgStorage.getUser(userId);
+          
+          if (updatedUser) {
+            res.write(`data: ${JSON.stringify({ 
+              type: 'token-usage-updated',
+              tokenUsage: updatedUser.tokenUsage,
+              generationCount: updatedUser.generationCount
+            })}\n\n`);
+            flushResponse();
+          }
+        } catch (error) {
+          console.error(`Error updating token usage for user ${userId}:`, error);
+        }
+      }
+
+      // Send completion with multi-file support
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        html: parsedResult ? null : fullContent,
+        files: parsedResult?.files || null,
+        projectName: parsedResult?.projectName || title,
+        source: 'cerebras',
+        tokenCount: tokensToUse,
+        stats: {
+          tokens: tokensToUse,
+          characters: fullContent.length,
+          filesCount: parsedResult?.files.length || 0
+        }
+      })}\n\n`);
+      flushResponse();
+
+      // Clean up connection tracking and end response
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      res.end();
+      console.log(`Cerebras SSE stream completed for session: ${sessionId}`);
+
+    } catch (error) {
+      console.error("Error in Cerebras SSE stream:", error);
+      
+      // Clean up on error
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      
+      if (!res.headersSent) {
+        return res.status(500).json({ message: "Cerebras stream error" });
       }
       res.end();
     }
