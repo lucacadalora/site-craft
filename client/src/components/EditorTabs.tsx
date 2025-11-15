@@ -16,18 +16,29 @@ export const EditorTabs = ({ className }: EditorTabsProps) => {
 
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
-    const iconClass = "w-3 h-3";
     
     switch (extension) {
       case 'html':
-        return <FileCode className={cn(iconClass, "text-orange-500")} />;
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-orange-500/10 rounded">
+            <span className="text-[8px] font-bold text-orange-500">H</span>
+          </div>
+        );
       case 'css':
-        return <FileCode className={cn(iconClass, "text-blue-500")} />;
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-blue-500/10 rounded">
+            <span className="text-[8px] font-bold text-blue-500">C</span>
+          </div>
+        );
       case 'js':
       case 'javascript':
-        return <FileCode className={cn(iconClass, "text-yellow-500")} />;
+        return (
+          <div className="w-4 h-4 flex items-center justify-center bg-yellow-500/10 rounded">
+            <span className="text-[8px] font-bold text-yellow-500">J</span>
+          </div>
+        );
       default:
-        return <FileText className={iconClass} />;
+        return <FileText className="w-3 h-3 text-gray-400" />;
     }
   };
 
@@ -37,20 +48,20 @@ export const EditorTabs = ({ className }: EditorTabsProps) => {
     switch (extension) {
       case 'html':
         return (
-          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+          <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-orange-600/90 text-white tracking-wide">
             HTML
           </span>
         );
       case 'css':
         return (
-          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+          <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-blue-600/90 text-white tracking-wide">
             CSS
           </span>
         );
       case 'js':
       case 'javascript':
         return (
-          <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+          <span className="text-[8px] font-bold px-1 py-0.5 rounded-sm bg-yellow-600/90 text-white tracking-wide">
             JS
           </span>
         );
