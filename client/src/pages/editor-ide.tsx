@@ -133,129 +133,197 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
       const token = localStorage.getItem('token');
       const isFollowUp = project && project.files.length > 0 && project.prompts.length > 0;
       
-      // Prepare the request body
-      const requestBody = {
-        prompt,
-        apiConfig: {
-          ...initialApiConfig,
-          useMultiFile: true
-        },
-        // Include existing files for follow-up prompts
-        ...(isFollowUp && {
-          existingFiles: project.files,
-          previousPrompts: project.prompts
-        })
-      };
-
-      // Create EventSource for SSE streaming
-      const response = await fetch('/api/sambanova/generate-stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
+      // Use EventSource for real-time SSE streaming
+      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const encodedPrompt = encodeURIComponent(prompt);
+      
+      // Build query params
+      const params = new URLSearchParams({
+        prompt: encodedPrompt,
+        useMultiFile: 'true'
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      
+      if (token) {
+        params.append('token', token);
       }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
+      
+      if (isFollowUp) {
+        params.append('existingFiles', JSON.stringify(project.files));
+        params.append('previousPrompts', JSON.stringify(project.prompts));
       }
-
-      const decoder = new TextDecoder();
+      
+      const baseUrl = window.location.origin;
+      const eventSource = new EventSource(
+        `${baseUrl}/api/sambanova/stream/${sessionId}?${params.toString()}`
+      );
+      
+      // Save reference for stop functionality
+      streamControllerRef.current = {
+        abort: () => eventSource.close(),
+        signal: null as any
+      };
+      
       let accumulatedContent = '';
-      let currentFiles: ProjectFile[] = [];
+      let currentFiles: Map<string, { name: string; content: string; language: string; isComplete: boolean }> = new Map();
+      let currentFileName: string | null = null;
       let isMultiFile = false;
       
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Helper to add cursor effect
+      const addCursor = (text: string) => text + '█';
+      
+      // Helper to update files in real-time
+      const updateFilesRealtime = () => {
+        const filesArray = Array.from(currentFiles.values()).map(f => ({
+          name: f.name,
+          content: f.isComplete ? f.content : addCursor(f.content),
+          language: f.language as 'html' | 'css' | 'javascript' | 'unknown'
+        }));
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.event === 'chunk') {
-                accumulatedContent += data.content || '';
-                
-                // Check if we're in multi-file mode
-                if (data.isMultiFile !== undefined) {
-                  isMultiFile = data.isMultiFile;
-                }
-                
-                // Try to parse accumulated content for files
-                if (isMultiFile && accumulatedContent.includes('NEW_FILE_END')) {
-                  const parsed = processAiResponse(accumulatedContent);
-                  if (parsed.files.length > 0) {
-                    const files = convertToProjectFiles(parsed.files);
-                    currentFiles = files;
-                    setProjectFiles(files);
-                  }
-                }
-              } else if (data.event === 'complete') {
-                // Final parsing of all content
-                if (isMultiFile) {
-                  const parsed = processAiResponse(accumulatedContent);
-                  if (parsed.files.length > 0) {
-                    const files = convertToProjectFiles(parsed.files);
-                    setProjectFiles(files);
-                  }
-                } else {
-                  // Single file mode - create index.html
-                  setProjectFiles([{
-                    name: 'index.html',
-                    content: data.html || accumulatedContent,
-                    language: 'html'
-                  }]);
-                }
-                
-                // Update token usage
-                if (data.tokenUsage) {
-                  setTokenUsage(prev => prev + data.tokenUsage);
-                }
-                if (data.generationCount) {
-                  setGenerationCount(data.generationCount);
-                }
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
-            }
-          }
+        if (filesArray.length > 0) {
+          setProjectFiles(filesArray);
         }
-      }
+      };
       
-      toast({
-        title: "Success",
-        description: "Generation completed successfully"
-      });
+      eventSource.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          const eventType = event.type || event.event;
+          
+          switch (eventType) {
+            case 'chunk':
+              const contentChunk = event.content || '';
+              accumulatedContent += contentChunk;
+              
+              // Check for multi-file markers
+              if (accumulatedContent.includes('NEW_FILE_START') || accumulatedContent.includes('UPDATE_FILE_START')) {
+                isMultiFile = true;
+                
+                // Parse current file from accumulated content
+                const fileStartMatch = accumulatedContent.match(/(?:NEW_FILE_START|UPDATE_FILE_START): ([\w.-]+)/);
+                if (fileStartMatch && fileStartMatch[1] !== currentFileName) {
+                  // Starting a new file
+                  if (currentFileName && currentFiles.has(currentFileName)) {
+                    // Mark previous file as complete
+                    const prevFile = currentFiles.get(currentFileName)!;
+                    currentFiles.set(currentFileName, { ...prevFile, isComplete: true });
+                  }
+                  
+                  currentFileName = fileStartMatch[1];
+                  const extension = currentFileName.split('.').pop()?.toLowerCase();
+                  let language: 'html' | 'css' | 'javascript' | 'unknown' = 'unknown';
+                  
+                  if (extension === 'html') language = 'html';
+                  else if (extension === 'css') language = 'css';
+                  else if (extension === 'js') language = 'javascript';
+                  
+                  currentFiles.set(currentFileName, {
+                    name: currentFileName,
+                    content: '',
+                    language,
+                    isComplete: false
+                  });
+                }
+                
+                // Extract content for current file
+                if (currentFileName) {
+                  const fileStartRegex = new RegExp(`(?:NEW_FILE_START|UPDATE_FILE_START): ${currentFileName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n([\\s\\S]*?)(?:(?:NEW_FILE_END|UPDATE_FILE_END)|$)`);
+                  const fileMatch = accumulatedContent.match(fileStartRegex);
+                  
+                  if (fileMatch && fileMatch[1]) {
+                    const file = currentFiles.get(currentFileName)!;
+                    currentFiles.set(currentFileName, {
+                      ...file,
+                      content: fileMatch[1]
+                    });
+                  }
+                }
+                
+                updateFilesRealtime();
+              } else if (!isMultiFile) {
+                // Single file mode - treat as HTML
+                if (!currentFiles.has('index.html')) {
+                  currentFiles.set('index.html', {
+                    name: 'index.html',
+                    content: '',
+                    language: 'html',
+                    isComplete: false
+                  });
+                  currentFileName = 'index.html';
+                }
+                
+                const file = currentFiles.get('index.html')!;
+                currentFiles.set('index.html', {
+                  ...file,
+                  content: accumulatedContent
+                });
+                
+                updateFilesRealtime();
+              }
+              break;
+              
+            case 'complete':
+              // Mark all files as complete (remove cursors)
+              currentFiles.forEach((file, name) => {
+                currentFiles.set(name, { ...file, isComplete: true });
+              });
+              updateFilesRealtime();
+              
+              // Update token usage
+              if (event.tokenCount || event.stats?.tokens) {
+                const tokens = event.tokenCount || event.stats?.tokens || 0;
+                setTokenUsage(prev => prev + tokens);
+              }
+              if (event.generationCount) {
+                setGenerationCount(event.generationCount);
+              }
+              
+              eventSource.close();
+              setIsGenerating(false);
+              
+              toast({
+                title: "Success",
+                description: "Generation completed successfully"
+              });
+              break;
+              
+            case 'error':
+              console.error('Stream error:', event.message);
+              eventSource.close();
+              setIsGenerating(false);
+              
+              toast({
+                title: "Error",
+                description: event.message || "Generation failed",
+                variant: "destructive"
+              });
+              break;
+          }
+        } catch (e) {
+          console.error('Error parsing SSE data:', e);
+        }
+      };
       
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast({
-          title: "Generation Stopped",
-          description: "Generation was stopped by user",
-        });
-      } else {
-        console.error('Generation error:', error);
+      eventSource.onerror = (error) => {
+        console.error('EventSource error:', error);
+        eventSource.close();
+        setIsGenerating(false);
+        
         toast({
           title: "Error",
-          description: "Failed to generate content",
+          description: "Connection error during generation",
           variant: "destructive"
         });
-      }
-    } finally {
+      };
+      
+    } catch (error) {
+      console.error('Generation error:', error);
       setIsGenerating(false);
-      streamControllerRef.current = null;
-      setPrompt('');
+      
+      toast({
+        title: "Error",
+        description: "Failed to start generation",
+        variant: "destructive"
+      });
     }
   };
 
