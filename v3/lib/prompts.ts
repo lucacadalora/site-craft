@@ -11,25 +11,29 @@ export const PROJECT_NAME_END = ">>>>>>> PROJECT_NAME_END";
 export const PROMPT_FOR_REWRITE_PROMPT = "<<<<<<< PROMPT_FOR_REWRITE_PROMPT ";
 export const PROMPT_FOR_REWRITE_PROMPT_END = " >>>>>>> PROMPT_FOR_REWRITE_PROMPT_END";
 
-export const PROMPT_FOR_IMAGE_GENERATION = `IMPORTANT: For ALL image placeholders, you MUST ONLY use https://picsum.photos - DO NOT use unsplash.com, pexels.com, or any other image services.
+export const PROMPT_FOR_IMAGE_GENERATION = `For image placeholders, use reliable image services that load properly:
 
-Usage Format: https://picsum.photos/[width]/[height]
-- Use any dimensions (e.g., 800/600, 1200/800, 400/300, 1920/1080)
-- For different images on the same page, use ?random=1, ?random=2, ?random=3, etc.
-- Each image on the page must have a different random number to avoid duplicates
-- For consistent seeded images, use /seed/[name]/[width]/[height] format
+**Option 1 - Unsplash (BEST for specific topics like food, nature, business, etc.):**
+Format: https://images.unsplash.com/photo-[photo-id]?ixlib=rb-1.2.1&auto=format&fit=crop&w=[width]&q=80
+- Provides high-quality, topic-specific images
+- Great for food, restaurant, business, nature themes
+- Use different photo-ids for variety on the same page
+Example: https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80
 
-Examples: 
-- https://picsum.photos/800/600?random=1 (first image)
-- https://picsum.photos/800/600?random=2 (second image - different from first)
-- https://picsum.photos/800/600?random=3 (third image - different again)
-- https://picsum.photos/seed/hero/1920/1080 (consistent hero image)
-- https://picsum.photos/400/400?random=5 (square image for cards)
+**Option 2 - Picsum Photos (Good for general placeholders):**
+Format: https://picsum.photos/[width]/[height]?random=[number]
+- Use different random numbers (1, 2, 3, etc.) for variety
+- Good for general use when topic doesn't matter
+Example: https://picsum.photos/800/600?random=1
 
-For profile pictures, use: https://randomuser.me/api/portraits/[women|men]/[1-99].jpg
+**For Profile Pictures:**
+Format: https://randomuser.me/api/portraits/[women|men]/[1-99].jpg
 Example: https://randomuser.me/api/portraits/women/32.jpg
 
-CRITICAL: NEVER use images.unsplash.com or source.unsplash.com - ONLY use picsum.photos!`
+IMPORTANT: 
+- Use Unsplash when the user requests specific themes (food, restaurant, etc.) for more relevant images
+- Use different image IDs/random numbers for each image to avoid duplicates
+- Always use HTTPS (not HTTP) for all image URLs`
 export const PROMPT_FOR_PROJECT_NAME = `REQUIRED: Generate a name for the project, based on the user's request. Try to be creative and unique. Add a emoji at the end of the name. It should be short, like 6 words. Be fancy, creative and funny. DON'T FORGET IT, IT'S IMPORTANT!`
 
 export const INITIAL_SYSTEM_PROMPT_LIGHT = `You are an expert UI/UX and Front-End Developer.
