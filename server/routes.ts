@@ -167,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             templateId: 'default',
             category: 'deployed',
             settings: {},
-            userId: req.user?.id || null
+            userId: req.user?.id || null // Use null for anonymous users
           });
           
           console.log('Successfully created fallback project:', project.id);
@@ -401,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             templateId: 'default',
             category: 'deployed',
             settings: {},
-            userId: userId || undefined
+            userId: userId || null // Use null for anonymous users
           });
 
           // Update the project with the HTML and CSS content

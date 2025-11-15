@@ -75,7 +75,7 @@ export const projects = pgTable("projects", {
   settings: json("settings"),
   published: boolean("published").default(false),
   publishPath: text("publish_path"),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").references(() => users.id), // Nullable to allow anonymous projects
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
