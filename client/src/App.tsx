@@ -7,15 +7,17 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import HomeRevamped from "@/pages/home-revamped";
 import Editor from "@/pages/editor";
+import EditorIDE from "@/pages/editor-ide";
 import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
 import { ApiConfig } from "@shared/schema";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ProjectProvider } from "@/contexts/ProjectContext";
 
 // Default API config
 const defaultApiConfig: ApiConfig = {
-  provider: "Jatevo (DeepSeek-V3-0324)",
-  apiKey: "9f5d2696-9a9f-43a6-9778-ebe727cd2968",
+  provider: "SambaNova",
+  apiKey: "", // API key should be set from environment or user input
   saveToken: true
 };
 
@@ -38,6 +40,20 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
         {(params) => (
           <ProtectedRoute>
             <Editor id={params.id} initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/ide">
+        {() => (
+          <ProtectedRoute>
+            <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/ide/:id">
+        {(params) => (
+          <ProtectedRoute>
+            <EditorIDE initialApiConfig={apiConfig} onApiConfigChange={updateApiConfig} />
           </ProtectedRoute>
         )}
       </Route>
@@ -84,10 +100,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col">
-          <Router apiConfig={apiConfig} updateApiConfig={updateApiConfig} />
-          <Toaster />
-        </div>
+        <ProjectProvider>
+          <div className="min-h-screen flex flex-col">
+            <Router apiConfig={apiConfig} updateApiConfig={updateApiConfig} />
+            <Toaster />
+          </div>
+        </ProjectProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
