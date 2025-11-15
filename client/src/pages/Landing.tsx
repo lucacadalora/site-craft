@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Sparkles, Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
+  Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
   AtSign, Paperclip, Edit3, ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -80,6 +80,8 @@ export default function Landing() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('sambanova');
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLElement>(null);
 
   // Check remaining generations for anonymous users
   useEffect(() => {
@@ -87,6 +89,27 @@ export default function Landing() {
       checkRemainingGenerations();
     }
   }, [user]);
+
+  // Mouse tracking spotlight effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (spotlightRef.current && heroSectionRef.current) {
+        const rect = heroSectionRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        spotlightRef.current.style.background = `radial-gradient(600px circle at ${x}px ${y}px, rgba(147, 51, 234, 0.15), transparent 40%)`;
+      }
+    };
+
+    const section = heroSectionRef.current;
+    if (section) {
+      section.addEventListener('mousemove', handleMouseMove);
+      return () => {
+        section.removeEventListener('mousemove', handleMouseMove);
+      };
+    }
+  }, []);
 
   const checkRemainingGenerations = async () => {
     try {
@@ -134,7 +157,6 @@ export default function Landing() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2">
-                <Sparkles className="h-6 w-6 text-purple-600" />
                 <span className="font-bold text-xl">Jatevo Builder</span>
               </Link>
               
@@ -185,21 +207,28 @@ export default function Landing() {
       </AnimatePresence>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 pt-20 pb-32">
-        <div className="max-w-4xl mx-auto text-center">
+      <section ref={heroSectionRef} className="relative container mx-auto px-4 pt-20 pb-32 overflow-hidden">
+        {/* Mouse tracking spotlight effect */}
+        <div 
+          ref={spotlightRef}
+          className="absolute inset-0 opacity-50 transition-opacity duration-1000 pointer-events-none"
+          style={{ filter: 'blur(100px)' }}
+        />
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
-              Build Websites with AI
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+              Ship websites in seconds
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-              Generate professional, multi-file websites in seconds. No coding required.
+              Describe your idea, get a complete website. Professional quality, instantly deployable.
               {!user && (
                 <span className="block mt-2 text-lg">
-                  Try 3 free generations - no signup needed!
+                  Start with 3 free generations
                 </span>
               )}
             </p>
@@ -232,10 +261,10 @@ export default function Landing() {
                   </div>
                 )}
                 
-                <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
                   {/* Prompt Input */}
                   <Textarea
-                    placeholder="Ask Jatevo Web Builder for edits"
+                    placeholder="Describe the website you want to build..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     onKeyDown={(e) => {
@@ -246,18 +275,18 @@ export default function Landing() {
                         }
                       }
                     }}
-                    className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[100px] resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
                     disabled={isGenerating || (!user && remainingGenerations === 0)}
                   />
                   
                   {/* Menu Bar */}
-                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-2">
                       {/* Add Context Button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                       >
                         <AtSign className="w-3.5 h-3.5 mr-1.5" />
                         Add Context
@@ -266,18 +295,18 @@ export default function Landing() {
                       {/* Model Selector */}
                       <Select value={selectedModel === 'sambanova' ? 'deepseek-v3-0324' : 'cerebras-glm-4.6'} onValueChange={(value) => setSelectedModel(value === 'deepseek-v3-0324' ? 'sambanova' : 'cerebras')}>
                         <SelectTrigger 
-                          className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                         >
                           <div className="flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5" />
                             <SelectValue />
                           </div>
                         </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                        <SelectContent className="bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
                             DeepSeek V3
                           </SelectItem>
-                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
                             z.ai-GLM 4.6
                           </SelectItem>
                         </SelectContent>
@@ -287,7 +316,7 @@ export default function Landing() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                       >
                         <Paperclip className="w-3.5 h-3.5 mr-1.5" />
                         Attach
@@ -297,14 +326,14 @@ export default function Landing() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                       >
                         <Edit3 className="w-3.5 h-3.5 mr-1.5" />
                         Edit
                       </Button>
                       
                       {/* Enhance Toggle */}
-                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-l border-gray-800/50 ml-1 pl-3">
+                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-l border-gray-300 dark:border-gray-800/50 ml-1 pl-3">
                         <Zap className="w-3.5 h-3.5" />
                         <span>Enhance</span>
                         <Switch
@@ -318,7 +347,7 @@ export default function Landing() {
                       onClick={handleGenerate}
                       disabled={isGenerating || !prompt.trim() || (!user && remainingGenerations === 0)}
                       size="sm"
-                      className="h-8 px-4 text-xs"
+                      className="h-8 px-4 text-xs bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"
                       variant={isGenerating ? "destructive" : "default"}
                     >
                       {isGenerating ? (
