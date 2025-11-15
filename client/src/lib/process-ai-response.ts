@@ -4,6 +4,10 @@ interface ParsedFile {
   path: string;
   content: string;
   action: 'create' | 'update' | 'search_replace';
+  searchReplaceBlocks?: Array<{
+    search: string;
+    replace: string;
+  }>;
 }
 
 interface ParsedResponse {
@@ -11,6 +15,26 @@ interface ParsedResponse {
   files: ParsedFile[];
   error?: string;
 }
+
+// Constants matching server/prompts.ts markers
+const SEARCH_START = "<<<<<<< SEARCH";
+const DIVIDER = "=======";
+const REPLACE_END = ">>>>>>> REPLACE";
+
+// Escape special regex characters
+const escapeRegExp = (string: string): string => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Create flexible regex for HTML/CSS/JS matching
+const createFlexibleRegex = (searchBlock: string): RegExp => {
+  let searchRegex = escapeRegExp(searchBlock)
+    .replace(/\s+/g, '\\s*')
+    .replace(/>\s*</g, '>\\s*<')
+    .replace(/\s*>/g, '\\s*>');
+  
+  return new RegExp(searchRegex, 'g');
+};
 
 export function processAiResponse(response: string): ParsedResponse {
   const result: ParsedResponse = {
@@ -40,19 +64,65 @@ export function processAiResponse(response: string): ParsedResponse {
     }
   }
 
-  // Parse UPDATE_FILE sections
-  const updateFileRegex = /<<<<<<\s*UPDATE_FILE_START\s*(.*?)\s*>>>>>>>\s*UPDATE_FILE_END\s*```[a-z]*\n([\s\S]*?)```/g;
+  // Parse UPDATE_FILE sections with SEARCH/REPLACE support
+  const updateFileRegex = /<<<<<<\s*UPDATE_FILE_START\s*(.*?)\s*>>>>>>>\s*UPDATE_FILE_END([\s\S]*?)(?=<<<<<<\s*(?:UPDATE_FILE_START|NEW_FILE_START)|$)/g;
   
   while ((match = updateFileRegex.exec(response)) !== null) {
     const fileName = match[1].trim();
-    const content = match[2];
+    const updateContent = match[2];
     
-    if (fileName && content) {
-      result.files.push({
-        path: fileName,
-        content: content.trim(),
-        action: 'update'
-      });
+    if (fileName && updateContent) {
+      // Check if content has SEARCH/REPLACE blocks
+      if (updateContent.includes(SEARCH_START)) {
+        // Parse SEARCH/REPLACE blocks
+        const searchReplaceBlocks: Array<{search: string; replace: string}> = [];
+        let position = 0;
+        
+        while (position < updateContent.length) {
+          const searchStartIndex = updateContent.indexOf(SEARCH_START, position);
+          if (searchStartIndex === -1) break;
+          
+          const dividerIndex = updateContent.indexOf(DIVIDER, searchStartIndex);
+          if (dividerIndex === -1) break;
+          
+          const replaceEndIndex = updateContent.indexOf(REPLACE_END, dividerIndex);
+          if (replaceEndIndex === -1) break;
+          
+          const searchBlock = updateContent.substring(
+            searchStartIndex + SEARCH_START.length,
+            dividerIndex
+          ).trim();
+          
+          const replaceBlock = updateContent.substring(
+            dividerIndex + DIVIDER.length,
+            replaceEndIndex
+          ).trim();
+          
+          searchReplaceBlocks.push({
+            search: searchBlock,
+            replace: replaceBlock
+          });
+          
+          position = replaceEndIndex + REPLACE_END.length;
+        }
+        
+        result.files.push({
+          path: fileName,
+          content: '',  // Content will be generated from search/replace
+          action: 'search_replace',
+          searchReplaceBlocks
+        });
+      } else {
+        // Direct content replacement (backward compatibility)
+        const codeMatch = updateContent.match(/```[a-z]*\n([\s\S]*?)```/);
+        if (codeMatch) {
+          result.files.push({
+            path: fileName,
+            content: codeMatch[1].trim(),
+            action: 'update'
+          });
+        }
+      }
     }
   }
 
@@ -92,12 +162,64 @@ export function processAiResponse(response: string): ParsedResponse {
   return result;
 }
 
-export function convertToProjectFiles(parsedFiles: ParsedFile[]): ProjectFile[] {
-  return parsedFiles.map(file => ({
-    name: file.path,
-    content: file.content,
-    language: getFileLanguage(file.path)
-  }));
+export function convertToProjectFiles(
+  parsedFiles: ParsedFile[], 
+  existingFiles?: ProjectFile[]
+): ProjectFile[] {
+  const resultFiles: ProjectFile[] = [];
+  
+  for (const file of parsedFiles) {
+    if (file.action === 'search_replace' && file.searchReplaceBlocks) {
+      // Apply search/replace to existing file
+      const existingFile = existingFiles?.find(f => f.name === file.path);
+      
+      if (existingFile) {
+        let content = existingFile.content;
+        
+        // Apply each search/replace block
+        for (const block of file.searchReplaceBlocks) {
+          if (block.search === '') {
+            // Insert at beginning
+            content = block.replace + '\n' + content;
+          } else {
+            // Create flexible regex for matching
+            const regex = createFlexibleRegex(block.search);
+            const match = regex.exec(content);
+            
+            if (match) {
+              content = content.replace(match[0], block.replace);
+            } else {
+              // Try exact replacement as fallback
+              content = content.replace(block.search, block.replace);
+            }
+          }
+        }
+        
+        resultFiles.push({
+          name: file.path,
+          content,
+          language: getFileLanguage(file.path)
+        });
+      } else {
+        // File doesn't exist yet, create with empty content
+        console.warn(`Cannot apply search/replace to non-existent file: ${file.path}`);
+        resultFiles.push({
+          name: file.path,
+          content: '',
+          language: getFileLanguage(file.path)
+        });
+      }
+    } else {
+      // Create or update file directly
+      resultFiles.push({
+        name: file.path,
+        content: file.content,
+        language: getFileLanguage(file.path)
+      });
+    }
+  }
+  
+  return resultFiles;
 }
 
 function getFileLanguage(fileName: string): ProjectFile['language'] {
