@@ -686,7 +686,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange }: Edito
                         DeepSeek V3
                       </SelectItem>
                       <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        Cerebras GLM-4.6
+                        z.ai-GLM 4.6
                       </SelectItem>
                     </SelectContent>
                   </Select>
