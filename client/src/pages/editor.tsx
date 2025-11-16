@@ -11,6 +11,7 @@ import { GenerationStatus } from "@/components/ui/generation-status";
 import { UserProfile } from "@/components/user-profile";
 import { useAuth } from "@/contexts/auth-context";
 import { DeployButton } from "@/components/deploy-button";
+import { ChatBar } from "@/components/ChatBar";
 
 // Extend the Window interface to include our custom property
 declare global {
@@ -121,7 +122,7 @@ export default function Editor({
   const resizeRef = useRef<HTMLDivElement>(null);
 
   // Core state
-  const [prompt, setPrompt] = useState<string>("Hello world");
+  const [prompt, setPrompt] = useState<string>("");
   const [htmlContent, setHtmlContent] = useState<string>(defaultHTML);
   const [projectId, setProjectId] = useState<number | null>(projectIdParam ? parseInt(projectIdParam) : null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -132,6 +133,9 @@ export default function Editor({
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>(isMobile ? 'editor' : 'preview');
   const [streamingOutput, setStreamingOutput] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  // ChatBar specific state
+  const [selectedModel, setSelectedModel] = useState<string>("z.ai-glm-4.6");
+  const [enableEnhance, setEnableEnhance] = useState<boolean>(false);
   // Add ref for editor wrapper to avoid repeated DOM queries
   const editorWrapperRef = useRef<HTMLDivElement | null>(null);
   // Reference to the current stream controller for stop functionality
@@ -1136,59 +1140,20 @@ export default function Editor({
           className={`editor-panel ${isMobile ? (activeTab === 'preview' ? 'hidden' : 'w-full h-full') : 'w-1/2 h-full'} flex flex-col overflow-hidden bg-[#0f172a]`}
         >
           <div className="flex-1 flex flex-col p-4">
-          {/* Prompt Input and Generation Status */}
-          <div className="mb-2">
-            {isGenerating ? (
-              <GenerationStatus 
-                status={streamingOutput}
-                processingItem={prompt.split(' ').slice(0, 2).join(' ')} 
-                percentComplete={
-                  window.expectedContentLength && htmlContent.length > 0
-                    ? Math.floor((htmlContent.length / window.expectedContentLength) * 100)
-                    : 0
-                } 
-                onStop={handleStopGeneration}
-              />
-            ) : (
-              <>
-                <label className="block text-sm font-medium text-white mb-1">Describe your landing page</label>
-                <div className="rounded-md overflow-hidden border border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
-                  <input
-                    className="w-full p-2 bg-[#1e293b] text-white border-0 text-sm focus:outline-none"
-                    type="text"
-                    placeholder="Describe the landing page you want to generate..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    style={{
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
-                    }}
-                  />
-                </div>
-                <div className="flex justify-end items-center mt-2 text-xs text-gray-400">
-                  {/* Removed "Powered by AI Accelerate LLM Inference" text to save space */}
-                </div>
-              </>
-            )}
-          </div>
-          
-          {/* Generate Button - Always visible */}
-          <Button 
-            className={`w-full ${isGenerating ? 'mb-2' : 'mb-4'} py-3 ${isGenerating ? 'bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-all duration-200 transform hover:translate-y-[-1px]`} 
-            onClick={handleGenerate}
-            disabled={isGenerating || !prompt}
-          >
-            {isGenerating ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                {isMobile ? 'Generating...' : 'Generating your landing page...'}
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4 mr-2" />
-                Generate Landing Page
-              </>
-            )}
-          </Button>
+          {/* ChatBar for AI interaction */}
+          <ChatBar
+            prompt={prompt}
+            setPrompt={setPrompt}
+            isGenerating={isGenerating}
+            isNewProject={htmlContent === defaultHTML}
+            onGenerate={handleGenerate}
+            onStop={handleStopGeneration}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            htmlContent={htmlContent}
+            enableEnhance={enableEnhance}
+            setEnableEnhance={setEnableEnhance}
+          />
           
           {/* HTML Editor - Always visible */}
           <div className="flex-1 overflow-visible bg-[#111827] rounded-md border border-gray-700">
