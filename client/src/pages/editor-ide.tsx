@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
 import { rewritePrompt } from '@/lib/rewrite-prompt';
 import { EnhancedSettings } from '@shared/schema';
-import { PROMPTS_FOR_AI } from '@/lib/prompts';
+import { PROMPTS_FOR_AI, FOLLOW_UP_SYSTEM_PROMPT } from '@/lib/prompts';
 
 interface EditorIDEProps {
   initialApiConfig?: any;
@@ -63,7 +63,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     saveProject,
     loadProject,
     getFileByName,
-    openFile
+    openFile,
+    createVersion,
+    loadProjectVersions
   } = useProject();
   
   // Get URL parameters for disposable generation
@@ -557,7 +559,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       // Create session with POST to avoid URL length limitations
       const sessionPayload: any = {
         prompt: finalPrompt,
-        useMultiFile: true
+        useMultiFile: true,
+        // Use follow-up system prompt for incremental updates when modifying existing files
+        useFollowUpPrompt: isFollowUp,
+        systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined
       };
       
       if (isFollowUp) {
@@ -713,6 +718,15 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   const savedProject = await saveProject(undefined, autoName, finalFilesArray, finalPrompt);
                   
                   if (savedProject?.id) {
+                    // Create a version for this generation (similar to v3's commit system)
+                    try {
+                      await createVersion(finalPrompt, finalFilesArray, isFollowUp);
+                      console.log('Version created for project:', savedProject.id);
+                    } catch (versionError) {
+                      console.error('Failed to create version:', versionError);
+                      // Non-critical error, continue
+                    }
+                    
                     // Navigate using slug if available, otherwise fall back to ID
                     const navigateTo = savedProject.slug 
                       ? `/ide/${savedProject.slug}` 
