@@ -182,6 +182,65 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         completeJs += `\n// script.js\n${jsFile.content}\n`;
       }
       
+      // Add a DOM ready handler and re-initialization script
+      completeJs += `
+// Ensure DOM is ready and reinitialize event listeners
+(function() {
+  function initializeEventHandlers() {
+    // Re-run any initialization functions that might exist
+    if (typeof init === 'function') init();
+    if (typeof initializeApp === 'function') initializeApp();
+    if (typeof initializeComponents === 'function') initializeComponents();
+    if (typeof setupEventListeners === 'function') setupEventListeners();
+    if (typeof main === 'function') main();
+    
+    // Ensure any loader/splash screen click handlers work
+    const loaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [id*="splash"], [class*="splash"], [id*="loading"], [class*="loading"]');
+    loaders.forEach(loader => {
+      // If there's an onclick attribute, ensure it's properly bound
+      if (loader.getAttribute('onclick')) {
+        // Re-evaluate onclick to ensure it's bound
+        const onclickCode = loader.getAttribute('onclick');
+        loader.onclick = new Function(onclickCode);
+      }
+      
+      // Check for data attributes that might indicate click behavior
+      if (loader.dataset.clickToHide === 'true' || loader.dataset.dismiss === 'true') {
+        loader.style.cursor = 'pointer';
+        loader.addEventListener('click', function() {
+          this.style.display = 'none';
+        });
+      }
+    });
+    
+    // Fix any buttons or clickable elements that might not be working
+    document.querySelectorAll('[onclick]').forEach(element => {
+      const onclickCode = element.getAttribute('onclick');
+      if (onclickCode) {
+        try {
+          element.onclick = new Function('event', onclickCode);
+        } catch (e) {
+          console.warn('Failed to bind onclick:', e);
+        }
+      }
+    });
+  }
+  
+  // Run initialization when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEventHandlers);
+  } else {
+    // DOM is already ready
+    initializeEventHandlers();
+  }
+  
+  // Also run on window load for any resources that need to be fully loaded
+  window.addEventListener('load', function() {
+    initializeEventHandlers();
+  });
+})();
+`;
+      
       // Add client-side routing for multi-page apps
       if (allHtmlFiles.length > 1) {
         completeJs += `
@@ -242,10 +301,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       document.write(newContent);
       document.close();
       
-      // Re-inject all JavaScript (components + main + routing)
-      const fullScript = document.createElement('script');
-      fullScript.textContent = ${JSON.stringify(completeJs)};
-      document.body.appendChild(fullScript);
+      // Re-inject all JavaScript (components + main + routing) with a small delay
+      setTimeout(function() {
+        const fullScript = document.createElement('script');
+        fullScript.textContent = ${JSON.stringify(completeJs)};
+        document.body.appendChild(fullScript);
+        
+        // Force re-initialization after navigation
+        if (typeof initializeEventHandlers === 'function') {
+          initializeEventHandlers();
+        }
+      }, 50);
     } else {
       console.warn('Page not found:', targetFile);
     }
@@ -278,6 +344,19 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             iframeDoc.open();
             iframeDoc.write(fullHtml);
             iframeDoc.close();
+            
+            // Ensure JavaScript is initialized after content is written
+            setTimeout(() => {
+              try {
+                // Try to call the initialization function if it exists in the iframe context
+                const iframeWindow = previewRef.current?.contentWindow;
+                if (iframeWindow && typeof iframeWindow.initializeEventHandlers === 'function') {
+                  iframeWindow.initializeEventHandlers();
+                }
+              } catch (e) {
+                // Ignore errors - this is just a fallback
+              }
+            }, 50);
           }
         }
       }, 100);
