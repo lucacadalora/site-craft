@@ -18,11 +18,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { 
   Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
-  AtSign, Paperclip, Edit3, ChevronUp
+  AtSign, Paperclip, Edit3, ChevronUp, Dices
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import { queryClient } from '@/lib/queryClient';
+import { PROMPTS_FOR_AI } from '@/lib/prompts';
 
 interface Example {
   title: string;
@@ -81,6 +82,7 @@ export default function Landing() {
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('cerebras');
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
+  const [randomPromptLoading, setRandomPromptLoading] = useState(false);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
 
@@ -126,6 +128,16 @@ export default function Landing() {
     } catch (error) {
       console.error('Failed to check rate limit:', error);
     }
+  };
+
+  const randomPrompt = () => {
+    setRandomPromptLoading(true);
+    setTimeout(() => {
+      setPrompt(
+        PROMPTS_FOR_AI[Math.floor(Math.random() * PROMPTS_FOR_AI.length)]
+      );
+      setRandomPromptLoading(false);
+    }, 400);
   };
 
   const handleGenerate = () => {
@@ -263,22 +275,35 @@ export default function Landing() {
                 )}
                 
                 <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
-                  {/* Prompt Input */}
-                  <Textarea
-                    placeholder="Describe the website you want to build..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && prompt.trim() && (user || (remainingGenerations !== null && remainingGenerations > 0))) {
-                        e.preventDefault();
-                        if (!isGenerating) {
-                          handleGenerate();
+                  {/* Prompt Input with Dice Button */}
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe the website you want to build..."
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && prompt.trim() && (user || (remainingGenerations !== null && remainingGenerations > 0))) {
+                          e.preventDefault();
+                          if (!isGenerating) {
+                            handleGenerate();
+                          }
                         }
-                      }
-                    }}
-                    className="min-h-[100px] resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    disabled={isGenerating || (!user && remainingGenerations === 0)}
-                  />
+                      }}
+                      className="min-h-[100px] resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      disabled={isGenerating || (!user && remainingGenerations === 0)}
+                    />
+                    {/* Dice Button for Random Prompt */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => randomPrompt()}
+                      className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
+                      title="Get random prompt"
+                      disabled={isGenerating || (!user && remainingGenerations === 0)}
+                    >
+                      <Dices className="w-4 h-4" />
+                    </Button>
+                  </div>
                   
                   {/* Menu Bar */}
                   <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-800/50">
