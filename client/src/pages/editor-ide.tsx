@@ -35,12 +35,14 @@ import {
   AtSign,
   Paperclip,
   Edit3,
-  ChevronUp
+  ChevronUp,
+  Dices
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
 import { rewritePrompt } from '@/lib/rewrite-prompt';
 import { EnhancedSettings } from '@shared/schema';
+import { PROMPTS_FOR_AI } from '@/lib/prompts';
 
 interface EditorIDEProps {
   initialApiConfig?: any;
@@ -83,6 +85,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   const [showFileExplorer, setShowFileExplorer] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
+  const [randomPromptLoading, setRandomPromptLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
     urlParams.model === 'sambanova' ? 'sambanova-deepseek-v3' :
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
@@ -387,6 +390,16 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       }, 100);
     }
   }, [project?.files, project?.activeFile]);
+
+  const randomPrompt = () => {
+    setRandomPromptLoading(true);
+    setTimeout(() => {
+      setPrompt(
+        PROMPTS_FOR_AI[Math.floor(Math.random() * PROMPTS_FOR_AI.length)]
+      );
+      setRandomPromptLoading(false);
+    }, 400);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -1189,23 +1202,36 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           {/* Prompt Bar - Bottom Left Corner (v3 Design) */}
           <div className="absolute bottom-4 left-4 w-[calc(30%_-_2rem)] min-w-[400px] z-30">
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
-              {/* Prompt Input */}
-              <Textarea
-                placeholder="Ask Jatevo Web Builder for edits"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
-                    e.preventDefault();
-                    if (!isGenerating) {
-                      handleGenerate();
+              {/* Prompt Input with Dice Button */}
+              <div className="relative">
+                <Textarea
+                  placeholder="Ask Jatevo Web Builder for edits"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
+                      e.preventDefault();
+                      if (!isGenerating) {
+                        handleGenerate();
+                      }
                     }
-                  }
-                }}
-                className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 focus-visible:ring-0 focus-visible:ring-offset-0"
-                disabled={isGenerating}
-                data-testid="input-prompt"
-              />
+                  }}
+                  className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  disabled={isGenerating}
+                  data-testid="input-prompt"
+                />
+                {/* Dice Button for Random Prompt */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => randomPrompt()}
+                  className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
+                  title="Get random prompt"
+                  disabled={isGenerating}
+                >
+                  <Dices className="w-4 h-4" />
+                </Button>
+              </div>
               
               {/* Menu Bar */}
               <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
