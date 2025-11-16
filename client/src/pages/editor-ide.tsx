@@ -612,7 +612,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       };
       
       let accumulatedContent = '';
+      // Initialize currentFiles with existing project files if this is a follow-up edit
       let currentFiles: Map<string, ProjectFile> = new Map();
+      if (isFollowUp && project?.files) {
+        // Pre-populate with existing files so SEARCH/REPLACE can work
+        project.files.forEach(file => {
+          currentFiles.set(file.name, { ...file });
+        });
+      }
       let incompleteFiles: Set<string> = new Set(); // Track which files are still streaming
       let currentFileName: string | null = null;
       let isMultiFile = false;
@@ -689,6 +696,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             // Update project files one final time before saving
             setProjectFiles(finalFilesArray);
             setIsGenerating(false);
+            setPrompt(''); // Clear prompt after successful generation
             eventSource.close();
             
             // Show success notification for generation completion
@@ -945,6 +953,71 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           const fileMarkerRegex = /<<<<<<< NEW_FILE_START\s+([^\s>]+)\s+>>>>>>> NEW_FILE_END/g;
           const fileMatches = Array.from(accumulatedContent.matchAll(fileMarkerRegex));
           
+          // Find all UPDATE_FILE_START markers for incremental edits
+          const updateFileRegex = /<<<<<<< UPDATE_FILE_START\s+([^\s>]+)\s+>>>>>>> UPDATE_FILE_END/g;
+          const updateFileMatches = Array.from(accumulatedContent.matchAll(updateFileRegex));
+          
+          // Process UPDATE_FILE markers for incremental edits (v3-style)
+          if (updateFileMatches.length > 0 && isFollowUp) {
+            isMultiFile = true;
+            
+            updateFileMatches.forEach((match, index) => {
+              const fileName = match[1];
+              const fileStartPos = match.index! + match[0].length;
+              
+              // Find the end of this update block
+              let fileEndPos = accumulatedContent.length;
+              if (index < updateFileMatches.length - 1) {
+                fileEndPos = updateFileMatches[index + 1].index!;
+              }
+              
+              // Extract the update content
+              const updateContent = accumulatedContent.substring(fileStartPos, fileEndPos);
+              
+              // Apply SEARCH/REPLACE blocks if present
+              const existingFile = currentFiles.get(fileName);
+              if (existingFile && updateContent.includes('<<<<<<< SEARCH')) {
+                let updatedContent = existingFile.content;
+                
+                // Parse and apply SEARCH/REPLACE blocks
+                const searchReplaceRegex = /<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE/g;
+                let searchReplaceMatch;
+                
+                while ((searchReplaceMatch = searchReplaceRegex.exec(updateContent)) !== null) {
+                  const searchBlock = searchReplaceMatch[1];
+                  const replaceBlock = searchReplaceMatch[2];
+                  
+                  // Apply the replacement
+                  if (searchBlock.trim() === "") {
+                    // Empty search means insert at beginning
+                    updatedContent = replaceBlock + '\n' + updatedContent;
+                  } else {
+                    // Create flexible regex for matching
+                    const searchRegex = new RegExp(
+                      searchBlock
+                        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special chars
+                        .replace(/\s+/g, '\\s*'), // Flexible whitespace
+                      'g'
+                    );
+                    updatedContent = updatedContent.replace(searchRegex, replaceBlock);
+                  }
+                }
+                
+                // Update the file with modified content
+                currentFiles.set(fileName, {
+                  ...existingFile,
+                  content: updatedContent
+                });
+                
+                console.log(`✏️ Updated file via SEARCH/REPLACE: ${fileName}`);
+              }
+            });
+            
+            // Update UI immediately to show changes
+            updateFilesRealtime();
+          }
+          
+          // Process NEW_FILE markers for new files
           if (fileMatches.length > 0) {
             isMultiFile = true;
             
