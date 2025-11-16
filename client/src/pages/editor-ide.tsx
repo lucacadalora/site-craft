@@ -39,7 +39,6 @@ import {
   Edit3,
   ChevronUp,
   Dices,
-  WandSparkles,
   Paintbrush
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -1469,19 +1468,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   {(routeSessionId === 'new' || !project?.id || project.files.length <= 1) ? (
                     <>
                       {/* NEW PROJECT BUTTONS */}
-                      {/* Enhance Button with gradient */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs bg-gradient-to-r from-sky-400/15 to-purple-400/15 hover:from-sky-400/25 hover:to-purple-400/25 border border-white/10 rounded-md"
-                        data-testid="button-enhance"
-                        onClick={() => setEnhancedSettings({ isActive: !enhancedSettings.isActive })}
-                      >
-                        <WandSparkles className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
-                        <span className="text-transparent bg-gradient-to-r from-sky-400 to-purple-400 bg-clip-text">
-                          Enhance
-                        </span>
-                      </Button>
+                      {/* Enhance Toggle */}
+                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-r border-gray-800/50 pr-3 mr-1">
+                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500")} />
+                        <span>Enhance</span>
+                        <Switch
+                          checked={enhancedSettings.isActive}
+                          onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
+                          className="scale-75"
+                          data-testid="switch-enhance"
+                        />
+                      </div>
                       
                       {/* Model Selector */}
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
