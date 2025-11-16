@@ -162,13 +162,15 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     if (!project || !previewRef.current) return;
     
     const htmlFile = getFileByName('index.html');
-    const cssFile = getFileByName('style.css');
-    const jsFile = getFileByName('script.js');
-    const navbarFile = getFileByName('components/navbar.js');
-    const footerFile = getFileByName('components/footer.js');
     
     if (htmlFile) {
       let fullHtml = htmlFile.content;
+      
+      // Get ALL CSS files (not just style.css)
+      const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
+      
+      // Get ALL JavaScript files (not just hardcoded names)
+      const jsFiles = project.files.filter(f => f.name.endsWith('.js'));
       
       // Create a virtual file system for multi-page navigation
       const allHtmlFiles = project.files.filter(f => f.name.endsWith('.html'));
@@ -177,44 +179,47 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         return acc;
       }, {} as Record<string, string>);
       
-      // Add a base href to prevent relative URL resolution issues
-      const baseHref = '<base href="javascript:void(0)">';
-      const headStart = fullHtml.indexOf('<head>');
-      if (headStart > -1 && !fullHtml.includes('<base')) {
-        fullHtml = fullHtml.slice(0, headStart + 6) + 
-          `\n${baseHref}\n` + 
-          fullHtml.slice(headStart + 6);
-      }
+      // Remove the base href hack - it breaks relative URLs
+      // We'll handle links properly instead
       
-      // Always inject CSS inline (remove any external references first)
-      if (cssFile) {
-        // Remove external CSS references
-        fullHtml = fullHtml.replace(/<link[^>]*href=["']style\.css["'][^>]*>/gi, '');
+      // Inject ALL CSS files inline
+      if (cssFiles.length > 0) {
+        // Remove ALL external CSS references
+        fullHtml = fullHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+        fullHtml = fullHtml.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
         
-        // Inject CSS inline
+        // Build combined CSS from all CSS files
+        let combinedCss = '';
+        cssFiles.forEach(cssFile => {
+          combinedCss += `\n/* ${cssFile.name} */\n${cssFile.content}\n`;
+        });
+        
+        // Inject combined CSS inline
         const headEnd = fullHtml.indexOf('</head>');
         if (headEnd > -1) {
           fullHtml = fullHtml.slice(0, headEnd) + 
-            `\n<style>\n${cssFile.content}\n</style>\n` + 
+            `\n<style>\n${combinedCss}\n</style>\n` + 
             fullHtml.slice(headEnd);
         }
       }
       
-      // Build complete JavaScript including components
+      // Build complete JavaScript including ALL JS files
       let completeJs = '';
       
-      // Add component files first
-      if (navbarFile) {
-        completeJs += `\n// navbar.js\n${navbarFile.content}\n`;
-      }
-      if (footerFile) {
-        completeJs += `\n// footer.js\n${footerFile.content}\n`;
-      }
+      // Sort JS files to ensure components load before main scripts
+      // Components first, then other JS files
+      const componentFiles = jsFiles.filter(f => f.name.includes('component') || f.name.includes('navbar') || f.name.includes('footer'));
+      const otherJsFiles = jsFiles.filter(f => !componentFiles.includes(f));
       
-      // Add main script file
-      if (jsFile) {
-        completeJs += `\n// script.js\n${jsFile.content}\n`;
-      }
+      // Add component files first
+      componentFiles.forEach(jsFile => {
+        completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+      });
+      
+      // Add all other JS files
+      otherJsFiles.forEach(jsFile => {
+        completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+      });
       
       // Add a DOM ready handler and re-initialization script
       completeJs += `
@@ -390,22 +395,16 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       
       // Add client-side routing for multi-page apps
       if (allHtmlFiles.length > 1) {
+        // Prepare combined CSS for injection during navigation
+        const combinedCssForRouting = cssFiles.map(f => f.content).join('\n');
+        
         completeJs += `
 // Client-side routing for multi-page preview
 (function() {
   const fileSystem = ${JSON.stringify(fileSystem)};
+  const combinedCss = ${JSON.stringify(combinedCssForRouting)};
   
-  // Override window.location to prevent navigation
-  Object.defineProperty(window, 'location', {
-    get: function() { return document.location; },
-    set: function(val) { 
-      console.log('Navigation blocked:', val);
-      return false;
-    },
-    configurable: false
-  });
-  
-  // Intercept all link clicks using capture phase to prevent navigation escape
+  // Intercept all link clicks using capture phase
   document.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (!link) return;
@@ -418,10 +417,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       return; // Let normal navigation happen for anchors and external links
     }
     
-    // Aggressively prevent the default navigation
+    // Prevent the default navigation
     e.preventDefault();
     e.stopPropagation();
-    e.stopImmediatePropagation();
     
     // Handle the navigation
     let targetFile = href;
@@ -440,31 +438,25 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     if (fileSystem[targetFile]) {
       let newContent = fileSystem[targetFile];
       
-      // Inject CSS into the new page
-      const cssContent = ${cssFile ? JSON.stringify(cssFile.content) : '""'};
-      if (cssContent && !newContent.includes('<style>')) {
-        // Remove external CSS references
-        newContent = newContent.replace(/<link[^>]*href=["']style\.css["'][^>]*>/gi, '');
-        
-        const headEnd = newContent.indexOf('</head>');
-        if (headEnd > -1) {
-          newContent = newContent.slice(0, headEnd) + 
-            '<style>' + cssContent + '</style>' + 
-            newContent.slice(headEnd);
-        }
-      }
+      // Remove ALL external CSS and script references
+      newContent = newContent.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+      newContent = newContent.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
+      newContent = newContent.replace(/<script[^>]*src=["'][^"']*\.js["'][^>]*><\/script>/gi, '');
       
-      // Also remove external JS references from new content
-      newContent = newContent.replace(/<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi, '');
-      newContent = newContent.replace(/<script[^>]*src=["']components\/navbar\.js["'][^>]*><\/script>/gi, '');
-      newContent = newContent.replace(/<script[^>]*src=["']components\/footer\.js["'][^>]*><\/script>/gi, '');
+      // Inject combined CSS into the new page
+      const headEnd = newContent.indexOf('</head>');
+      if (headEnd > -1 && combinedCss) {
+        newContent = newContent.slice(0, headEnd) + 
+          '<style>' + combinedCss + '</style>' + 
+          newContent.slice(headEnd);
+      }
       
       // Update the document
       document.open();
       document.write(newContent);
       document.close();
       
-      // Re-inject all JavaScript (components + main + routing) with a small delay
+      // Re-inject all JavaScript with a small delay
       setTimeout(function() {
         const fullScript = document.createElement('script');
         fullScript.textContent = ${JSON.stringify(completeJs)};
@@ -483,12 +475,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 `;
       }
       
-      // Always inject complete JS inline (remove any external references first)
+      // Always inject complete JS inline (remove ALL external script references first)
       if (completeJs) {
-        // Remove external script references
-        fullHtml = fullHtml.replace(/<script[^>]*src=["']script\.js["'][^>]*><\/script>/gi, '');
-        fullHtml = fullHtml.replace(/<script[^>]*src=["']components\/navbar\.js["'][^>]*><\/script>/gi, '');
-        fullHtml = fullHtml.replace(/<script[^>]*src=["']components\/footer\.js["'][^>]*><\/script>/gi, '');
+        // Remove ALL external script references (not just hardcoded names)
+        fullHtml = fullHtml.replace(/<script[^>]*src=["'][^"']*\.js["'][^>]*><\/script>/gi, '');
         
         // Inject complete JS inline
         const bodyEnd = fullHtml.indexOf('</body>');
@@ -499,30 +489,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         }
       }
       
-      // Update the iframe with a small delay to ensure proper rendering
-      setTimeout(() => {
-        if (previewRef.current) {
-          const iframeDoc = previewRef.current.contentDocument;
-          if (iframeDoc) {
-            iframeDoc.open();
-            iframeDoc.write(fullHtml);
-            iframeDoc.close();
-            
-            // Ensure JavaScript is initialized after content is written
-            setTimeout(() => {
-              try {
-                // Try to call the initialization function if it exists in the iframe context
-                const iframeWindow = previewRef.current?.contentWindow as any;
-                if (iframeWindow && typeof iframeWindow.initializeEventHandlers === 'function') {
-                  iframeWindow.initializeEventHandlers();
-                }
-              } catch (e) {
-                // Ignore errors - this is just a fallback
-              }
-            }, 50);
-          }
-        }
-      }, 100);
+      // Use srcdoc instead of document.write to preserve event listeners
+      // This is the key fix that will make interactive elements work!
+      if (previewRef.current) {
+        previewRef.current.srcdoc = fullHtml;
+      }
     }
   }, [project?.files, project?.activeFile]);
 
