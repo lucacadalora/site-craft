@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useProject } from "@/contexts/ProjectContext";
 import { cn } from "@/lib/utils";
 import { ProjectVersion } from "@shared/schema";
+import type { ProjectFile } from "@/contexts/ProjectContext";
 
 export function History() {
   const { project, setProject, closeFile } = useProject();

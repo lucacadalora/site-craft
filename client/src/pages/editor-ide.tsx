@@ -128,18 +128,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           }
         } else {
           // Try to load existing project by sessionId
-          const loadedProject = await loadProject(routeSessionId);
-          
-          // Load version history for the project
-          if (loadedProject?.id) {
-            try {
-              await loadProjectVersions(parseInt(loadedProject.id));
-              console.log('Loaded version history for project:', loadedProject.id);
-            } catch (error) {
-              console.error('Failed to load version history:', error);
-              // Non-critical, continue without version history
-            }
-          }
+          await loadProject(routeSessionId);
         }
       } catch (error) {
         console.error('Failed to initialize project:', error);
@@ -150,6 +139,23 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     initProject();
   }, [routeSessionId]);
+
+  // Load project versions when project changes
+  useEffect(() => {
+    const loadVersions = async () => {
+      if (project?.id) {
+        try {
+          await loadProjectVersions(parseInt(project.id));
+          console.log('Loaded version history for project:', project.id);
+        } catch (error) {
+          console.error('Failed to load version history:', error);
+          // Non-critical, continue without version history
+        }
+      }
+    };
+    
+    loadVersions();
+  }, [project?.id, loadProjectVersions]);
 
   // Update preview when active file changes
   useEffect(() => {
