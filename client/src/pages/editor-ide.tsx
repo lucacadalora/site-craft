@@ -550,7 +550,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     // Enhance prompt ONLY for new projects when enhancement is enabled
     // Never enhance when editing existing projects
-    const isNewProject = routeSessionId === 'new' || !project?.id || project.files.length <= 1;
+    const isNewProject = routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1;
     let finalPrompt = prompt;
     if (enhancedSettings.isActive && isNewProject) {
       try {
@@ -576,8 +576,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     try {
       const token = localStorage.getItem('auth_token');
-      // Only treat as follow-up if we have a saved project with files
-      const isFollowUp = !!(project?.id && project.files && project.files.length > 0);
+      // Only treat as follow-up if we have generated files
+      const isFollowUp = !!((project?.files?.length ?? 0) > 1);
       
       // Create session with POST to avoid URL length limitations
       const sessionPayload: any = {
@@ -1494,7 +1494,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   placeholder={
                     isGenerating
                       ? "Jatevo Web Builder is working..."
-                      : project?.id && project.files && project.files.length > 0
+                      : (project?.files?.length ?? 0) > 1
                       ? "Ask Jatevo Web Builder for edits"
                       : "Describe the website you want to generate..."
                   }
@@ -1513,7 +1513,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   data-testid="input-prompt"
                 />
                 {/* Dice Button for Random Prompt - only show for new projects */}
-                {(routeSessionId === 'new' || !project?.id || project.files.length <= 1) && (
+                {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1531,7 +1531,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
                 <div className="flex items-center gap-2">
                   {/* Conditional buttons based on project state */}
-                  {(routeSessionId === 'new' || !project?.id || project.files.length <= 1) ? (
+                  {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) ? (
                     <>
                       {/* NEW PROJECT BUTTONS */}
                       {/* Enhance Toggle */}
