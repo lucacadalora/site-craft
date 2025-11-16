@@ -38,7 +38,9 @@ import {
   Paperclip,
   Edit3,
   ChevronUp,
-  Dices
+  Dices,
+  WandSparkles,
+  Paintbrush
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -1422,11 +1424,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               <div className="relative">
                 <Textarea
                   placeholder={
-                    project?.id && project.files && project.files.length > 0
+                    isGenerating
+                      ? "Jatevo Web Builder is working..."
+                      : project?.id && project.files && project.files.length > 0
                       ? "Ask Jatevo Web Builder for edits"
                       : "Describe the website you want to generate..."
                   }
-                  value={prompt}
+                  value={isGenerating ? "" : prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
@@ -1440,87 +1444,132 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   disabled={isGenerating}
                   data-testid="input-prompt"
                 />
-                {/* Dice Button for Random Prompt */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => randomPrompt()}
-                  className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
-                  title="Get random prompt"
-                  disabled={isGenerating}
-                >
-                  <Dices className="w-4 h-4" />
-                </Button>
+                {/* Dice Button for Random Prompt - only show for new projects */}
+                {(!project?.files || project.files.length === 0) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => randomPrompt()}
+                    className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
+                    title="Get random prompt"
+                    disabled={isGenerating}
+                  >
+                    <Dices className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
               
               {/* Menu Bar */}
               <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
                 <div className="flex items-center gap-2">
-                  {/* Add Context Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                    data-testid="button-add-context"
-                  >
-                    <AtSign className="w-3.5 h-3.5 mr-1.5" />
-                    Add Context
-                  </Button>
-                  
-                  {/* Model Selector */}
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger 
-                      className="h-8 w-auto min-w-[180px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                      data-testid="select-model"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5" />
-                        <SelectValue />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                      <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        DeepSeek V3
-                      </SelectItem>
-                      <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                        z.ai-GLM 4.6
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Attach Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                    data-testid="button-attach"
-                  >
-                    <Paperclip className="w-3.5 h-3.5 mr-1.5" />
-                    Attach
-                  </Button>
-                  
-                  {/* Edit Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                    data-testid="button-edit"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                    Edit
-                  </Button>
-                  
-                  {/* Enhance Toggle */}
-                  <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-l border-gray-800/50 ml-1 pl-3">
-                    <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500")} />
-                    <span>Enhance</span>
-                    <Switch
-                      checked={enhancedSettings.isActive}
-                      onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
-                      className="scale-75"
-                      data-testid="switch-enhance"
-                    />
-                  </div>
+                  {/* Conditional buttons based on project state */}
+                  {(!project?.files || project.files.length === 0) ? (
+                    <>
+                      {/* NEW PROJECT BUTTONS */}
+                      {/* Enhance Button with gradient */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs bg-gradient-to-r from-sky-400/15 to-purple-400/15 hover:from-sky-400/25 hover:to-purple-400/25 border border-white/10 rounded-md"
+                        data-testid="button-enhance"
+                        onClick={() => setEnhancedSettings({ isActive: !enhancedSettings.isActive })}
+                      >
+                        <WandSparkles className="w-3.5 h-3.5 mr-1.5 text-sky-400" />
+                        <span className="text-transparent bg-gradient-to-r from-sky-400 to-purple-400 bg-clip-text">
+                          Enhance
+                        </span>
+                      </Button>
+                      
+                      {/* Model Selector */}
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-model"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            DeepSeek V3
+                          </SelectItem>
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            glm-4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Redesign Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        data-testid="button-redesign"
+                      >
+                        <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
+                        Redesign
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {/* EXISTING PROJECT BUTTONS (after generation) */}
+                      {/* Add Context Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        data-testid="button-add-context"
+                      >
+                        <AtSign className="w-3.5 h-3.5 mr-1.5" />
+                        Add Context
+                      </Button>
+                      
+                      {/* Model Selector */}
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-model"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            DeepSeek V3
+                          </SelectItem>
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            glm-4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Attach Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        data-testid="button-attach"
+                      >
+                        <Paperclip className="w-3.5 h-3.5 mr-1.5" />
+                        Attach
+                      </Button>
+                      
+                      {/* Edit Button */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        data-testid="button-edit"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                    </>
+                  )}
                 </div>
                 
                 {/* Send/Stop Button */}
