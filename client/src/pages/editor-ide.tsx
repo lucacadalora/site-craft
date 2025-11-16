@@ -1448,7 +1448,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   data-testid="input-prompt"
                 />
                 {/* Dice Button for Random Prompt - only show for new projects */}
-                {(!project?.files || project.files.length === 0) && (
+                {(routeSessionId === 'new' || !project?.id || project.files.length <= 1) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1466,7 +1466,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
                 <div className="flex items-center gap-2">
                   {/* Conditional buttons based on project state */}
-                  {(!project?.files || project.files.length === 0) ? (
+                  {(routeSessionId === 'new' || !project?.id || project.files.length <= 1) ? (
                     <>
                       {/* NEW PROJECT BUTTONS */}
                       {/* Enhance Button with gradient */}
