@@ -308,20 +308,21 @@ export default function Landing() {
                   {/* Menu Bar */}
                   <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-2">
-                      {/* Add Context Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                      >
-                        <AtSign className="w-3.5 h-3.5 mr-1.5" />
-                        Add Context
-                      </Button>
+                      {/* Enhance Toggle - First for new projects */}
+                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-300 dark:border-gray-800/50 pr-3 mr-1">
+                        <Zap className={`w-3.5 h-3.5 ${enhanceEnabled ? "text-yellow-500" : ""}`} />
+                        <span>Enhance</span>
+                        <Switch
+                          checked={enhanceEnabled}
+                          onCheckedChange={setEnhanceEnabled}
+                          className="scale-75"
+                        />
+                      </div>
                       
                       {/* Model Selector */}
                       <Select value={selectedModel === 'sambanova' ? 'deepseek-v3-0324' : 'cerebras-glm-4.6'} onValueChange={(value) => setSelectedModel(value === 'deepseek-v3-0324' ? 'sambanova' : 'cerebras')}>
                         <SelectTrigger 
-                          className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                          className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                         >
                           <div className="flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5" />
@@ -338,36 +339,15 @@ export default function Landing() {
                         </SelectContent>
                       </Select>
                       
-                      {/* Attach Button */}
+                      {/* Redesign Button */}
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                       >
-                        <Paperclip className="w-3.5 h-3.5 mr-1.5" />
-                        Attach
+                        <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
+                        Redesign
                       </Button>
-                      
-                      {/* Edit Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                      
-                      {/* Enhance Toggle */}
-                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-l border-gray-300 dark:border-gray-800/50 ml-1 pl-3">
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Enhance</span>
-                        <Switch
-                          checked={enhanceEnabled}
-                          onCheckedChange={setEnhanceEnabled}
-                          className="scale-75"
-                        />
-                      </div>
                     </div>
                     
                     {/* Generate Button */}
