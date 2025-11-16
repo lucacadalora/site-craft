@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { UserProfile } from '@/components/user-profile';
 import { DeployButton } from '@/components/deploy-button';
 import { GenerationProgressBar } from '@/components/GenerationProgressBar';
+import { VersionHistory } from '@/components/VersionHistory';
 import {
   Select,
   SelectContent,
@@ -720,7 +721,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   if (savedProject?.id) {
                     // Create a version for this generation (similar to v3's commit system)
                     try {
-                      await createVersion(finalPrompt, finalFilesArray, isFollowUp);
+                      await createVersion(finalPrompt, finalFilesArray, isFollowUp || false);
                       console.log('Version created for project:', savedProject.id);
                     } catch (versionError) {
                       console.error('Failed to create version:', versionError);
@@ -1200,6 +1201,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             <Download className="w-4 h-4 mr-2" />
             Download
           </Button>
+          
+          {project && project.id && (
+            <VersionHistory />
+          )}
           
           {project && project.files.length > 0 && (
             <DeployButton 
