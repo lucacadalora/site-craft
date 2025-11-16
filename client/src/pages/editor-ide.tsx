@@ -1044,13 +1044,30 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                     updatedContent = replaceBlock + '\n' + updatedContent;
                   } else {
                     // Create flexible regex for matching
-                    const searchRegex = new RegExp(
-                      searchBlock
-                        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special chars
-                        .replace(/\s+/g, '\\s*'), // Flexible whitespace
-                      'g'
-                    );
-                    updatedContent = updatedContent.replace(searchRegex, replaceBlock);
+                    // First try exact match
+                    if (updatedContent.includes(searchBlock)) {
+                      updatedContent = updatedContent.replace(searchBlock, replaceBlock);
+                    } else {
+                      // If exact match fails, try flexible whitespace matching
+                      const flexibleSearch = searchBlock
+                        .split(/\r?\n/) // Split by lines
+                        .map(line => line
+                          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
+                          .replace(/\s+/g, '\\s+') // Flexible whitespace within lines
+                        )
+                        .join('\\s*\\n\\s*'); // Flexible line breaks with optional indentation
+                      
+                      const searchRegex = new RegExp(flexibleSearch, 'g');
+                      const matches = updatedContent.match(searchRegex);
+                      
+                      if (matches && matches.length > 0) {
+                        updatedContent = updatedContent.replace(searchRegex, replaceBlock);
+                        console.log(`✅ Applied flexible SEARCH/REPLACE for ${fileName}`);
+                      } else {
+                        console.warn(`⚠️ Could not find match for SEARCH block in ${fileName}`);
+                        console.log('Search block:', searchBlock);
+                      }
+                    }
                   }
                 }
                 
