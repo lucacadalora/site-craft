@@ -1,7 +1,7 @@
 import { History as HistoryIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Popover, 
   PopoverContent, 
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { ProjectVersion } from "@shared/schema";
 
 export function History() {
-  const { project, setProject, openFiles, setOpenFiles } = useProject();
+  const { project, setProject, closeFile } = useProject();
   const [open, setOpen] = useState(false);
   const [currentVersionId, setCurrentVersionId] = useState<number | null>(null);
 
@@ -53,8 +53,10 @@ export function History() {
       setProject(updatedProject);
       
       // Close any open files that don't exist in this version
-      const versionFileNames = versionFiles.map((f: any) => f.name);
-      setOpenFiles(openFiles.filter(name => versionFileNames.includes(name)));
+      const versionFileNames = versionFiles.map((f: ProjectFile) => f.name);
+      const currentOpenFiles = project.openFiles || [];
+      const filesToClose = currentOpenFiles.filter((name: string) => !versionFileNames.includes(name));
+      filesToClose.forEach((name: string) => closeFile(name));
       
       // Update in backend
       await apiRequest(`/api/projects/${project.id}`, {
@@ -123,15 +125,21 @@ export function History() {
                     </p>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-gray-500 text-xs">
-                        {new Date(version.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })} at{" "}
-                        {new Date(version.createdAt).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {version.createdAt ? (
+                          <>
+                            {new Date(version.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })} at{" "}
+                            {new Date(version.createdAt).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </>
+                        ) : (
+                          "Unknown date"
+                        )}
                         {version.isFollowUp && (
                           <span className="ml-2 text-orange-400">(edit)</span>
                         )}
