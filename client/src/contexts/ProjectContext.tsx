@@ -6,6 +6,17 @@ export interface ProjectFile {
   language: 'html' | 'css' | 'javascript' | 'unknown';
 }
 
+export interface ProjectVersion {
+  id?: number;
+  projectId: number;
+  versionNumber: number;
+  prompt: string;
+  filesSnapshot: ProjectFile[];
+  createdAt: Date;
+  commitTitle?: string | null;
+  isFollowUp?: boolean;
+}
+
 export interface Project {
   id?: string;
   sessionId?: string;
@@ -17,6 +28,8 @@ export interface Project {
   isDirty: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  versions?: ProjectVersion[];
+  currentVersionIndex?: number;
 }
 
 interface ProjectContextType {
@@ -36,6 +49,10 @@ interface ProjectContextType {
   addPrompt: (prompt: string) => void;
   setProjectFiles: (files: ProjectFile[]) => void;
   getFileByName: (fileName: string) => ProjectFile | undefined;
+  // Version management - similar to v3's commits
+  createVersion: (prompt: string, files: ProjectFile[], isFollowUp?: boolean) => Promise<void>;
+  loadVersion: (versionIndex: number) => void;
+  loadProjectVersions: (projectId: string) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -422,6 +439,102 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     return project?.files.find(f => f.name === fileName);
   }, [project]);
 
+  // Version management methods - similar to v3's commits functionality
+  const createVersion = useCallback(async (prompt: string, files: ProjectFile[], isFollowUp: boolean = false) => {
+    if (!project || !project.id) {
+      console.warn('Cannot create version without a saved project');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const versionNumber = (project.versions?.length || 0) + 1;
+      
+      // Create version in database
+      const response = await fetch(`/api/projects/${project.id}/versions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          projectId: parseInt(project.id),
+          versionNumber,
+          prompt,
+          filesSnapshot: files,
+          isFollowUp,
+          commitTitle: isFollowUp ? `Follow-up: ${prompt.substring(0, 50)}...` : `Initial: ${prompt.substring(0, 50)}...`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create version');
+      }
+
+      const newVersion = await response.json();
+      
+      // Update local state
+      setProjectState(prev => {
+        if (!prev) return null;
+        const versions = [...(prev.versions || []), newVersion];
+        return {
+          ...prev,
+          versions,
+          currentVersionIndex: versions.length - 1
+        };
+      });
+    } catch (error) {
+      console.error('Error creating version:', error);
+      throw error;
+    }
+  }, [project]);
+
+  const loadVersion = useCallback((versionIndex: number) => {
+    if (!project || !project.versions || !project.versions[versionIndex]) {
+      console.warn('Invalid version index');
+      return;
+    }
+
+    const version = project.versions[versionIndex];
+    setProjectState(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        files: version.filesSnapshot,
+        currentVersionIndex: versionIndex,
+        activeFile: version.filesSnapshot[0]?.name,
+        openFiles: version.filesSnapshot[0]?.name ? [version.filesSnapshot[0].name] : []
+      };
+    });
+  }, [project]);
+
+  const loadProjectVersions = useCallback(async (projectId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/projects/${projectId}/versions`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load project versions');
+      }
+
+      const versions = await response.json();
+      
+      setProjectState(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          versions,
+          currentVersionIndex: versions.length > 0 ? versions.length - 1 : undefined
+        };
+      });
+    } catch (error) {
+      console.error('Error loading project versions:', error);
+      throw error;
+    }
+  }, []);
+
   const value: ProjectContextType = {
     project,
     setProject,
@@ -438,7 +551,10 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
     markAsClean,
     addPrompt,
     setProjectFiles,
-    getFileByName
+    getFileByName,
+    createVersion,
+    loadVersion,
+    loadProjectVersions
   };
 
   return (
