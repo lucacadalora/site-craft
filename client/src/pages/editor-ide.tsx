@@ -856,6 +856,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               setProjectFiles(finalFilesArray);
               updateFilesRealtime();
               setIsGenerating(false);
+              setPrompt(''); // Clear prompt after successful generation
               eventSource.close();
               
               // Auto-save project after Cerebras batch completion (only if authenticated)
@@ -1117,6 +1118,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         console.error('EventSource error:', error);
         eventSource.close();
         setIsGenerating(false);
+        setPrompt(''); // Clear prompt on error
         
         toast({
           title: "Error",
@@ -1128,6 +1130,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     } catch (error) {
       console.error('Generation error:', error);
       setIsGenerating(false);
+      setPrompt(''); // Clear prompt on error
       
       toast({
         title: "Error",
