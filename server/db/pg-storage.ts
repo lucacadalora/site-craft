@@ -1,7 +1,7 @@
 import { db } from './index';
 import bcrypt from 'bcrypt';
-import { eq, and, sql } from 'drizzle-orm';
-import { users, templates, projects, deployments } from '@shared/schema';
+import { eq, and, sql, desc } from 'drizzle-orm';
+import { users, templates, projects, deployments, projectVersions } from '@shared/schema';
 import type { 
   User, 
   Template, 
@@ -10,7 +10,9 @@ import type {
   InsertUser, 
   InsertTemplate, 
   InsertProject,
-  InsertDeployment
+  InsertDeployment,
+  InsertProjectVersion,
+  ProjectVersion
 } from '@shared/schema';
 import { IStorage } from '../storage';
 import { deploymentsStorage } from './deployments-storage';
@@ -255,5 +257,42 @@ export class PgStorage implements IStorage {
 
   async isSlugAvailable(slug: string): Promise<boolean> {
     return deploymentsStorage.isSlugAvailable(slug);
+  }
+
+  // Project version methods - Similar to v3's commit tracking
+  async getProjectVersions(projectId: number): Promise<ProjectVersion[]> {
+    const results = await db
+      .select()
+      .from(projectVersions)
+      .where(eq(projectVersions.projectId, projectId))
+      .orderBy(desc(projectVersions.versionNumber));
+    return results;
+  }
+
+  async getProjectVersion(id: number): Promise<ProjectVersion | undefined> {
+    const results = await db
+      .select()
+      .from(projectVersions)
+      .where(eq(projectVersions.id, id));
+    return results[0];
+  }
+
+  async getLatestProjectVersion(projectId: number): Promise<ProjectVersion | undefined> {
+    const results = await db
+      .select()
+      .from(projectVersions)
+      .where(eq(projectVersions.projectId, projectId))
+      .orderBy(desc(projectVersions.versionNumber))
+      .limit(1);
+    return results[0];
+  }
+
+  async createProjectVersion(version: InsertProjectVersion): Promise<ProjectVersion> {
+    const result = await db.insert(projectVersions).values(version).returning();
+    return result[0];
+  }
+
+  async deleteProjectVersion(id: number): Promise<void> {
+    await db.delete(projectVersions).where(eq(projectVersions.id, id));
   }
 }

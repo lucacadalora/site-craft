@@ -6,7 +6,9 @@ import {
   InsertUser, 
   User,
   InsertDeployment,
-  Deployment
+  Deployment,
+  InsertProjectVersion,
+  ProjectVersion
 } from "@shared/schema";
 
 export interface IStorage {
@@ -44,6 +46,13 @@ export interface IStorage {
   deleteDeployment(id: number): Promise<void>;
   incrementDeploymentVisitCount(id: number): Promise<Deployment>;
   isSlugAvailable(slug: string): Promise<boolean>;
+
+  // Project version methods - Similar to v3's commit tracking
+  getProjectVersions(projectId: number): Promise<ProjectVersion[]>;
+  getProjectVersion(id: number): Promise<ProjectVersion | undefined>;
+  getLatestProjectVersion(projectId: number): Promise<ProjectVersion | undefined>;
+  createProjectVersion(version: InsertProjectVersion): Promise<ProjectVersion>;
+  deleteProjectVersion(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -51,18 +60,22 @@ export class MemStorage implements IStorage {
   private templates: Map<string, Template>;
   private projects: Map<number, Project>;
   private deployments: Map<number, Deployment>;
+  private projectVersions: Map<number, ProjectVersion>;
   private userId: number;
   private projectId: number;
   private deploymentId: number;
+  private versionId: number;
 
   constructor() {
     this.users = new Map();
     this.templates = new Map();
     this.projects = new Map();
     this.deployments = new Map();
+    this.projectVersions = new Map();
     this.userId = 1;
     this.projectId = 1;
     this.deploymentId = 1;
+    this.versionId = 1;
 
     // Initialize with sample templates
     this.initializeTemplates();
@@ -675,6 +688,39 @@ export class MemStorage implements IStorage {
         .button { display: inline-block; background: #6366f1; color: white; padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; }
       `,
     });
+  }
+
+  // Project version methods implementation
+  async getProjectVersions(projectId: number): Promise<ProjectVersion[]> {
+    return Array.from(this.projectVersions.values())
+      .filter(v => v.projectId === projectId)
+      .sort((a, b) => b.versionNumber - a.versionNumber);
+  }
+
+  async getProjectVersion(id: number): Promise<ProjectVersion | undefined> {
+    return this.projectVersions.get(id);
+  }
+
+  async getLatestProjectVersion(projectId: number): Promise<ProjectVersion | undefined> {
+    const versions = await this.getProjectVersions(projectId);
+    return versions[0];
+  }
+
+  async createProjectVersion(version: InsertProjectVersion): Promise<ProjectVersion> {
+    const id = this.versionId++;
+    const newVersion: ProjectVersion = {
+      ...version,
+      id,
+      createdAt: new Date(),
+      commitTitle: version.commitTitle || null,
+      isFollowUp: version.isFollowUp || false
+    };
+    this.projectVersions.set(id, newVersion);
+    return newVersion;
+  }
+
+  async deleteProjectVersion(id: number): Promise<void> {
+    this.projectVersions.delete(id);
   }
 }
 
