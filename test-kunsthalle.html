@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUNSTHALLE | Museum of Modern Art</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-bg: #F4F1EA;
+            --secondary-bg: #1A1A1A;
+            --accent-blue: #2B4C7E;
+            --text-main: #1A1A1A;
+            --text-light: #F4F1EA;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+            cursor: none;
+        }
+
+        h1, h2, h3, h4, .display-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        #cursor {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--text-main);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            mix-blend-mode: difference;
+        }
+
+        #cursor.hovered {
+            transform: scale(2.5);
+            background-color: #fff;
+            border-color: transparent;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        .reveal-text {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .parallax-img {
+            will-change: transform;
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Custom Cursor -->
+    <div id="cursor" class="hidden md:block"></div>
+
+    <!-- Hero Section -->
+    <header class="relative h-screen w-full overflow-hidden flex items-center justify-center">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1545989253-02cc26577f88?q=80&w=2070&auto=format&fit=crop" 
+                 alt="Museum Interior" 
+                 class="w-full h-full object-cover opacity-90 parallax-img"
+                 data-speed="0.2">
+            <div class="absolute inset-0 bg-black/20"></div>
+        </div>
+        
+        <div class="relative z-10 text-center text-[#F4F1EA] px-4">
+            <p class="text-sm md:text-base uppercase tracking-[0.3em] mb-4 reveal-text">Amsterdam • Netherlands</p>
+            <h1 class="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter mb-8 display-font leading-none">
+                <span class="reveal-text">MODERN</span><br>
+                <span class="reveal-text">PERSPECTIVES</span>
+            </h1>
+            <div class="reveal-text">
+                <a href="#visit" class="inline-block border border-[#F4F1EA] px-8 py-3 text-sm uppercase tracking-widest hover-trigger bg-transparent text-[#F4F1EA]">
+                    Plan Your Visit
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section class="py-24 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
+        <div class="grid md:grid-cols-12 gap-12 items-start">
+            <div class="md:col-span-4 reveal-text">
+                <h2 class="text-sm uppercase tracking-widest pt-4">About Us</h2>
+            </div>
+            <div class="md:col-span-8 reveal-text">
+                <p class="text-3xl md:text-5xl font-light leading-tight display-font">
+                    Kunsthalle is a space for dialogue between the past and the future.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Test Carousel Section -->
+    <section class="py-12 px-6 md:px-12">
+        <h2 class="text-3xl mb-8">Test Carousel</h2>
+        <div id="carousel" class="relative overflow-hidden">
+            <div class="flex transition-transform duration-500">
+                <div class="min-w-full bg-gray-200 h-64 flex items-center justify-center text-2xl">Slide 1</div>
+                <div class="min-w-full bg-gray-300 h-64 flex items-center justify-center text-2xl">Slide 2</div>
+                <div class="min-w-full bg-gray-400 h-64 flex items-center justify-center text-2xl">Slide 3</div>
+            </div>
+            <button id="prevBtn" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 p-3 rounded-full hover-trigger">←</button>
+            <button id="nextBtn" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 p-3 rounded-full hover-trigger">→</button>
+            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                <button class="carousel-dot w-2 h-2 rounded-full bg-white/50 hover-trigger" data-slide="0"></button>
+                <button class="carousel-dot w-2 h-2 rounded-full bg-white/50 hover-trigger" data-slide="1"></button>
+                <button class="carousel-dot w-2 h-2 rounded-full bg-white/50 hover-trigger" data-slide="2"></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <div class="py-8 bg-[#1A1A1A] text-[#F4F1EA]">
+        <div class="marquee-container hover-trigger">
+            <div class="marquee-content text-6xl md:text-8xl font-bold uppercase tracking-tighter display-font">
+                Mondrian • Rietveld • Van Gogh • Appel • Dumas • Mondrian • Rietveld • Van Gogh • Appel • Dumas •
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Custom Cursor Logic
+        const cursor = document.getElementById('cursor');
+        const hoverTriggers = document.querySelectorAll('.hover-trigger');
+
+        document.addEventListener('mousemove', (e) => {
+            if (window.innerWidth > 768) {
+                cursor.style.left = e.clientX - 10 + 'px';
+                cursor.style.top = e.clientY - 10 + 'px';
+            }
+        });
+
+        hoverTriggers.forEach(trigger => {
+            trigger.addEventListener('mouseenter', () => {
+                cursor.classList.add('hovered');
+            });
+            trigger.addEventListener('mouseleave', () => {
+                cursor.classList.remove('hovered');
+            });
+        });
+
+        // Reveal Text on Scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-text').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Simple Parallax Effect
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            document.querySelectorAll('.parallax-img').forEach(img => {
+                const speed = img.getAttribute('data-speed');
+                const yPos = -(scrolled * speed * 0.2);
+                img.style.transform = `translateY(${yPos}px)`;
+            });
+        });
+
+        // Test Carousel
+        let currentSlide = 0;
+        const carousel = document.getElementById('carousel');
+        const slides = carousel.querySelector('.flex');
+        const totalSlides = 3;
+        const dots = document.querySelectorAll('.carousel-dot');
+
+        function updateCarousel() {
+            slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+            dots.forEach((dot, i) => {
+                if (i === currentSlide) {
+                    dot.classList.add('bg-white');
+                    dot.classList.remove('bg-white/50');
+                } else {
+                    dot.classList.add('bg-white/50');
+                    dot.classList.remove('bg-white');
+                }
+            });
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateCarousel();
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        });
+
+        dots.forEach((dot, i) => {
+            dot.addEventListener('click', () => {
+                currentSlide = i;
+                updateCarousel();
+            });
+        });
+
+        // Auto-advance carousel
+        setInterval(() => {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        }, 5000);
+
+        updateCarousel();
+    </script>
+</body>
+</html>
