@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KUNSTHALLE | Museum of Modern Art</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary-bg: #F4F1EA; /* Dutch Cream */
+            --secondary-bg: #1A1A1A; /* Charcoal */
+            --accent-blue: #2B4C7E; /* Delft Blue inspired */
+            --text-main: #1A1A1A;
+            --text-light: #F4F1EA;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+            cursor: none; /* Custom cursor implementation */
+        }
+
+        h1, h2, h3, h4, .display-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Custom Cursor */
+        #cursor {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--text-main);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            mix-blend-mode: difference;
+        }
+
+        #cursor.hovered {
+            transform: scale(2.5);
+            background-color: #fff;
+            border-color: transparent;
+        }
+
+        /* Smooth Scroll Behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--primary-bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d1d1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* Text Reveal Animation */
+        .reveal-text {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal-text.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Parallax Image Wrapper */
+        .parallax-wrapper {
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .parallax-img {
+            /* transition: transform 0.1s linear; */ /* This is handled by JS */
+            will-change: transform;
+        }
+
+        /* Marquee Animation */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .marquee-container:hover .marquee-content {
+            animation-play-state: paused;
+        }
+
+        /* Navigation */
+        nav {
+            transition: background-color 0.4s ease, color 0.4s ease, backdrop-filter 0.4s ease, border-color 0.4s ease;
+        }
+        nav.scrolled {
+            background-color: rgba(244, 241, 234, 0.85); /* --primary-bg with transparency */
+            backdrop-filter: blur(10px);
+            color: var(--text-main);
+            mix-blend-mode: normal;
+            border-bottom: 1px solid rgba(26, 26, 26, 0.1);
+        }
+        /* Update nav link for scrolled state */
+        nav.scrolled .nav-link::after {
+            background: var(--text-main);
+        }
+        nav.scrolled .nav-title-color {
+             color: var(--text-main);
+        }
+        nav.scrolled .nav-icon-color {
+            color: var(--text-main);
+        }
+
+        .nav-link::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 1px;
+            background: currentColor;
+            transition: width 0.3s;
+        }
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        /* Ticket Button Hover */
+        .btn-ticket {
+            position: relative;
+            overflow: hidden;
+            transition: color 0.3s;
+        }
+        .btn-ticket::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--secondary-bg);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+        .btn-ticket:hover::before {
+            left: 0;
+        }
+        .btn-ticket:hover {
+            color: var(--text-light);
+        }
+
+        /* Image Gallery Grid */
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+        }
+        .gallery-overlay {
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .gallery-item:hover .gallery-overlay {
+            opacity: 1;
+        }
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+        .gallery-item img {
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* New Gallery Hover Text Animation */
+        .group .exhibition-info {
+            transform: translateY(20px);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .group:hover .exhibition-info {
+            transform: translateY(0);
+        }
+        .group .exhibition-tag {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+        }
+        .group:hover .exhibition-tag {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* About Us Line Animation */
+        .about-line {
+            border-top: 1px solid var(--text-main);
+            width: 0;
+            transition: width 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+        }
+        .reveal-text.visible .about-line {
+            width: 100%;
+        }
+
+        /* Hero Text Line Reveal */
+        .hero-line-reveal {
+            display: inline-block;
+            overflow: hidden;
+        }
+        .hero-line-reveal > span {
+            display: inline-block;
+            transform: translateY(110%);
+            transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-text.visible .hero-line-reveal > span {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Custom Cursor -->
+    <div id="cursor" class="hidden md:block"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 px-6 py-4 md:px-12 md:py-6 flex justify-between items-center mix-blend-difference text-[#F4F1EA] border-b border-transparent">
+        <div class="text-2xl font-bold tracking-tighter hover-trigger display-font nav-title-color">KUNSTHALLE</div>
+        
+        <div class="hidden md:flex space-x-12 items-center">
+            <a href="#exhibitions" class="nav-link text-sm uppercase tracking-widest hover-trigger">Exhibitions</a>
+            <a href="#collection" class="nav-link text-sm uppercase tracking-widest hover-trigger">Collection</a>
+            <a href="#visit" class="nav-link text-sm uppercase tracking-widest hover-trigger">Visit</a>
+            <a href="#membership" class="nav-link text-sm uppercase tracking-widest hover-trigger">Join</a>
+        </div>
+
+        <button class="md:hidden text-[#F4F1EA] hover-trigger nav-icon-color" id="mobile-menu-btn">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[#1A1A1A] z-40 transform translate-x-full transition-transform duration-500 flex flex-col justify-center items-center space-y-8 text-[#F4F1EA]">
+        <button id="close-menu" class="absolute top-6 right-6 hover-trigger">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+        <a href="#exhibitions" class="text-3xl display-font hover-trigger mobile-link">Exhibitions</a>
+        <a href="#collection" class="text-3xl display-font hover-trigger mobile-link">Collection</a>
+        <a href="#visit" class="text-3xl display-font hover-trigger mobile-link">Visit</a>
+        <a href="#membership" class="text-3xl display-font hover-trigger mobile-link">Join</a>
+    </div>
+
+    <!-- Hero Section -->
+    <header class="relative h-screen w-full overflow-hidden flex items-center justify-center">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1545989253-02cc26577f88?q=80&w=2070&auto-format&fit=crop" 
+                 alt="Museum Interior" 
+                 class="w-full h-full object-cover opacity-90 parallax-img"
+                 data-speed="0.2">
+            <div class="absolute inset-0 bg-black/20"></div>
+        </div>
+        
+        <div class="relative z-10 text-center text-[#F4F1EA] px-4">
+            <p class="text-sm md:text-base uppercase tracking-[0.3em] mb-4 reveal-text">Amsterdam • Netherlands</p>
+            <h1 class="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter mb-8 display-font leading-none">
+                <span class="reveal-text delay-100 hero-line-reveal"><span>MODERN</span></span><br>
+                <span class="reveal-text delay-200 hero-line-reveal"><span>PERSPECTIVES</span></span>
+            </h1>
+            <div class="reveal-text delay-300">
+                <a href="#visit" class="btn-ticket inline-block border border-[#F4F1EA] px-8 py-3 text-sm uppercase tracking-widest hover-trigger bg-transparent text-[#F4F1EA]">
+                    Plan Your Visit
+                </a>
+            </div>
+        </div>
+
+        <div class="absolute bottom-8 left-0 right-0 flex justify-between px-12 text-[#F4F1EA] text-xs uppercase tracking-widest mix-blend-difference">
+            <span class="hidden md:block">Est. 1924</span>
+            <span class="animate-bounce">Scroll to Explore</span>
+            <span class="hidden md:block">Open Today: 10:00 - 18:00</span>
+        </div>
+    </header>
+
+    <!-- Intro Text -->
+    <section class="py-24 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
+        <div class="grid md:grid-cols-12 gap-12 items-start">
+            <div class="md:col-span-4 reveal-text">
+                <h2 class="text-sm uppercase tracking-widest pt-4 about-line">About Us</h2>
+            </div>
+            <div class="md:col-span-8 reveal-text delay-100">
+                <p class="text-3xl md:text-5xl font-light leading-tight display-font">
+                    Kunsthalle is a space for <span class="italic font-serif">dialogue</span> between the past and the future. We curate experiences that challenge perception and celebrate the bold spirit of Dutch design.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current Exhibitions (Horizontal Scroll/Grid) -->
+    <section id="exhibitions" class="py-12 border-t border-gray-200 bg-white">
+        <div class="px-6 md:px-12 mb-12 flex justify-between items-end">
+            <h2 class="text-4xl md:text-6xl font-bold tracking-tighter display-font reveal-text">Current<br>Exhibitions</h2>
+            <a href="#" class="hidden md:block text-sm uppercase tracking-widest border-b border-black pb-1 hover:opacity-50 transition-opacity hover-trigger">View Archive</a>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-px bg-gray-200 border-b border-gray-200">
+            <!-- Exhibition 1 -->
+            <div class="group bg-white relative aspect-[4/5] overflow-hidden hover-trigger">
+                <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?q=80&w=2071&auto-format&fit=crop" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Abstract Art">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+                <div class="absolute bottom-0 left-0 w-full p-6 exhibition-info">
+                    <span class="text-white text-xs uppercase tracking-widest bg-black px-2 py-1 mb-2 inline-block exhibition-tag">Now Open</span>
+                    <h3 class="text-2xl text-white font-bold display-font">De Stijl & Beyond</h3>
+                    <p class="text-white/80 text-sm mt-1">Until Oct 24</p>
+                </div>
+            </div>
+
+            <!-- Exhibition 2 -->
+            <div class="group bg-white relative aspect-[4/5] overflow-hidden hover-trigger">
+                <img src="https://images.unsplash.com/photo-1561214115-f2f134cc4912?q=80&w=2018&auto-format&fit=crop" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Modern Sculpture">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+                <div class="absolute bottom-0 left-0 w-full p-6 exhibition-info">
+                    <span class="text-white text-xs uppercase tracking-widest bg-black px-2 py-1 mb-2 inline-block exhibition-tag">Main Hall</span>
+                    <h3 class="text-2xl text-white font-bold display-font">Forms of Silence</h3>
+                    <p class="text-white/80 text-sm mt-1">Until Nov 12</p>
+                </div>
+            </div>
+
+            <!-- Exhibition 3 -->
+            <div class="group bg-white relative aspect-[4/5] overflow-hidden hover-trigger">
+                <img src="https://images.unsplash.com/photo-1554188248-986adbb73be0?q=80&w=2070&auto=format&fit=crop" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Digital Art">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+                <div class="absolute bottom-0 left-0 w-full p-6 exhibition-info">
+                    <span class="text-white text-xs uppercase tracking-widest bg-black px-2 py-1 mb-2 inline-block exhibition-tag">New Media</span>
+                    <h3 class="text-2xl text-white font-bold display-font">Digital Horizons</h3>
+                    <p class="text-white/80 text-sm mt-1">Permanent Collection</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <div class="py-8 bg-[#1A1A1A] text-[#F4F1EA] border-y border-white/10">
+        <div class="marquee-container hover-trigger">
+            <div class="marquee-content text-6xl md:text-8xl font-bold uppercase tracking-tighter display-font">
+                Mondrian • Rietveld • Van Gogh • Appel • Dumas • Kooning • Mondrian • Rietveld • Van Gogh • Appel • Dumas • Kooning •
+            </div>
+        </div>
+    </div>
+
+    <!-- Visitor Info / Minimal Grid -->
+    <section id="visit" class="bg-[#F4F1EA] text-[#1A1A1A]">
+        <div class="grid md:grid-cols-2">
+            <div class="p-12 md:p-24 border-b md:border-b-0 md:border-r border-black/10 flex flex-col justify-center">
+                <h2 class="text-4xl mb-8 display-font font-bold">Visit Us</h2>
+                
+                <div class="space-y-8">
+                    <div class="reveal-text">
+                        <h4 class="text-sm uppercase tracking-widest mb-2 text-gray-500">Opening Hours</h4>
+                        <p class="text-xl">Tue — Sun: 10:00 — 18:00</p>
+                        <p class="text-xl">Fri: 10:00 — 21:00</p>
+                        <p class="text-gray-500 mt-1">Closed on Mondays</p>
+                    </div>
+
+                    <div class="reveal-text delay-100">
+                        <h4 class="text-sm uppercase tracking-widest mb-2 text-gray-500">Location</h4>
+                        <p class="text-xl">Museumplein 12</p>
+                        <p class="text-xl">1071 DJ Amsterdam</p>
+                    </div>
+
+                    <div class="pt-8 reveal-text delay-200">
+                        <button class="btn-ticket bg-[#1A1A1A] text-white px-8 py-4 uppercase tracking-widest text-sm hover-trigger w-full md:w-auto">
+                            Buy Tickets — €18.50
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative h-[50vh] md:h-auto overflow-hidden parallax-wrapper">
+                <img src="https://images.unsplash.com/photo-1566054757965-8c4085344c96?q=80&w=2049&auto=format&fit=crop" 
+                     class="absolute inset-0 w-full h-[120%] object-cover parallax-img" 
+                     alt="Museum Architecture"
+                     data-speed="0.5">
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter / Footer -->
+    <footer class="bg-[#1A1A1A] text-[#F4F1EA] pt-24 pb-12 px-6 md:px-12">
+        <div class="grid md:grid-cols-2 gap-12 mb-24">
+            <div>
+                <h2 class="text-5xl md:text-7xl font-bold display-font tracking-tighter mb-8">Stay<br>Updated</h2>
+            </div>
+            <div class="flex flex-col justify-end">
+                <p class="mb-6 text-gray-400 max-w-md">Subscribe to our newsletter for exclusive previews, artist talks, and special events.</p>
+                <form class="flex border-b border-white/20 pb-2" onsubmit="event.preventDefault();">
+                    <input type="email" placeholder="Email Address" class="bg-transparent border-none outline-none w-full text-white placeholder-gray-600 hover-trigger focus:ring-0">
+                    <button type="submit" class="text-xs uppercase tracking-widest hover-trigger">Subscribe</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between items-end border-t border-white/10 pt-12 text-xs uppercase tracking-widest text-gray-500">
+            <div class="mb-6 md:mb-0 space-x-6">
+                <a href="#" class="hover:text-white transition-colors hover-trigger">Instagram</a>
+                <a href="#" class="hover:text-white transition-colors hover-trigger">Facebook</a>
+                <a href="#" class="hover:text-white transition-colors hover-trigger">Twitter</a>
+            </div>
+            <div class="flex flex-col md:flex-row md:space-x-8">
+                <span class="mb-2 md:mb-0">© 2024 Kunsthalle Amsterdam</span>
+                <a href="#" class="hover:text-white transition-colors hover-trigger">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Custom Cursor Logic
+        const cursor = document.getElementById('cursor');
+        const hoverTriggers = document.querySelectorAll('.hover-trigger');
+
+        document.addEventListener('mousemove', (e) => {
+            // Only active on non-touch devices usually, but for simplicity:
+            if (window.innerWidth > 768) {
+                cursor.style.left = e.clientX - 10 + 'px';
+                cursor.style.top = e.clientY - 10 + 'px';
+            }
+        });
+
+        hoverTriggers.forEach(trigger => {
+            trigger.addEventListener('mouseenter', () => {
+                cursor.classList.add('hovered');
+            });
+            trigger.addEventListener('mouseleave', () => {
+                cursor.classList.remove('hovered');
+            });
+        });
+
+        // Nav Scroll Animation
+        const nav = document.querySelector('nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Reveal Text on Scroll
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-text').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Simple Parallax Effect
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            document.querySelectorAll('.parallax-img').forEach(img => {
+                const speed = img.getAttribute('data-speed');
+                const yPos = -(scrolled * speed * 0.2);
+                img.style.transform = `translateY(${yPos}px)`;
+            });
+        });
+
+        // Mobile Menu Toggle
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileLinks = document.querySelectorAll('.mobile-link');
+
+        function toggleMenu() {
+            mobileMenu.classList.toggle('translate-x-full');
+            document.body.classList.toggle('overflow-hidden');
+        }
+
+        menuBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', toggleMenu);
+        });
+
+    </script>
+</body>
+</html>
