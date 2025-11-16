@@ -531,9 +531,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 
     setIsGenerating(true);
     
-    // Enhance prompt if enhancement is enabled
+    // Enhance prompt ONLY for new projects when enhancement is enabled
+    // Never enhance when editing existing projects
+    const isNewProject = routeSessionId === 'new' || !project?.id || project.files.length <= 1;
     let finalPrompt = prompt;
-    if (enhancedSettings.isActive) {
+    if (enhancedSettings.isActive && isNewProject) {
       try {
         toast({
           title: "Enhancing prompt...",
