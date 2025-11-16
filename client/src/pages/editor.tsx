@@ -1145,7 +1145,7 @@ export default function Editor({
             prompt={prompt}
             setPrompt={setPrompt}
             isGenerating={isGenerating}
-            isNewProject={htmlContent === defaultHTML}
+            isNewProject={!htmlContent || htmlContent.trim() === '' || htmlContent === defaultHTML}
             onGenerate={handleGenerate}
             onStop={handleStopGeneration}
             selectedModel={selectedModel}

@@ -74,8 +74,8 @@ export function ChatBar({
     }
   }, [prompt]);
 
-  const hasGeneratedContent = htmlContent && htmlContent !== '';
-  const showNewProjectButtons = isNewProject || !hasGeneratedContent;
+  // Properly detect if this is a new project (no content generated yet)
+  const showNewProjectButtons = isNewProject;
 
   return (
     <div className="p-3 w-full">

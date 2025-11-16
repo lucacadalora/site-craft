@@ -23,7 +23,7 @@ localPort = 41443
 externalPort = 3001
 
 [[ports]]
-localPort = 44673
+localPort = 44159
 externalPort = 3002
 
 [workflows]
