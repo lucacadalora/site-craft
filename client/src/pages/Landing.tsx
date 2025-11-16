@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { 
   Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
-  AtSign, Paperclip, Edit3, ChevronUp, Dices
+  AtSign, Paperclip, Edit3, ChevronUp, Dices, Paintbrush
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
