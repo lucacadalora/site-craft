@@ -157,6 +157,47 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     loadVersions();
   }, [project?.id, loadProjectVersions]);
 
+  // Handle messages from iframe for navigation (v3 approach)
+  useEffect(() => {
+    const handleIframeMessage = (event: MessageEvent) => {
+      // Only handle messages from our iframe
+      if (!previewRef.current || event.source !== previewRef.current.contentWindow) {
+        return;
+      }
+
+      const { type, targetFile, href, external, notFound } = event.data;
+
+      if (type === 'preview-navigation') {
+        // Handle internal navigation by updating the active file
+        const htmlFile = project?.files.find(f => f.name === targetFile);
+        if (htmlFile) {
+          // Simply switch to the target HTML file in the editor
+          openFile(targetFile);
+          toast({
+            title: "Navigation",
+            description: `Switched to ${targetFile}`,
+          });
+        }
+      } else if (type === 'preview-link-click') {
+        if (external) {
+          toast({
+            title: "External Link",
+            description: `External navigation disabled in preview: ${href}`,
+          });
+        } else if (notFound) {
+          toast({
+            title: "Page Not Found",
+            description: `Page "${href}" doesn't exist in this project`,
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleIframeMessage);
+    return () => window.removeEventListener('message', handleIframeMessage);
+  }, [project, openFile]);
+
   // Update preview when active file changes
   useEffect(() => {
     if (!project || !previewRef.current) return;
@@ -393,18 +434,15 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 })();
 `;
       
-      // Add client-side routing for multi-page apps
+      // Add simple link interception for multi-page apps (v3 approach)
+      // Instead of complex navigation, just notify parent window when a link is clicked
       if (allHtmlFiles.length > 1) {
-        // Prepare combined CSS for injection during navigation
-        const combinedCssForRouting = cssFiles.map(f => f.content).join('\n');
-        
         completeJs += `
-// Client-side routing for multi-page preview
+// Simple link click handling for multi-page preview (v3 approach)
 (function() {
   const fileSystem = ${JSON.stringify(fileSystem)};
-  const combinedCss = ${JSON.stringify(combinedCssForRouting)};
   
-  // Intercept all link clicks using capture phase
+  // Intercept all link clicks
   document.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (!link) return;
@@ -412,16 +450,30 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     const href = link.getAttribute('href');
     if (!href) return;
     
-    // Check if this is an internal navigation (not external or anchor)
+    // Allow external links and anchors to work normally
     if (href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-      return; // Let normal navigation happen for anchors and external links
+      // For external links, prevent navigation and notify user
+      if (href.startsWith('http') || href.startsWith('//')) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('External link clicked:', href);
+        // Send message to parent for toast notification
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'preview-link-click',
+            href: href,
+            external: true
+          }, '*');
+        }
+      }
+      return;
     }
     
-    // Prevent the default navigation
+    // Prevent internal navigation that would break the preview
     e.preventDefault();
     e.stopPropagation();
     
-    // Handle the navigation
+    // Determine target file
     let targetFile = href;
     if (href === '/' || href === '') {
       targetFile = 'index.html';
@@ -434,43 +486,27 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       targetFile = targetFile.substring(1);
     }
     
-    // Load the target page content
+    // Check if the target page exists
     if (fileSystem[targetFile]) {
-      let newContent = fileSystem[targetFile];
-      
-      // Remove ALL external CSS and script references
-      newContent = newContent.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
-      newContent = newContent.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
-      newContent = newContent.replace(/<script[^>]*src=["'][^"']*\.js["'][^>]*><\/script>/gi, '');
-      
-      // Inject combined CSS into the new page
-      const headEnd = newContent.indexOf('</head>');
-      if (headEnd > -1 && combinedCss) {
-        newContent = newContent.slice(0, headEnd) + 
-          '<style>' + combinedCss + '</style>' + 
-          newContent.slice(headEnd);
+      // Send message to parent to handle navigation
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'preview-navigation',
+          targetFile: targetFile
+        }, '*');
       }
-      
-      // Update the document
-      document.open();
-      document.write(newContent);
-      document.close();
-      
-      // Re-inject all JavaScript with a small delay
-      setTimeout(function() {
-        const fullScript = document.createElement('script');
-        fullScript.textContent = ${JSON.stringify(completeJs)};
-        document.body.appendChild(fullScript);
-        
-        // Force re-initialization after navigation
-        if (typeof initializeEventHandlers === 'function') {
-          initializeEventHandlers();
-        }
-      }, 50);
     } else {
       console.warn('Page not found:', targetFile);
+      // Send message to parent for not found notification
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'preview-link-click',
+          href: targetFile,
+          notFound: true
+        }, '*');
+      }
     }
-  }, true); // Use capture phase to intercept clicks before navigation
+  }, true); // Use capture phase
 })();
 `;
       }
