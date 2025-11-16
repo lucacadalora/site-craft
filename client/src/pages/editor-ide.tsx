@@ -13,6 +13,7 @@ import { UserProfile } from '@/components/user-profile';
 import { DeployButton } from '@/components/deploy-button';
 import { GenerationProgressBar } from '@/components/GenerationProgressBar';
 import { VersionHistory } from '@/components/VersionHistory';
+import { History } from '@/components/History';
 import {
   Select,
   SelectContent,
@@ -1270,18 +1271,27 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         <div className="flex-1 flex relative">
           {/* Code Editor - 30% width */}
           <div className="w-[30%] min-w-[400px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
-            {/* Editor Header with Files Button */}
+            {/* Editor Header with Files and History Buttons */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFileExplorer(!showFileExplorer)}
-                className="flex items-center gap-2 text-gray-300 hover:bg-gray-800 px-2"
-                data-testid="button-toggle-explorer"
-              >
-                <Files className="w-4 h-4" />
-                <span className="text-sm">Files</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFileExplorer(!showFileExplorer)}
+                  className="flex items-center gap-2 text-gray-300 hover:bg-gray-800 px-2"
+                  data-testid="button-toggle-explorer"
+                >
+                  <Files className="w-4 h-4" />
+                  <span className="text-sm">Files</span>
+                  {project?.files && (
+                    <span className="ml-1 px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">
+                      {project.files.length}
+                    </span>
+                  )}
+                </Button>
+                
+                <History />
+              </div>
               
               <EditorTabs />
             </div>
