@@ -214,3 +214,23 @@ export const insertDeploymentSchema = createInsertSchema(deployments).omit({
 
 export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
 export type Deployment = typeof deployments.$inferSelect;
+
+// Project versions schema - Tracks version history like v3
+export const projectVersions = pgTable("project_versions", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  versionNumber: integer("version_number").notNull(), // 1, 2, 3, etc.
+  prompt: text("prompt").notNull(), // The prompt that created this version
+  files: json("files").notNull(), // Snapshot of all files at this version
+  commitTitle: text("commit_title"), // Similar to v3's commit title
+  isFollowUp: boolean("is_follow_up").default(false), // Whether this was a follow-up edit
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertProjectVersionSchema = createInsertSchema(projectVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertProjectVersion = z.infer<typeof insertProjectVersionSchema>;
+export type ProjectVersion = typeof projectVersions.$inferSelect;
