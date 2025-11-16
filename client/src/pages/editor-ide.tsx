@@ -206,6 +206,109 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     if (typeof setupEventListeners === 'function') setupEventListeners();
     if (typeof main === 'function') main();
     
+    // Initialize common UI libraries
+    // Feather Icons
+    if (typeof feather !== 'undefined' && feather.replace) {
+      try {
+        feather.replace();
+      } catch (e) {
+        console.warn('Failed to initialize Feather icons:', e);
+      }
+    }
+    
+    // Lucide Icons
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      try {
+        lucide.createIcons();
+      } catch (e) {
+        console.warn('Failed to initialize Lucide icons:', e);
+      }
+    }
+    
+    // Alpine.js (if present)
+    if (typeof Alpine !== 'undefined' && Alpine.start) {
+      try {
+        Alpine.start();
+      } catch (e) {
+        console.warn('Failed to initialize Alpine.js:', e);
+      }
+    }
+    
+    // Re-initialize any IntersectionObservers for animations
+    if (typeof IntersectionObserver !== 'undefined') {
+      // Find elements with reveal animations
+      const revealElements = document.querySelectorAll('.reveal-text, .fade-in, .animate-on-scroll, [data-aos]');
+      if (revealElements.length > 0) {
+        const observerOptions = {
+          root: null,
+          rootMargin: '0px',
+          threshold: 0.1
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible', 'aos-animate', 'animated', 'in-view');
+            }
+          });
+        }, observerOptions);
+        
+        revealElements.forEach(el => observer.observe(el));
+      }
+    }
+    
+    // Re-bind scroll event handlers for parallax effects
+    const parallaxElements = document.querySelectorAll('.parallax, .parallax-img, [data-parallax], [data-speed]');
+    if (parallaxElements.length > 0) {
+      const handleParallax = () => {
+        const scrolled = window.pageYOffset;
+        parallaxElements.forEach(element => {
+          const speed = element.getAttribute('data-speed') || 0.5;
+          const yPos = -(scrolled * speed * 0.2);
+          element.style.transform = \`translateY(\${yPos}px)\`;
+        });
+      };
+      
+      window.addEventListener('scroll', handleParallax);
+      handleParallax(); // Initialize immediately
+    }
+    
+    // Handle custom cursor if defined
+    const cursor = document.getElementById('cursor') || document.querySelector('.cursor, .custom-cursor');
+    if (cursor) {
+      document.addEventListener('mousemove', (e) => {
+        cursor.style.left = e.clientX - 10 + 'px';
+        cursor.style.top = e.clientY - 10 + 'px';
+      });
+      
+      // Handle hover triggers for custom cursor
+      const hoverTriggers = document.querySelectorAll('.hover-trigger, a, button, [role="button"]');
+      hoverTriggers.forEach(trigger => {
+        trigger.addEventListener('mouseenter', () => {
+          cursor.classList.add('hovered', 'hover', 'active');
+        });
+        trigger.addEventListener('mouseleave', () => {
+          cursor.classList.remove('hovered', 'hover', 'active');
+        });
+      });
+    }
+    
+    // Re-initialize carousels
+    const carousels = document.querySelectorAll('.carousel, #carousel, [data-carousel]');
+    carousels.forEach(carousel => {
+      // Initialize carousel navigation
+      const prevBtn = carousel.querySelector('#prevBtn, .carousel-prev, [data-carousel-prev]');
+      const nextBtn = carousel.querySelector('#nextBtn, .carousel-next, [data-carousel-next]');
+      const dots = carousel.querySelectorAll('.carousel-dot, .dot, [data-carousel-dot]');
+      
+      if (prevBtn || nextBtn || dots.length > 0) {
+        // Re-bind carousel events if they exist
+        if (typeof initCarousel === 'function') {
+          initCarousel(carousel);
+        }
+      }
+    });
+    
     // Ensure any loader/splash screen click handlers work
     const loaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [id*="splash"], [class*="splash"], [id*="loading"], [class*="loading"]');
     loaders.forEach(loader => {
@@ -234,6 +337,16 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         } catch (e) {
           console.warn('Failed to bind onclick:', e);
         }
+      }
+    });
+    
+    // Handle any addEventListener calls in the original script
+    // These often get lost in iframe reloads
+    document.querySelectorAll('[data-click], [data-event]').forEach(element => {
+      const eventType = element.dataset.event || 'click';
+      const handler = element.dataset.handler || element.dataset.click;
+      if (handler && typeof window[handler] === 'function') {
+        element.addEventListener(eventType, window[handler]);
       }
     });
   }
@@ -377,7 +490,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             setTimeout(() => {
               try {
                 // Try to call the initialization function if it exists in the iframe context
-                const iframeWindow = previewRef.current?.contentWindow;
+                const iframeWindow = previewRef.current?.contentWindow as any;
                 if (iframeWindow && typeof iframeWindow.initializeEventHandlers === 'function') {
                   iframeWindow.initializeEventHandlers();
                 }
