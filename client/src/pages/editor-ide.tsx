@@ -152,6 +152,15 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         return acc;
       }, {} as Record<string, string>);
       
+      // Add a base href to prevent relative URL resolution issues
+      const baseHref = '<base href="javascript:void(0)">';
+      const headStart = fullHtml.indexOf('<head>');
+      if (headStart > -1 && !fullHtml.includes('<base')) {
+        fullHtml = fullHtml.slice(0, headStart + 6) + 
+          `\n${baseHref}\n` + 
+          fullHtml.slice(headStart + 6);
+      }
+      
       // Always inject CSS inline (remove any external references first)
       if (cssFile) {
         // Remove external CSS references
@@ -248,17 +257,33 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 (function() {
   const fileSystem = ${JSON.stringify(fileSystem)};
   
-  // Intercept all link clicks
+  // Override window.location to prevent navigation
+  Object.defineProperty(window, 'location', {
+    get: function() { return document.location; },
+    set: function(val) { 
+      console.log('Navigation blocked:', val);
+      return false;
+    },
+    configurable: false
+  });
+  
+  // Intercept all link clicks using capture phase to prevent navigation escape
   document.addEventListener('click', function(e) {
     const link = e.target.closest('a');
     if (!link) return;
     
     const href = link.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('//')) {
+    if (!href) return;
+    
+    // Check if this is an internal navigation (not external or anchor)
+    if (href.startsWith('#') || href.startsWith('http') || href.startsWith('//') || href.startsWith('mailto:') || href.startsWith('tel:')) {
       return; // Let normal navigation happen for anchors and external links
     }
     
+    // Aggressively prevent the default navigation
     e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
     
     // Handle the navigation
     let targetFile = href;
@@ -315,7 +340,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     } else {
       console.warn('Page not found:', targetFile);
     }
-  });
+  }, true); // Use capture phase to intercept clicks before navigation
 })();
 `;
       }
@@ -1145,7 +1170,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             <iframe
               ref={previewRef}
               className="w-full h-full"
-              sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
+              sandbox="allow-scripts allow-forms allow-same-origin allow-modals"
               title="Preview"
               data-testid="iframe-preview"
               onLoad={() => {
