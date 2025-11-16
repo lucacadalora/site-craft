@@ -121,9 +121,10 @@ export function getRemainingGenerations(req: Request): number {
 }
 
 // Middleware for anonymous generation rate limiting
-export function anonymousRateLimiter(req: Request, res: Response, next: NextFunction) {
+export function anonymousRateLimiter(req: any, res: Response, next: NextFunction) {
   // Skip rate limiting for authenticated users
-  if (req.headers.authorization) {
+  // Check req.user which is set by optionalAuth middleware
+  if (req.user) {
     return next();
   }
   

@@ -87,14 +87,16 @@ export const generateToken = (user: { id: number; email: string; username?: stri
 // Optional authentication middleware - doesn't reject if no token, but sets user if token exists
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from Authorization header
+    // Get token from Authorization header or query params (for SSE connections)
     const authHeader = req.headers.authorization;
+    let token: string | undefined;
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next(); // Continue without authentication
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query.token) {
+      // Check query params for SSE connections which can't send headers
+      token = req.query.token as string;
     }
-    
-    const token = authHeader.split(' ')[1];
     
     if (!token) {
       return next(); // Continue without authentication
