@@ -19,7 +19,7 @@ export function History() {
 
   // Fetch versions for the current project
   const { data: versions = [], isLoading } = useQuery<ProjectVersion[]>({
-    queryKey: ['/api/projects', project?.id, 'versions'],
+    queryKey: [`/api/projects/${project?.id}/versions`],
     enabled: !!project?.id,
     select: (data) => {
       // Parse the files field from JSON string if needed

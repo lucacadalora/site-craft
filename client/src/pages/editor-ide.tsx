@@ -556,7 +556,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     try {
       const token = localStorage.getItem('auth_token');
-      const isFollowUp = project && project.files.length > 0 && project.prompts.length > 0;
+      // Only treat as follow-up if we have a saved project with files
+      const isFollowUp = !!(project?.id && project.files && project.files.length > 0);
       
       // Create session with POST to avoid URL length limitations
       const sessionPayload: any = {
@@ -1347,7 +1348,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               {/* Prompt Input with Dice Button */}
               <div className="relative">
                 <Textarea
-                  placeholder="Ask Jatevo Web Builder for edits"
+                  placeholder={
+                    project?.id && project.files && project.files.length > 0
+                      ? "Ask Jatevo Web Builder for edits"
+                      : "Describe the website you want to generate..."
+                  }
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
