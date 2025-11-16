@@ -128,7 +128,18 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           }
         } else {
           // Try to load existing project by sessionId
-          await loadProject(routeSessionId);
+          const loadedProject = await loadProject(routeSessionId);
+          
+          // Load version history for the project
+          if (loadedProject?.id) {
+            try {
+              await loadProjectVersions(parseInt(loadedProject.id));
+              console.log('Loaded version history for project:', loadedProject.id);
+            } catch (error) {
+              console.error('Failed to load version history:', error);
+              // Non-critical, continue without version history
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to initialize project:', error);
@@ -781,8 +792,38 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   </Button>
                 )
               });
+            } else if (project?.id) {
+              // Project already has an ID - save the update and create a version
+              (async () => {
+                try {
+                  // Save the updated files
+                  await saveProject(project.id, project.name, finalFilesArray, finalPrompt);
+                  
+                  // Create a version for this edit (similar to v3's commit system)
+                  try {
+                    await createVersion(finalPrompt, finalFilesArray, isFollowUp || true);
+                    console.log('Version created for edit on project:', project.id);
+                  } catch (versionError) {
+                    console.error('Failed to create version:', versionError);
+                    // Non-critical error, continue
+                  }
+                  
+                  toast({
+                    title: "✨ Generation Complete!",
+                    description: "Your changes have been applied and saved to history.",
+                    className: "bg-green-900 border-green-700 text-white",
+                  });
+                } catch (error) {
+                  console.error('Failed to save edit:', error);
+                  toast({
+                    title: "❌ Save Failed",
+                    description: "Changes applied but couldn't be saved to history.",
+                    variant: "destructive"
+                  });
+                }
+              })();
             } else {
-              // Project already has an ID, just update it
+              // Fallback case
               toast({
                 title: "✨ Generation Complete!",
                 description: "Your changes have been applied successfully.",
