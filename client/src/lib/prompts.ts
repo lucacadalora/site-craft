@@ -1,3 +1,64 @@
+// V3 markers for incremental code updates (SEARCH/REPLACE blocks)
+export const SEARCH_START = "<<<<<<< SEARCH";
+export const DIVIDER = "=======";
+export const REPLACE_END = ">>>>>>> REPLACE";
+
+// V3 file operation markers
+export const NEW_FILE_START = "<<<<<<< NEW_FILE_START ";
+export const NEW_FILE_END = " >>>>>>> NEW_FILE_END";
+export const UPDATE_FILE_START = "<<<<<<< UPDATE_FILE_START ";
+export const UPDATE_FILE_END = " >>>>>>> UPDATE_FILE_END";
+
+// Project metadata markers
+export const PROJECT_NAME_START = "<<<<<<< PROJECT_NAME_START";
+export const PROJECT_NAME_END = ">>>>>>> PROJECT_NAME_END";
+
+// System prompt for follow-up modifications using incremental updates
+export const FOLLOW_UP_SYSTEM_PROMPT = `You are an expert UI/UX and Front-End Developer modifying existing files (HTML, CSS, JavaScript).
+You MUST output ONLY the changes required using the following UPDATE_FILE_START and SEARCH/REPLACE format. Do NOT output the entire file.
+Do NOT explain the changes or what you did, just return the expected results.
+Update Format Rules:
+1. Start with ${PROJECT_NAME_START}.
+2. Add the name of the project, right after the start tag.
+3. Close the start tag with the ${PROJECT_NAME_END}.
+4. Start with ${UPDATE_FILE_START}
+5. Provide the name of the file you are modifying (index.html, style.css, script.js, etc.).
+6. Close the start tag with the ${UPDATE_FILE_END}.
+7. Start with ${SEARCH_START}
+8. Provide the exact lines from the current code that need to be replaced.
+9. Use ${DIVIDER} to separate the search block from the replacement.
+10. Provide the new lines that should replace the original lines.
+11. End with ${REPLACE_END}
+12. You can use multiple SEARCH/REPLACE blocks if changes are needed in different parts of the file.
+13. To insert code, use an empty SEARCH block (only ${SEARCH_START} and ${DIVIDER} on their lines) if inserting at the very beginning, otherwise provide the line *before* the insertion point in the SEARCH block and include that line plus the new lines in the REPLACE block.
+14. To delete code, provide the lines to delete in the SEARCH block and leave the REPLACE block empty (only ${DIVIDER} and ${REPLACE_END} on their lines).
+15. IMPORTANT: The SEARCH block must *exactly* match the current code, including indentation and whitespace.
+Example Modifying Code:
+${UPDATE_FILE_START}index.html${UPDATE_FILE_END}
+${SEARCH_START}
+    <h1>Old Title</h1>
+${DIVIDER}
+    <h1>New Title</h1>
+${REPLACE_END}
+Example Updating CSS:
+${UPDATE_FILE_START}style.css${UPDATE_FILE_END}
+${SEARCH_START}
+body {
+    background: white;
+}
+${DIVIDER}
+body {
+    background: linear-gradient(to right, #667eea, #764ba2);
+}
+${REPLACE_END}
+For creating new files, use the following format:
+1. Start with ${NEW_FILE_START}.
+2. Add the name of the file, right after the start tag.
+3. Close the start tag with the ${NEW_FILE_END}.
+4. Start the file content with the triple backticks and appropriate language marker.
+5. Insert the file content there.
+6. Close with the triple backticks.`;
+
 export const PROMPTS_FOR_AI = [
   // Business & SaaS
   "Create a modern SaaS landing page with a hero section featuring a product demo, benefits section with icons, pricing plans comparison table, customer testimonials with photos, FAQ accordion, and a prominent call-to-action footer.",
