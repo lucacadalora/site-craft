@@ -31,8 +31,8 @@ export function History() {
     }
   });
 
-  // Don't show anything if no project or no versions
-  if (!project?.id || versions.length === 0) return null;
+  // Don't show anything if no project
+  if (!project?.id) return null;
 
   const handleRestoreVersion = async (version: ProjectVersion) => {
     if (!project?.id) return;
@@ -106,6 +106,10 @@ export function History() {
           {isLoading ? (
             <div className="px-4 py-8 text-center text-gray-500 text-sm">
               Loading versions...
+            </div>
+          ) : versions.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">
+              No edits yet. Make changes to create version history.
             </div>
           ) : (
             <ul>
