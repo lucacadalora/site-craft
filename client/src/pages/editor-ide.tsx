@@ -175,7 +175,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     const loadVersions = async () => {
       if (project?.id) {
         try {
-          await loadProjectVersions(parseInt(project.id));
+          await loadProjectVersions(project.id);
           console.log('Loaded version history for project:', project.id);
         } catch (error) {
           console.error('Failed to load version history:', error);
@@ -629,7 +629,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         stylePreference: stylePreference // Pass the style preference to backend
       };
       
-      if (isFollowUp) {
+      if (isFollowUp && project) {
         sessionPayload.existingFiles = project.files;
         sessionPayload.previousPrompts = project.prompts;
       }
