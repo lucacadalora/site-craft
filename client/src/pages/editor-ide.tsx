@@ -97,10 +97,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   );
   
   // Style preference with localStorage persistence
-  const [stylePreference, setStylePreference] = useState<'default' | 'v1'>(() => {
+  const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1'>(() => {
     const savedStyle = localStorage.getItem('jatevo_style_preference');
     return (savedStyle === 'v1' ? 'v1' : 'default') as 'default' | 'v1';
   });
+  
+  // Wrapper to save to localStorage whenever style changes
+  const setStylePreference = (value: 'default' | 'v1') => {
+    localStorage.setItem('jatevo_style_preference', value);
+    console.log('Style preference changed to:', value);
+    setStylePreferenceInternal(value);
+  };
   
   // Enhanced Settings with localStorage persistence
   const [enhancedSettings, setEnhancedSettings] = useState<EnhancedSettings>(() => {
