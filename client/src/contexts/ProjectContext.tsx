@@ -483,6 +483,11 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           currentVersionIndex: versions.length - 1
         };
       });
+      
+      // Invalidate the versions query to refresh the History component
+      // Import queryClient at the top of the file if not already imported
+      const { queryClient } = await import('@/lib/queryClient');
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/versions`] });
     } catch (error) {
       console.error('Error creating version:', error);
       throw error;
