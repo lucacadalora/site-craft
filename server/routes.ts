@@ -1226,7 +1226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST endpoint to enhance prompts using Cerebras
   app.post("/api/cerebras/enhance-prompt", async (req, res) => {
     try {
-      const { prompt } = req.body;
+      const { prompt, stylePreference = 'default' } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
@@ -1241,6 +1241,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Different enhancement strategies based on style preference
+      const systemPrompt = stylePreference === 'v1' 
+        ? `You will be given a prompt for generating a website. Your task is to enhance it by adding more CONTENT and FEATURES, making it richer and more comprehensive.
+
+CRITICAL RULES FOR V1 EXPERIMENTAL STYLE:
+1. ALWAYS KEEP THE ORIGINAL IDEA - Do not change what the user wants
+2. FOCUS ON CONTENT AND FEATURES ONLY - Do NOT specify design patterns, layouts, or visual styles
+3. Add specific content elements: headlines, taglines, calls-to-action, section content
+4. Suggest features: interactive elements, animations, special effects, user interactions
+5. Include cultural references, artistic themes, sophisticated naming
+6. RETURN ONLY THE REWRITTEN PROMPT - No explanations, no extra text
+7. NEVER specify: navigation styles, grid layouts, responsive design, button styles, color schemes
+8. Let the ultra-premium V1 system handle ALL visual and layout decisions
+
+Example:
+Original: "Create a museum website"
+Enhanced: "Create an immersive digital experience for the Museum of Contemporary Visions. Feature the upcoming 'Fragments of Tomorrow' exhibition with artist bios, philosophical statements about each piece, and interactive timeline of the neo-brutalist movement. Include sections for permanent collection highlights focusing on digital art installations, kinetic sculptures, and experimental media. Add membership tiers (Patron, Visionary, Curator's Circle) with exclusive virtual gallery tours. Feature artist interviews, behind-the-scenes content of exhibition setup, and thought-provoking quotes about art's role in society. Include upcoming events like midnight viewings, artist talks, and experimental workshops. Add a section celebrating the museum's architectural heritage and its transformation over decades."`
+        : `You will be given a prompt for generating a website. Your task is to rewrite the prompt to include much more detail and specificity, making it easier for an AI to generate a high-quality website.
+
+CRITICAL RULES:
+1. ALWAYS KEEP THE ORIGINAL IDEA - Do not change what the user wants
+2. ADD LOTS OF DETAILS - Be specific about design, layout, sections, features
+3. If user asks for multiple pages, keep multiple pages in rewritten prompt
+4. RETURN ONLY THE REWRITTEN PROMPT - No explanations, no extra text
+5. Make it professional and comprehensive
+
+Example:
+Original: "buatkan warung bakmi"
+Enhanced: "Create a professional, modern website for a traditional Indonesian noodle restaurant (warung bakmi). Include: 1) Hero section with appetizing banner image and restaurant name, 2) Menu section displaying noodle dishes with descriptions and prices, 3) About section telling the restaurant's story and tradition, 4) Location section with embedded map and contact information, 5) Customer testimonials/reviews section, 6) Footer with social media links and business hours. Use warm, inviting colors (red, yellow, orange tones), mobile-responsive design, clear typography, and prominent call-to-action buttons for ordering or reservations."`;
+
       // Call Cerebras API to enhance the prompt
       const apiResponse = await fetch("https://api.cerebras.ai/v1/chat/completions", {
         method: "POST",
@@ -1254,18 +1284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messages: [
             {
               role: "system",
-              content: `You will be given a prompt for generating a website. Your task is to rewrite the prompt to include much more detail and specificity, making it easier for an AI to generate a high-quality website.
-
-CRITICAL RULES:
-1. ALWAYS KEEP THE ORIGINAL IDEA - Do not change what the user wants
-2. ADD LOTS OF DETAILS - Be specific about design, layout, sections, features
-3. If user asks for multiple pages, keep multiple pages in rewritten prompt
-4. RETURN ONLY THE REWRITTEN PROMPT - No explanations, no extra text
-5. Make it professional and comprehensive
-
-Example:
-Original: "buatkan warung bakmi"
-Enhanced: "Create a professional, modern website for a traditional Indonesian noodle restaurant (warung bakmi). Include: 1) Hero section with appetizing banner image and restaurant name, 2) Menu section displaying noodle dishes with descriptions and prices, 3) About section telling the restaurant's story and tradition, 4) Location section with embedded map and contact information, 5) Customer testimonials/reviews section, 6) Footer with social media links and business hours. Use warm, inviting colors (red, yellow, orange tones), mobile-responsive design, clear typography, and prominent call-to-action buttons for ordering or reservations."`
+              content: systemPrompt
             },
             {
               role: "user",
