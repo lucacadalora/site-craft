@@ -96,6 +96,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
   );
   
+  // Style preference with localStorage persistence
+  const [stylePreference, setStylePreference] = useState<'default' | 'v1'>(() => {
+    const savedStyle = localStorage.getItem('jatevo_style_preference');
+    return (savedStyle === 'v1' ? 'v1' : 'default') as 'default' | 'v1';
+  });
+  
   // Enhanced Settings with localStorage persistence
   const [enhancedSettings, setEnhancedSettings] = useState<EnhancedSettings>(() => {
     const saved = localStorage.getItem('enhanced_settings');
@@ -106,6 +112,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   useEffect(() => {
     localStorage.setItem('enhanced_settings', JSON.stringify(enhancedSettings));
   }, [enhancedSettings]);
+  
+  // Save style preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('jatevo_style_preference', stylePreference);
+  }, [stylePreference]);
   
   // Refs
   const previewRef = useRef<HTMLIFrameElement>(null);
@@ -592,7 +603,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         useMultiFile: true,
         // Use follow-up system prompt for incremental updates when modifying existing files
         useFollowUpPrompt: isFollowUp,
-        systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined
+        systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined,
+        stylePreference: stylePreference // Pass the style preference to backend
       };
       
       if (isFollowUp) {
@@ -1588,6 +1600,27 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                         </SelectContent>
                       </Select>
                       
+                      {/* Style Selector */}
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-style"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Paintbrush className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Default
+                          </SelectItem>
+                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v1 (Experimental)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
                       {/* Redesign Button */}
                       <Button
                         variant="ghost"
@@ -1630,6 +1663,27 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                           </SelectItem>
                           <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
                             glm-4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Style Selector */}
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-style"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Paintbrush className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Default
+                          </SelectItem>
+                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v1 (Experimental)
                           </SelectItem>
                         </SelectContent>
                       </Select>
