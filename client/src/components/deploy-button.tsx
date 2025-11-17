@@ -313,7 +313,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
         variant="default" 
         size="sm" 
         onClick={() => handleOpen(true)}
-        disabled={!html}
+        disabled={!html && (!files || files.length === 0)}
         className="flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700"
       >
         <Globe className="h-4 w-4 mr-1" />
