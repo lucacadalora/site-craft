@@ -128,6 +128,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     return saved ? JSON.parse(saved) : { isActive: true };
   });
   
+  // Store previous enhance state to restore when switching from v1 back to default
+  const [previousEnhanceState, setPreviousEnhanceState] = useState(enhancedSettings.isActive);
+  
   // Persist enhancedSettings to localStorage
   useEffect(() => {
     localStorage.setItem('enhanced_settings', JSON.stringify(enhancedSettings));
@@ -136,6 +139,21 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   // Save style preference to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('jatevo_style_preference', stylePreference);
+  }, [stylePreference]);
+  
+  // Auto-disable enhance when v1 experimental style is selected
+  // v1 has its own comprehensive prompt instructions that conflict with enhancement
+  useEffect(() => {
+    if (stylePreference === 'v1') {
+      // Save current enhance state before disabling
+      if (enhancedSettings.isActive) {
+        setPreviousEnhanceState(true);
+      }
+      setEnhancedSettings({ isActive: false });
+    } else if (stylePreference === 'default') {
+      // Restore previous enhance state when switching back to default
+      setEnhancedSettings({ isActive: previousEnhanceState });
+    }
   }, [stylePreference]);
   
   // Refs
@@ -1709,13 +1727,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                     <>
                       {/* NEW PROJECT BUTTONS */}
                       {/* Enhance Toggle */}
-                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-r border-gray-800/50 pr-3 mr-1">
-                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500")} />
-                        <span>Enhance</span>
+                      <div 
+                        className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-r border-gray-800/50 pr-3 mr-1"
+                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style (includes its own optimizations)' : 'Enhance generated code with best practices'}
+                      >
+                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500", stylePreference === 'v1' && "opacity-50")} />
+                        <span className={stylePreference === 'v1' ? "opacity-50" : ""}>Enhance</span>
                         <Switch
                           checked={enhancedSettings.isActive}
                           onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
                           className="scale-75"
+                          disabled={stylePreference === 'v1'}
                           data-testid="switch-enhance"
                         />
                       </div>
