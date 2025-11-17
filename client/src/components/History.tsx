@@ -38,16 +38,22 @@ export function History() {
     if (!project?.id) return;
 
     try {
-      // Parse files from the version (in case it's still a string)
+      // Call the restore API endpoint
+      const response = await apiRequest(`/api/projects/${project.id}/versions/${version.id}/restore`, {
+        method: 'POST'
+      });
+
+      // Parse files from the restored version
       const versionFiles = typeof version.files === 'string' 
         ? JSON.parse(version.files) 
         : version.files;
 
-      // Update the project with the version's files
+      // Update the project with the restored version's files
       const updatedProject = {
         ...project,
         files: versionFiles,
-        currentVersionId: version.id
+        currentVersionId: version.id,
+        currentCommit: version.id
       };
 
       // Update local state
@@ -58,14 +64,6 @@ export function History() {
       const currentOpenFiles = project.openFiles || [];
       const filesToClose = currentOpenFiles.filter((name: string) => !versionFileNames.includes(name));
       filesToClose.forEach((name: string) => closeFile(name));
-      
-      // Update in backend
-      await apiRequest(`/api/projects/${project.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          files: versionFiles
-        })
-      });
 
       // Invalidate project query to refresh
       queryClient.invalidateQueries({ queryKey: ['/api/projects', project.id] });
