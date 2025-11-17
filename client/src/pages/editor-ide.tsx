@@ -100,17 +100,18 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   );
   
   // Style preference with localStorage persistence, prioritizing URL param
-  const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1'>(() => {
+  const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1' | 'v2'>(() => {
     // If style is in URL params, use that (guest users from landing page)
     if (urlParams.style === 'v1') return 'v1';
+    if (urlParams.style === 'v2') return 'v2';
     
     // Otherwise, check localStorage
     const savedStyle = localStorage.getItem('jatevo_style_preference');
-    return (savedStyle === 'v1' ? 'v1' : 'default') as 'default' | 'v1';
+    return (savedStyle === 'v1' || savedStyle === 'v2') ? savedStyle as 'v1' | 'v2' : 'default';
   });
   
   // Wrapper to save to localStorage whenever style changes
-  const setStylePreference = (value: 'default' | 'v1') => {
+  const setStylePreference = (value: 'default' | 'v1' | 'v2') => {
     localStorage.setItem('jatevo_style_preference', value);
     console.log('Style preference changed to:', value);
     setStylePreferenceInternal(value);
@@ -141,10 +142,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     localStorage.setItem('jatevo_style_preference', stylePreference);
   }, [stylePreference]);
   
-  // Auto-disable enhance when v1 experimental style is selected
-  // v1 has its own comprehensive prompt instructions that conflict with enhancement
+  // Auto-disable enhance when v1 experimental or v2 mobile style is selected
+  // v1 and v2 have their own comprehensive prompt instructions that conflict with enhancement
   useEffect(() => {
-    if (stylePreference === 'v1') {
+    if (stylePreference === 'v1' || stylePreference === 'v2') {
       // Save current enhance state before disabling
       if (enhancedSettings.isActive) {
         setPreviousEnhanceState(true);
@@ -1729,15 +1730,15 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                       {/* Enhance Toggle */}
                       <div 
                         className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-r border-gray-800/50 pr-3 mr-1"
-                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style (includes its own optimizations)' : 'Enhance generated code with best practices'}
+                        title={stylePreference !== 'default' ? `Enhancement disabled for ${stylePreference} style (includes its own optimizations)` : 'Enhance generated code with best practices'}
                       >
-                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500", stylePreference === 'v1' && "opacity-50")} />
-                        <span className={stylePreference === 'v1' ? "opacity-50" : ""}>Enhance</span>
+                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500", stylePreference !== 'default' && "opacity-50")} />
+                        <span className={stylePreference !== 'default' ? "opacity-50" : ""}>Enhance</span>
                         <Switch
                           checked={enhancedSettings.isActive}
                           onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
                           className="scale-75"
-                          disabled={stylePreference === 'v1'}
+                          disabled={stylePreference !== 'default'}
                           data-testid="switch-enhance"
                         />
                       </div>
@@ -1764,7 +1765,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                       </Select>
                       
                       {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
                         <SelectTrigger 
                           className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
                           data-testid="select-style"
@@ -1780,6 +1781,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                           </SelectItem>
                           <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
                             v1 (Experimental)
+                          </SelectItem>
+                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v2 (Mobile Apps)
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1831,7 +1835,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                       </Select>
                       
                       {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
                         <SelectTrigger 
                           className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
                           data-testid="select-style"
@@ -1847,6 +1851,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                           </SelectItem>
                           <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
                             v1 (Experimental)
+                          </SelectItem>
+                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v2 (Mobile Apps)
                           </SelectItem>
                         </SelectContent>
                       </Select>

@@ -18,7 +18,9 @@ import {
   INITIAL_SYSTEM_PROMPT, 
   FOLLOW_UP_SYSTEM_PROMPT,
   INITIAL_SYSTEM_PROMPT_V1,
-  FOLLOW_UP_SYSTEM_PROMPT_V1
+  FOLLOW_UP_SYSTEM_PROMPT_V1,
+  INITIAL_SYSTEM_PROMPT_V2,
+  FOLLOW_UP_SYSTEM_PROMPT_V2
 } from './prompts';
 import { anonymousRateLimiter, incrementGenerationCount, getRemainingGenerations, checkRateLimit } from './middleware/rateLimiter';
 
@@ -1009,6 +1011,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "system",
         content: stylePreference === 'v1' 
           ? (isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V1 : INITIAL_SYSTEM_PROMPT_V1)
+          : stylePreference === 'v2'
+          ? (isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V2 : INITIAL_SYSTEM_PROMPT_V2)
           : (isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT)
       };
 
@@ -1418,6 +1422,8 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
         role: "system",
         content: stylePreference === 'v1' 
           ? (cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V1 : INITIAL_SYSTEM_PROMPT_V1)
+          : stylePreference === 'v2'
+          ? (cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V2 : INITIAL_SYSTEM_PROMPT_V2)
           : (cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT)
       };
 

@@ -82,17 +82,17 @@ export default function Landing() {
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('cerebras');
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
-  const [stylePreference, setStylePreference] = useState<'default' | 'v1'>('default');
+  const [stylePreference, setStylePreference] = useState<'default' | 'v1' | 'v2'>('default');
   const [randomPromptLoading, setRandomPromptLoading] = useState(false);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
   // Store previous enhance state to restore when switching from v1 back to default
   const [previousEnhanceState, setPreviousEnhanceState] = useState(true);
 
-  // Auto-disable enhance when v1 experimental style is selected
-  // v1 has its own comprehensive prompt instructions that conflict with enhancement
+  // Auto-disable enhance when v1 experimental or v2 mobile style is selected
+  // v1 and v2 have their own comprehensive prompt instructions that conflict with enhancement
   useEffect(() => {
-    if (stylePreference === 'v1') {
+    if (stylePreference === 'v1' || stylePreference === 'v2') {
       // Save current enhance state before disabling
       if (enhanceEnabled) {
         setPreviousEnhanceState(true);
@@ -460,15 +460,15 @@ export default function Landing() {
                       {/* Enhance Toggle */}
                       <div 
                         className="control-btn-1 inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:transform hover:-translate-y-0.5 hover:shadow-md"
-                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style' : 'Enhance generated code'}
+                        title={stylePreference !== 'default' ? `Enhancement disabled for ${stylePreference} style` : 'Enhance generated code'}
                       >
-                        <Zap className={`w-4 h-4 ${enhanceEnabled ? "text-yellow-500" : "text-gray-500 dark:text-gray-400"} ${stylePreference === 'v1' ? "opacity-50" : ""}`} />
-                        <span className={`text-gray-700 dark:text-gray-300 ${stylePreference === 'v1' ? "opacity-50" : ""}`}>Enhance</span>
+                        <Zap className={`w-4 h-4 ${enhanceEnabled ? "text-yellow-500" : "text-gray-500 dark:text-gray-400"} ${stylePreference !== 'default' ? "opacity-50" : ""}`} />
+                        <span className={`text-gray-700 dark:text-gray-300 ${stylePreference !== 'default' ? "opacity-50" : ""}`}>Enhance</span>
                         <Switch
                           checked={enhanceEnabled}
                           onCheckedChange={setEnhanceEnabled}
                           className="scale-75"
-                          disabled={stylePreference === 'v1'}
+                          disabled={stylePreference !== 'default'}
                         />
                       </div>
                       
@@ -493,7 +493,7 @@ export default function Landing() {
                       </Select>
                       
                       {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
                         <SelectTrigger 
                           className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                         >
@@ -508,6 +508,9 @@ export default function Landing() {
                           </SelectItem>
                           <SelectItem value="v1" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
                             v1 (Experimental)
+                          </SelectItem>
+                          <SelectItem value="v2" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
+                            v2 (Mobile Apps)
                           </SelectItem>
                         </SelectContent>
                       </Select>
