@@ -461,7 +461,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           projectId: parseInt(project.id),
           versionNumber,
           prompt,
-          filesSnapshot: files,
+          files: files,  // Changed from filesSnapshot to files
           isFollowUp,
           commitTitle: isFollowUp ? `Follow-up: ${prompt.substring(0, 50)}...` : `Initial: ${prompt.substring(0, 50)}...`
         })
