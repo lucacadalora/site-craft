@@ -38,10 +38,20 @@ export function History() {
     if (!project?.id) return;
 
     try {
-      // Call the restore API endpoint
-      const response = await apiRequest(`/api/projects/${project.id}/versions/${version.id}/restore`, {
-        method: 'POST'
+      // Call the restore API endpoint  
+      const response = await fetch(`/api/projects/${project.id}/versions/${version.id}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to restore version');
+      }
+      
+      const result = await response.json();
 
       // Parse files from the restored version
       const versionFiles = typeof version.files === 'string' 

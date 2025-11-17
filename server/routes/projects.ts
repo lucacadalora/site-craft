@@ -281,7 +281,7 @@ router.post('/:id/versions', authenticate, async (req: AuthRequest, res: Respons
     
     // Update project's currentCommit to the new version
     await storage.updateProject(projectId, {
-      currentCommit: newVersion.id,
+      currentCommit: String(newVersion.id),
       files: versionData.files
     });
 
@@ -322,7 +322,7 @@ router.post('/:id/versions/:versionId/restore', authenticate, async (req: AuthRe
     // Restore the project to this version
     const updatedProject = await storage.updateProject(projectId, {
       files: version.files,
-      currentCommit: versionId
+      currentCommit: String(versionId)
     });
 
     res.json({
