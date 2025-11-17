@@ -624,7 +624,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         // Use follow-up system prompt for incremental updates when modifying existing files
         useFollowUpPrompt: isFollowUp,
         systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined,
-        stylePreference: stylePreference // Pass the style preference to backend
+        // Only include style preference for initial generation, not for follow-up edits
+        ...(isFollowUp ? {} : { stylePreference: stylePreference })
       };
       
       if (isFollowUp) {
