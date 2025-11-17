@@ -86,6 +86,23 @@ export default function Landing() {
   const [randomPromptLoading, setRandomPromptLoading] = useState(false);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
+  // Store previous enhance state to restore when switching from v1 back to default
+  const [previousEnhanceState, setPreviousEnhanceState] = useState(true);
+
+  // Auto-disable enhance when v1 experimental style is selected
+  // v1 has its own comprehensive prompt instructions that conflict with enhancement
+  useEffect(() => {
+    if (stylePreference === 'v1') {
+      // Save current enhance state before disabling
+      if (enhanceEnabled) {
+        setPreviousEnhanceState(true);
+      }
+      setEnhanceEnabled(false);
+    } else if (stylePreference === 'default') {
+      // Restore previous enhance state when switching back to default
+      setEnhanceEnabled(previousEnhanceState);
+    }
+  }, [stylePreference]);
 
   // Check remaining generations for anonymous users
   useEffect(() => {
