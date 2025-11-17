@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { 
   Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
-  AtSign, Paperclip, Edit3, ChevronUp, Dices, Paintbrush
+  AtSign, Paperclip, Edit3, ChevronUp, Dices, Paintbrush, Wand2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
@@ -247,16 +247,105 @@ export default function Landing() {
         />
         
         <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <style>{`
+            @keyframes badgeEntry {
+              0% {
+                transform: scale(0.8) translateY(-10px);
+                opacity: 0;
+              }
+              100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+              }
+            }
+            
+            @keyframes sparkleRotate {
+              0% { transform: rotate(0deg) scale(1); }
+              50% { transform: rotate(180deg) scale(1.1); }
+              100% { transform: rotate(360deg) scale(1); }
+            }
+            
+            @keyframes wordSlideUp {
+              0% {
+                transform: translateY(40px) rotateX(90deg);
+                opacity: 0;
+              }
+              100% {
+                transform: translateY(0) rotateX(0);
+                opacity: 1;
+              }
+            }
+            
+            @keyframes fadeInSlide {
+              0% {
+                transform: translateY(20px);
+                opacity: 0;
+              }
+              100% {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+            
+            .badge-shimmer::before {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+              transition: left 0.5s;
+            }
+            
+            .badge-shimmer:hover::before {
+              left: 100%;
+            }
+            
+            .heading-word-0 {
+              animation: wordSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+            }
+            
+            .heading-word-1 {
+              animation: wordSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+            }
+            
+            .heading-word-2 {
+              animation: wordSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+            }
+          `}</style>
+          
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Ship websites in seconds
+            {/* Badge with micro-interactions */}
+            <div 
+              className="inline-block mb-10"
+              style={{ animation: 'badgeEntry 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both' }}
+            >
+              <div className="badge-shimmer relative overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600">
+                <span 
+                  className="text-base"
+                  style={{ animation: 'sparkleRotate 3s linear infinite' }}
+                >
+                  ⚡
+                </span>
+                <span>GLM 4.6 is faster and better than ever!</span>
+              </div>
+            </div>
+            
+            <h1 className="text-6xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight" style={{ lineHeight: '1.05', letterSpacing: '-0.02em' }}>
+              <span className="heading-word-0 inline-block">Ship</span>{' '}
+              <span className="heading-word-1 inline-block">something</span>{' '}
+              <span className="heading-word-2 inline-block">beautiful</span>
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-              Describe your idea, get a complete website. Professional quality, instantly deployable.
+            <p 
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8 font-normal"
+              style={{ animation: 'fadeInSlide 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both', lineHeight: '1.5' }}
+            >
+              Build in less than 60 seconds. Deploy instantly. Share everywhere.
               {!user && (
                 <span className="block mt-2 text-lg">
                   Start with 3 free generations
@@ -275,8 +364,46 @@ export default function Landing() {
               </div>
             )}
 
-            {/* DeepSite-style Generation Prompt */}
-            <div className="mt-8">
+            {/* Enhanced Input Container with Animations */}
+            <div className="mt-12">
+              <style>{`
+                @keyframes inputEntry {
+                  0% {
+                    transform: translateY(20px) scale(0.98);
+                    opacity: 0;
+                  }
+                  100% {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                  }
+                }
+                
+                @keyframes buttonStagger {
+                  0% {
+                    transform: scale(0) rotate(180deg);
+                    opacity: 0;
+                  }
+                  100% {
+                    transform: scale(1) rotate(0);
+                    opacity: 1;
+                  }
+                }
+                
+                .input-wrapper-hover:hover {
+                  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                }
+                
+                .input-wrapper-focus:focus-within {
+                  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                }
+                
+                .control-btn-0 { animation: buttonStagger 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s both; }
+                .control-btn-1 { animation: buttonStagger 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.25s both; }
+                .control-btn-2 { animation: buttonStagger 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s both; }
+                .control-btn-3 { animation: buttonStagger 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.35s both; }
+                .control-btn-4 { animation: buttonStagger 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.4s both; }
+              `}</style>
+              
               <div className="max-w-3xl mx-auto">
                 {!user && remainingGenerations === 0 && (
                   <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
@@ -292,11 +419,14 @@ export default function Landing() {
                   </div>
                 )}
                 
-                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden">
-                  {/* Prompt Input with Dice Button */}
+                <div 
+                  className="input-wrapper-hover input-wrapper-focus bg-gray-50 dark:bg-gray-900/50 backdrop-blur-xl rounded-2xl border-2 border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300"
+                  style={{ animation: 'inputEntry 1s cubic-bezier(0.16, 1, 0.3, 1) 1s both' }}
+                >
+                  {/* Prompt Input */}
                   <div className="relative">
                     <Textarea
-                      placeholder="Describe the website you want to build..."
+                      placeholder="Create something beautiful..."
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={(e) => {
@@ -307,32 +437,30 @@ export default function Landing() {
                           }
                         }
                       }}
-                      className="min-h-[100px] resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="w-full min-h-[140px] p-6 resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 text-base focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
+                      style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
                       disabled={isGenerating || (!user && remainingGenerations === 0)}
                     />
-                    {/* Dice Button for Random Prompt */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => randomPrompt()}
-                      className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
-                      title="Get random prompt"
-                      disabled={isGenerating || (!user && remainingGenerations === 0)}
-                    >
-                      <Dices className="w-4 h-4" />
-                    </Button>
                   </div>
                   
-                  {/* Menu Bar */}
-                  <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-800/50">
-                    <div className="flex items-center gap-2">
-                      {/* Enhance Toggle - First for new projects */}
+                  {/* Controls Bar with Stagger Animation */}
+                  <div className="flex items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/30">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {/* Prompt Builder Button */}
                       <div 
-                        className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-300 dark:border-gray-800/50 pr-3 mr-1"
-                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style (includes its own optimizations)' : 'Enhance generated code with best practices'}
+                        className="control-btn-0 inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 cursor-pointer transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:transform hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <Zap className={`w-3.5 h-3.5 ${enhanceEnabled ? "text-yellow-500" : ""} ${stylePreference === 'v1' ? "opacity-50" : ""}`} />
-                        <span className={stylePreference === 'v1' ? "opacity-50" : ""}>Enhance</span>
+                        <Wand2 className="w-4 h-4" />
+                        <span>Prompt Builder</span>
+                      </div>
+                      
+                      {/* Enhance Toggle */}
+                      <div 
+                        className="control-btn-1 inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:transform hover:-translate-y-0.5 hover:shadow-md"
+                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style' : 'Enhance generated code'}
+                      >
+                        <Zap className={`w-4 h-4 ${enhanceEnabled ? "text-yellow-500" : "text-gray-500 dark:text-gray-400"} ${stylePreference === 'v1' ? "opacity-50" : ""}`} />
+                        <span className={`text-gray-700 dark:text-gray-300 ${stylePreference === 'v1' ? "opacity-50" : ""}`}>Enhance</span>
                         <Switch
                           checked={enhanceEnabled}
                           onCheckedChange={setEnhanceEnabled}
