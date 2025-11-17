@@ -175,7 +175,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     const loadVersions = async () => {
       if (project?.id) {
         try {
-          await loadProjectVersions(project.id);
+          await loadProjectVersions(parseInt(project.id));
           console.log('Loaded version history for project:', project.id);
         } catch (error) {
           console.error('Failed to load version history:', error);
@@ -593,14 +593,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       try {
         toast({
           title: "Enhancing prompt...",
-          description: stylePreference === 'v1' 
-            ? "Adding rich content and features for ultra-premium generation"
-            : "Adding more details for better results",
+          description: "Adding more details for better results",
         });
-        finalPrompt = await rewritePrompt(prompt, stylePreference);
+        finalPrompt = await rewritePrompt(prompt);
         console.log('Original prompt:', prompt);
         console.log('Enhanced prompt:', finalPrompt);
-        console.log('Style preference:', stylePreference);
       } catch (error) {
         console.error('Failed to enhance prompt:', error);
         // Continue with original prompt if enhancement fails
@@ -629,7 +626,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         stylePreference: stylePreference // Pass the style preference to backend
       };
       
-      if (isFollowUp && project) {
+      if (isFollowUp) {
         sessionPayload.existingFiles = project.files;
         sessionPayload.previousPrompts = project.prompts;
       }

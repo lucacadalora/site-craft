@@ -1,14 +1,14 @@
 // Enhanced prompt rewriting using Cerebras API
 // Adapted from v3's rewrite-prompt.ts
 
-export async function rewritePrompt(prompt: string, stylePreference: string = 'default'): Promise<string> {
+export async function rewritePrompt(prompt: string): Promise<string> {
   try {
     const response = await fetch('/api/cerebras/enhance-prompt', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt, stylePreference }),
+      body: JSON.stringify({ prompt }),
     });
 
     if (!response.ok) {
