@@ -900,11 +900,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let existingFilesParam: string | undefined;
     let previousPromptsParam: string | undefined;
     
+    let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
       const data = sessionData.get(sessionId);
       prompt = data.prompt;
       existingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
+      stylePreference = data.stylePreference || 'default'; // Extract style preference here!
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -999,13 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for follow-up context (already extracted above)
       const isFollowUp = existingFilesParam && previousPromptsParam;
       
-      // Extract stylePreference from session data (for v1 experimental style)
-      let stylePreference = 'default';
-      if (sessionData.has(sessionId)) {
-        const data = sessionData.get(sessionId);
-        stylePreference = data.stylePreference || 'default';
-      }
-      
+      // stylePreference already extracted above before deleting session
       console.log(`Generating with DeepSeek (${isFollowUp ? 'follow-up' : 'initial'}, style: ${stylePreference}) for prompt:`, prompt.substring(0, 50) + "...");
 
       // Choose system prompt based on whether this is a follow-up and style preference
@@ -1314,11 +1310,13 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
     let cerebrasExistingFilesParam: string | undefined;
     let cerebrasPreviousPromptsParam: string | undefined;
     
+    let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
       const data = sessionData.get(sessionId);
       prompt = data.prompt;
       cerebrasExistingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       cerebrasPreviousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
+      stylePreference = data.stylePreference || 'default'; // Extract style preference here!
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1412,13 +1410,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       // Check for follow-up context (already extracted above)
       const cerebrasIsFollowUp = cerebrasExistingFilesParam && cerebrasPreviousPromptsParam;
       
-      // Extract stylePreference from session data (for v1 experimental style)
-      let stylePreference = 'default';
-      if (sessionData.has(sessionId)) {
-        const data = sessionData.get(sessionId);
-        stylePreference = data.stylePreference || 'default';
-      }
-      
+      // stylePreference already extracted above before deleting session
       console.log(`Generating with Cerebras GLM-4.6 (${cerebrasIsFollowUp ? 'follow-up' : 'initial'}, style: ${stylePreference}) for prompt:`, prompt.substring(0, 50) + "...");
 
       // Choose system prompt based on whether this is a follow-up and style preference
