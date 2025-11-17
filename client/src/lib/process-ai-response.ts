@@ -33,7 +33,8 @@ const createFlexibleRegex = (searchBlock: string): RegExp => {
     .replace(/>\s*</g, '>\\s*<')
     .replace(/\s*>/g, '\\s*>');
   
-  return new RegExp(searchRegex, 'g');
+  // Don't use 'g' flag with exec() to avoid state issues
+  return new RegExp(searchRegex);
 };
 
 export function processAiResponse(response: string): ParsedResponse {
@@ -182,15 +183,28 @@ export function convertToProjectFiles(
             // Insert at beginning
             content = block.replace + '\n' + content;
           } else {
-            // Create flexible regex for matching
-            const regex = createFlexibleRegex(block.search);
-            const match = regex.exec(content);
-            
-            if (match) {
-              content = content.replace(match[0], block.replace);
-            } else {
-              // Try exact replacement as fallback
-              content = content.replace(block.search, block.replace);
+            try {
+              // Create flexible regex for matching
+              const regex = createFlexibleRegex(block.search);
+              const match = regex.exec(content);
+              
+              if (match) {
+                content = content.replace(match[0], block.replace);
+                console.log(`✏️ Applied SEARCH/REPLACE to ${file.path}`);
+              } else {
+                // Try exact replacement as fallback
+                const replacedContent = content.replace(block.search, block.replace);
+                if (replacedContent !== content) {
+                  content = replacedContent;
+                  console.log(`✏️ Applied exact replacement to ${file.path}`);
+                } else {
+                  console.warn(`⚠️ SEARCH/REPLACE failed for ${file.path} - pattern not found`);
+                  console.warn('Search pattern:', block.search.substring(0, 100) + (block.search.length > 100 ? '...' : ''));
+                }
+              }
+            } catch (error) {
+              console.error(`❌ Error applying SEARCH/REPLACE to ${file.path}:`, error);
+              // Continue with next block instead of freezing
             }
           }
         }
