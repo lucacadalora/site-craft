@@ -199,7 +199,11 @@ export function convertToProjectFiles(
                   console.log(`✏️ Applied exact replacement to ${file.path}`);
                 } else {
                   console.warn(`⚠️ SEARCH/REPLACE failed for ${file.path} - pattern not found`);
-                  console.warn('Search pattern:', block.search.substring(0, 100) + (block.search.length > 100 ? '...' : ''));
+                  console.warn('Search pattern first 200 chars:', block.search.substring(0, 200) + (block.search.length > 200 ? '...' : ''));
+                  // Log first 500 chars of the file content for debugging
+                  console.warn('File content first 500 chars:', content.substring(0, 500) + (content.length > 500 ? '...' : ''));
+                  // Suggest possible issue
+                  console.warn('💡 Tip: The AI may have hallucinated content. Try regenerating or provide more specific instructions.');
                 }
               }
             } catch (error) {

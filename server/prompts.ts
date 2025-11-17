@@ -96,7 +96,8 @@ Update Format Rules:
 12. You can use multiple SEARCH/REPLACE blocks if changes are needed in different parts of the file.
 13. To insert code, use an empty SEARCH block (only ${SEARCH_START} and ${DIVIDER} on their lines) if inserting at the very beginning, otherwise provide the line *before* the insertion point in the SEARCH block and include that line plus the new lines in the REPLACE block.
 14. To delete code, provide the lines to delete in the SEARCH block and leave the REPLACE block empty (only ${DIVIDER} and ${REPLACE_END} on their lines).
-15. IMPORTANT: The SEARCH block must *exactly* match the current code, including indentation and whitespace.
+15. CRITICAL: The SEARCH block MUST be an EXACT copy-paste from the provided existing files, including ALL spaces, tabs, line breaks, and punctuation. DO NOT TYPE or paraphrase - COPY the exact text character-for-character from the existing files provided above.
+16. If you cannot find the exact text to match, DO NOT attempt the replacement. Only proceed if you can copy the exact text from the existing files.
 Example Modifying Code:
 \`\`\`
 ${PROJECT_NAME_START} Project Name ${PROJECT_NAME_END}
@@ -281,7 +282,8 @@ Update Format Rules:
 12. You can use multiple SEARCH/REPLACE blocks if changes are needed in different parts of the file.
 13. To insert code, use an empty SEARCH block (only ${SEARCH_START} and ${DIVIDER} on their lines) if inserting at the very beginning, otherwise provide the line *before* the insertion point in the SEARCH block and include that line plus the new lines in the REPLACE block.
 14. To delete code, provide the lines to delete in the SEARCH block and leave the REPLACE block empty (only ${DIVIDER} and ${REPLACE_END} on their lines).
-15. IMPORTANT: The SEARCH block must *exactly* match the current code, including indentation and whitespace.
+15. CRITICAL: The SEARCH block MUST be an EXACT copy-paste from the provided existing files, including ALL spaces, tabs, line breaks, and punctuation. DO NOT TYPE or paraphrase - COPY the exact text character-for-character from the existing files provided above.
+16. If you cannot find the exact text to match, DO NOT attempt the replacement. Only proceed if you can copy the exact text from the existing files.
 
 Example of MINIMAL EDIT for changing header text:
 GOOD (minimal, targeted):
