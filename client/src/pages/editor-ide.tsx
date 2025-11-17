@@ -997,6 +997,20 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           
           if (!contentChunk) return;
           
+          // Decode HTML entities that might come from the server (especially from Cerebras)
+          const decodeHtmlEntities = (str: string) => {
+            return str
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&amp;/g, '&')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&#x27;/g, "'")
+              .replace(/&#x2F;/g, '/');
+          };
+          
+          // Decode the chunk before processing
+          contentChunk = decodeHtmlEntities(contentChunk);
           accumulatedContent += contentChunk;
           
           // REAL-TIME STREAMING: Detect file markers as they arrive
