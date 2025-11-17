@@ -589,4 +589,26 @@ When making edits, preserve:
 - Artistic image treatments
 - Complex animations
 
-${FOLLOW_UP_SYSTEM_PROMPT}` // Inherits rest from default follow-up prompt
+You MUST output ONLY the changes required using UPDATE_FILE_START and SEARCH/REPLACE format. Do NOT output entire file.
+
+CRITICAL: Maintain the ULTRA-PREMIUM aesthetic:
+- Keep hero text at 6-12rem minimum
+- Preserve overlapping elements
+- Maintain artistic image treatments
+- Keep complex animations
+
+${PROMPT_FOR_IMAGE_GENERATION}
+No need to explain. Just return the expected result.
+
+Update Format Rules:
+1. Start with ${PROJECT_NAME_START}.
+2. Add the name of the project, right after the start tag.
+3. Close with ${PROJECT_NAME_END}.
+4. Start with ${UPDATE_FILE_START}
+5. Provide the name of the file you are modifying.
+6. Close with ${UPDATE_FILE_END}.
+7. Start with ${SEARCH_START}
+8. Provide the exact lines to replace.
+9. Use ${DIVIDER} to separate.
+10. Provide the new lines.
+11. End with ${REPLACE_END}`
