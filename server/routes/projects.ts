@@ -216,4 +216,124 @@ router.post('/:id/publish', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+// GET all versions for a project
+router.get('/:id/versions', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to access this project' });
+    }
+
+    const versions = await storage.getProjectVersions(projectId);
+    res.json(versions);
+  } catch (error) {
+    console.error('Error getting project versions:', error);
+    res.status(500).json({ error: 'Failed to get project versions' });
+  }
+});
+
+// CREATE a new version for a project
+router.post('/:id/versions', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to update this project' });
+    }
+
+    // Get the latest version number
+    const latestVersion = await storage.getLatestProjectVersion(projectId);
+    const versionNumber = latestVersion ? latestVersion.versionNumber + 1 : 1;
+
+    const versionData = {
+      projectId,
+      versionNumber,
+      files: req.body.files || project.files || [],
+      prompt: req.body.prompt || project.prompt,
+      commitTitle: req.body.commitTitle || req.body.prompt,
+      isFollowUp: req.body.isFollowUp || false
+    };
+
+    const newVersion = await storage.createProjectVersion(versionData);
+    
+    // Update project's currentCommit to the new version
+    await storage.updateProject(projectId, {
+      currentCommit: newVersion.id,
+      files: versionData.files
+    });
+
+    res.status(201).json(newVersion);
+  } catch (error) {
+    console.error('Error creating project version:', error);
+    res.status(500).json({ error: 'Failed to create project version' });
+  }
+});
+
+// RESTORE a specific version of a project
+router.post('/:id/versions/:versionId/restore', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const versionId = parseInt(req.params.versionId);
+    
+    if (isNaN(projectId) || isNaN(versionId)) {
+      return res.status(400).json({ error: 'Invalid project or version ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to update this project' });
+    }
+
+    const version = await storage.getProjectVersion(versionId);
+    
+    if (!version || version.projectId !== projectId) {
+      return res.status(404).json({ error: 'Version not found or does not belong to this project' });
+    }
+
+    // Restore the project to this version
+    const updatedProject = await storage.updateProject(projectId, {
+      files: version.files,
+      currentCommit: versionId
+    });
+
+    res.json({
+      success: true,
+      project: updatedProject,
+      restoredVersion: version
+    });
+  } catch (error) {
+    console.error('Error restoring project version:', error);
+    res.status(500).json({ error: 'Failed to restore project version' });
+  }
+});
+
 export default router;
