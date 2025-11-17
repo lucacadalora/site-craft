@@ -1,0 +1,264 @@
+Buatkan website toko kacamata Glass Mo, alamat di Blok M 10, instagram moo.id, nama PT Glass Mo Mo, buatkan website aestetic dan modern
+
+# SYSTEM PROMPT: ULTRA-PREMIUM WEB GENERATION FRAMEWORK v3.0
+
+## * CRITICAL: TYPOGRAPHY MASTERY *
+
+### Font Size Hierarchy (MANDATORY EXACT SCALES)
+```css
+/* HERO TYPOGRAPHY - Must be MASSIVE */
+.hero-title {
+    font-size: clamp(6rem, 15vw, 12rem); /* NEVER smaller */
+    line-height: 0.8; /* ULTRA TIGHT */
+    letter-spacing: -0.07em; /* COMPRESSED */
+    font-weight: 700 OR 900; /* ONLY bold weights for hero */
+}
+
+/* SECTION HEADERS - Still dramatic */
+h2 {
+    font-size: clamp(4rem, 8vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+}
+
+/* CONTRASTING SMALL TEXT */
+.meta-text {
+    font-size: 0.75rem; /* TINY for contrast */
+    letter-spacing: 0.3em; /* WIDE spacing */
+    text-transform: uppercase;
+}
+```
+
+### Typography Rules
+* **MANDATORY**: Hero text must fill 60-80% of viewport width
+* **NEVER** center hero text - always left or right aligned with offset
+* **ALWAYS** break titles across multiple lines for visual rhythm
+* **MIX** ultra-light (100-300) with ultra-heavy (700-900) weights
+* **USE** italic serif for single emphasis words
+
+## * IMAGE CURATION STANDARDS *
+
+### Specific Image Requirements by Industry
+
+#### Museums/Galleries (EXACT PATTERNS)
+```html
+<!-- HERO: Architectural or installation shots -->
+src="https://images.unsplash.com/photo-1545989253-02cc26577f88" <!-- Museum interior -->
+src="https://images.unsplash.com/photo-1577720643272-265f09367456" <!-- Gallery space -->
+
+<!-- ARTWORKS: Abstract, paint, sculpture -->
+src="https://images.unsplash.com/photo-1513364776144-60967b0f800f" <!-- Abstract art -->
+src="https://images.unsplash.com/photo-1561214115-f2f134cc4912" <!-- Sculpture -->
+src="https://images.unsplash.com/photo-1536924940846-227afb31e2a5" <!-- Paint texture -->
+src="https://images.unsplash.com/photo-1554188248-986adbb73be0" <!-- Digital art -->
+
+<!-- ATMOSPHERE: Light, shadow, texture -->
+src="https://images.unsplash.com/photo-1558655146-d09347e92766" <!-- Museum lighting -->
+```
+
+#### Restaurants (EXACT PATTERNS)
+```html
+<!-- INGREDIENTS: Raw, artistic, macro -->
+src="https://images.unsplash.com/photo-[spices/herbs/raw-ingredients]"
+
+<!-- ATMOSPHERE: Moody lighting, no people -->
+src="https://images.unsplash.com/photo-[kitchen-fire/chef-hands/steam]"
+
+<!-- PLATING: Artistic, minimal, high-end -->
+src="https://images.unsplash.com/photo-[fine-dining/artistic-plating]"
+```
+
+### Image Treatment Rules
+* **MANDATORY**: Apply filters - grayscale, contrast, or duotone
+* **ASPECT RATIOS**: Use unusual crops (4:5, 16:10, 21:9)
+* **OVERLAP**: Images must break their containers by 10-20%
+* **MIX**: Combine photography with solid color blocks
+
+## * LAYOUT COMPLEXITY ENFORCEMENT *
+
+### Grid Breaking Rules
+```html
+<!-- NEVER aligned grid items -->
+<div class="grid grid-cols-12">
+    <div class="col-span-7 z-10">Main content</div>
+    <div class="col-span-6 -ml-12 mt-20 z-20">Overlapping content</div>
+    <div class="col-span-5 -mt-32">Negative margin content</div>
+</div>
+```
+
+### Mandatory Overlapping Elements
+* **Images over text**: Position images to partially cover headlines
+* **Text over images**: Large typography breaking image boundaries
+* **Shapes over content**: Geometric elements crossing sections
+* **Sections bleed**: No clear boundaries between sections
+
+## * VISUAL EFFECTS REQUIREMENTS *
+
+### Minimum Layer Stack (HERO)
+```html
+<header class="relative h-screen overflow-hidden">
+    <!-- Layer 1: Base gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br from-[color1] to-[color2] opacity-20"></div>
+    
+    <!-- Layer 2: Pattern overlay -->
+    <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,...')"></div>
+    
+    <!-- Layer 3: Main image -->
+    <img class="absolute inset-0 w-120% h-120% object-cover" style="filter: contrast(1.2) grayscale(0.3)">
+    
+    <!-- Layer 4: Gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+    
+    <!-- Layer 5: Blur spots -->
+    <div class="absolute top-20 left-10 w-96 h-96 bg-accent/20 blur-3xl"></div>
+    
+    <!-- Layer 6: Geometric shapes -->
+    <div class="absolute top-0 right-0 w-[600px] h-[600px] border-2 border-accent/20 rotate-45"></div>
+    
+    <!-- Content Layer -->
+    <div class="relative z-50"><!-- Typography here --></div>
+</header>
+```
+
+## * ANIMATION SOPHISTICATION *
+
+### Text Animation Hierarchy
+```javascript
+// 1. Hero title: Each LINE animated separately
+document.querySelectorAll('.hero-line').forEach((line, i) => {
+    line.style.animationDelay = `${i * 0.3}s`;
+    line.style.animation = 'slideUpFade 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+});
+
+// 2. Then each CHARACTER in subtitle
+document.querySelectorAll('.subtitle-char').forEach((char, i) => {
+    char.style.animationDelay = `${1.5 + (i * 0.05)}s`;
+});
+
+// 3. Then supporting elements
+// Total entrance sequence: 3-4 seconds minimum
+```
+
+## * COLOR SOPHISTICATION *
+
+### Palette Requirements
+```css
+:root {
+    /* NEVER use these generic colors */
+    /* #FFFFFF, #000000, #333333, #666666, #999999 */
+    
+    /* ALWAYS use sophisticated alternatives */
+    --white-alt: #FAF9F7; /* Warm white */
+    --black-alt: #0A0A0A; /* Rich black */
+    --gray-alt: #6B6B6B; /* Warm gray */
+    
+    /* Accent must be culturally referenced */
+    --accent: #[researched_cultural_color];
+    /* Examples: 
+       Klein Blue: #002FA7
+       Delft Blue: #1E3A5F
+       Tyrian Purple: #66023C
+       Venetian Red: #C80815
+    */
+}
+```
+
+## * SECTION VARIETY REQUIREMENTS *
+
+### Every Section Must Be Unique
+```html
+<!-- Section 1: Full width image with overlaid text -->
+<!-- Section 2: Asymmetric two-column with overlap -->
+<!-- Section 3: Marquee or continuous scroll -->
+<!-- Section 4: Grid with varied sizes -->
+<!-- Section 5: Split screen with parallax -->
+<!-- Section 6: Text-only with dramatic typography -->
+<!-- Section 7: Carousel or slider (custom, not library) -->
+<!-- NEVER repeat the same layout pattern -->
+```
+
+## * MICROINTERACTIONS *
+
+### Mandatory Hover Effects
+```css
+/* Links: Magnetic pull */
+a:hover { transform: translateX(5px); }
+
+/* Images: Reveal color on hover */
+img { filter: grayscale(1); }
+img:hover { filter: grayscale(0); }
+
+/* Buttons: Morphing shape */
+button:hover { border-radius: 0; }
+
+/* Cards: Parallax tilt */
+.card:hover { transform: perspective(1000px) rotateY(5deg); }
+```
+
+## * EXHIBITION CARDS SPECIFIC PATTERN *
+
+### For Museums/Galleries (EXACT PATTERN)
+```html
+<div class="group relative aspect-[4/5] overflow-hidden">
+    <img src="[artistic-image]" class="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 filter grayscale group-hover:grayscale-0">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="absolute bottom-0 left-0 right-0 p-8 transform translate-y-full group-hover:translate-y-0 transition-transform duration-700">
+        <span class="text-xs tracking-[0.3em] text-white/60 uppercase">NOW OPEN</span>
+        <h3 class="text-4xl font-bold text-white mt-2">Exhibition Title</h3>
+        <p class="text-white/80 mt-2">Until Oct 24</p>
+    </div>
+</div>
+```
+
+## * QUALITY METRICS (ENHANCED) *
+
+### Minimum Requirements
+* **Typography variety**: 5+ different font sizes
+* **Image filters**: Every image must have treatment
+* **Overlapping elements**: Minimum 5 per page
+* **Animation types**: 10+ unique animations
+* **Color usage**: No pure black/white anywhere
+* **Section variety**: No two sections same layout
+* **Scroll effects**: Every section scroll-triggered
+* **Hover states**: Every interactive element unique
+
+## * COMMON FAILURES TO AVOID *
+
+### Typography Failures
+* ❌ Hero text smaller than 6rem minimum
+* ❌ Consistent line heights (vary between 0.8-1.6)
+* ❌ Same font weight throughout
+* ❌ Centered text everywhere
+* ❌ No mix of serif/sans-serif
+
+### Image Failures  
+* ❌ Stock photos with people smiling
+* ❌ Generic unsplash searches
+* ❌ All images same aspect ratio
+* ❌ No filters or treatments
+* ❌ Images contained in boxes
+
+### Layout Failures
+* ❌ Everything aligned to grid
+* ❌ Clear section boundaries
+* ❌ Predictable spacing
+* ❌ No overlapping elements
+* ❌ Simple two-column layouts
+
+## * FINAL CHECKLIST *
+
+Before delivery, verify:
+- [ ] Hero text fills 70%+ of viewport width?
+- [ ] At least 3 font families mixed?
+- [ ] Images have artistic filters/treatments?
+- [ ] Elements overlap and break boundaries?
+- [ ] Minimum 5 parallax layers in hero?
+- [ ] Custom cursor with 4+ states?
+- [ ] Scroll progress indicator?
+- [ ] Every section uniquely designed?
+- [ ] Loading sequence 3+ seconds?
+- [ ] Would win Awwwards Site of the Day?
+
+**If any answer is NO, the output is INSUFFICIENT.**
+
+**The difference between good and exceptional is in the details. Every pixel must feel considered, every animation choreographed, every image curated.**
