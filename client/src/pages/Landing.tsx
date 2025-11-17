@@ -82,6 +82,7 @@ export default function Landing() {
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
   const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('cerebras');
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
+  const [stylePreference, setStylePreference] = useState<'default' | 'v1'>('default');
   const [randomPromptLoading, setRandomPromptLoading] = useState(false);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
@@ -150,10 +151,10 @@ export default function Landing() {
       return;
     }
 
-    // For anonymous users, redirect to /ide/new with the prompt, model, and enhance settings
+    // For anonymous users, redirect to /ide/new with the prompt, model, enhance, and style settings
     // The IDE will handle the actual generation and rate limiting
     const encodedPrompt = encodeURIComponent(prompt);
-    setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}&enhance=${enhanceEnabled}`);
+    setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}&enhance=${enhanceEnabled}&style=${stylePreference}`);
   };
 
   const handleExampleClick = (example: Example) => {
@@ -335,6 +336,26 @@ export default function Landing() {
                           </SelectItem>
                           <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
                             z.ai-GLM 4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Style Selector */}
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1')}>
+                        <SelectTrigger 
+                          className="h-8 w-auto min-w-[120px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Paintbrush className="w-3.5 h-3.5" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-700">
+                          <SelectItem value="default" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
+                            Default
+                          </SelectItem>
+                          <SelectItem value="v1" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
+                            v1 (Experimental)
                           </SelectItem>
                         </SelectContent>
                       </Select>

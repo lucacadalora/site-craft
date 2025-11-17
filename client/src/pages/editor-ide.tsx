@@ -77,10 +77,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       const params = new URLSearchParams(window.location.search);
       return {
         prompt: params.get('prompt') || '',
-        model: params.get('model') || 'cerebras'
+        model: params.get('model') || 'cerebras',
+        enhance: params.get('enhance') === 'true',
+        style: params.get('style') || 'default'
       };
     }
-    return { prompt: '', model: 'cerebras' };
+    return { prompt: '', model: 'cerebras', enhance: true, style: 'default' };
   });
   
   // UI State
@@ -96,8 +98,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
   );
   
-  // Style preference with localStorage persistence
+  // Style preference with localStorage persistence, prioritizing URL param
   const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1'>(() => {
+    // If style is in URL params, use that (guest users from landing page)
+    if (urlParams.style === 'v1') return 'v1';
+    
+    // Otherwise, check localStorage
     const savedStyle = localStorage.getItem('jatevo_style_preference');
     return (savedStyle === 'v1' ? 'v1' : 'default') as 'default' | 'v1';
   });
@@ -109,8 +115,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     setStylePreferenceInternal(value);
   };
   
-  // Enhanced Settings with localStorage persistence
+  // Enhanced Settings with localStorage persistence, prioritizing URL param
   const [enhancedSettings, setEnhancedSettings] = useState<EnhancedSettings>(() => {
+    // If enhance is in URL params, use that (guest users from landing page)
+    if (urlParams.prompt && typeof urlParams.enhance !== 'undefined') {
+      return { isActive: urlParams.enhance };
+    }
+    
+    // Otherwise, check localStorage
     const saved = localStorage.getItem('enhanced_settings');
     return saved ? JSON.parse(saved) : { isActive: true };
   });
