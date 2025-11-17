@@ -787,9 +787,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   const savedProject = await saveProject(undefined, autoName, finalFilesArray, finalPrompt);
                   
                   if (savedProject?.id) {
-                    // Create a version for this generation (similar to v3's commit system)
+                    // Create a version FIRST, before navigation to ensure it completes
                     // We need to manually call the API here because the project context hasn't updated yet
+                    let versionCreated = false;
                     try {
+                      console.log('Creating initial version for project:', savedProject.id);
                       const token = localStorage.getItem('auth_token');
                       const versionPayload = {
                         projectId: savedProject.id,
@@ -810,22 +812,25 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                       });
                       
                       if (!versionResponse.ok) {
-                        throw new Error('Failed to create version');
+                        const errorText = await versionResponse.text();
+                        console.error('Version creation failed:', versionResponse.status, errorText);
+                        throw new Error(`Failed to create version: ${versionResponse.status}`);
                       }
                       
                       const newVersion = await versionResponse.json();
-                      console.log('Version created for project:', savedProject.id, 'version ID:', newVersion.id);
+                      console.log('✅ Version created successfully for project:', savedProject.id, 'version ID:', newVersion.id);
+                      versionCreated = true;
                     } catch (versionError) {
-                      console.error('Failed to create version:', versionError);
-                      // Non-critical error, continue
+                      console.error('❌ Failed to create version:', versionError);
+                      // Non-critical error, continue but log it
                     }
                     
-                    // Navigate using slug if available, otherwise fall back to ID
+                    // Navigate only AFTER version creation attempt completes
                     const navigateTo = savedProject.slug 
                       ? `/ide/${savedProject.slug}` 
                       : `/ide/${savedProject.id}`;
                     
-                    console.log('Navigating to saved project:', navigateTo, savedProject);
+                    console.log('Navigating to saved project:', navigateTo, 'version created:', versionCreated);
                     navigate(navigateTo, { replace: true });
                     
                     toast({
@@ -987,15 +992,52 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                     console.log('Auto-saving project (Cerebras):', { autoName, filesCount: finalFilesArray.length });
                     
                     // Pass finalFilesArray explicitly to avoid stale closure
-                    const savedProject = await saveProject(undefined, autoName, finalFilesArray);
+                    const savedProject = await saveProject(undefined, autoName, finalFilesArray, finalPrompt);
                     
                     if (savedProject?.id) {
-                      // Navigate using slug if available, otherwise fall back to ID
+                      // Create version BEFORE navigation for Cerebras flow too
+                      let versionCreated = false;
+                      try {
+                        console.log('Creating initial version for Cerebras project:', savedProject.id);
+                        const token = localStorage.getItem('auth_token');
+                        const versionPayload = {
+                          projectId: savedProject.id,
+                          versionNumber: 1,
+                          prompt: finalPrompt,
+                          files: finalFilesArray,
+                          isFollowUp: false,
+                          commitTitle: `Initial: ${finalPrompt.substring(0, 50)}...`
+                        };
+                        
+                        const versionResponse = await fetch(`/api/projects/${savedProject.id}/versions`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                          },
+                          body: JSON.stringify(versionPayload)
+                        });
+                        
+                        if (!versionResponse.ok) {
+                          const errorText = await versionResponse.text();
+                          console.error('Cerebras version creation failed:', versionResponse.status, errorText);
+                          throw new Error(`Failed to create version: ${versionResponse.status}`);
+                        }
+                        
+                        const newVersion = await versionResponse.json();
+                        console.log('✅ Cerebras version created successfully:', savedProject.id, 'version ID:', newVersion.id);
+                        versionCreated = true;
+                      } catch (versionError) {
+                        console.error('❌ Failed to create Cerebras version:', versionError);
+                        // Non-critical error, continue
+                      }
+                      
+                      // Navigate only AFTER version creation attempt
                       const navigateTo = savedProject.slug 
                         ? `/ide/${savedProject.slug}` 
                         : `/ide/${savedProject.id}`;
                       
-                      console.log('Navigating to saved project:', navigateTo, savedProject);
+                      console.log('Navigating to saved project:', navigateTo, 'version created:', versionCreated);
                       navigate(navigateTo, { replace: true });
                       
                       toast({
