@@ -865,12 +865,18 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               (async () => {
                 try {
                   // Save the updated files
-                  await saveProject(project.id, project.name, finalFilesArray, finalPrompt);
+                  const updatedProject = await saveProject(project.id, project.name, finalFilesArray, finalPrompt);
                   
                   // Create a version for this edit (similar to v3's commit system)
+                  // Use the project's createVersion function since project.id exists
                   try {
                     await createVersion(finalPrompt, finalFilesArray, isFollowUp || true);
                     console.log('Version created for edit on project:', project.id);
+                    
+                    // Manually invalidate versions query to refresh History component
+                    if (queryClient) {
+                      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/versions`] });
+                    }
                   } catch (versionError) {
                     console.error('Failed to create version:', versionError);
                     // Non-critical error, continue
