@@ -325,7 +325,7 @@ export default function Landing() {
               className="inline-block mb-10"
               style={{ animation: 'badgeEntry 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both' }}
             >
-              <div className="badge-shimmer relative overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm font-medium text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600">
+              <div className="badge-shimmer relative overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:transform hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
                 <span 
                   className="text-base"
                   style={{ animation: 'sparkleRotate 3s linear infinite' }}
@@ -336,14 +336,14 @@ export default function Landing() {
               </div>
             </div>
             
-            <h1 className="text-6xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight" style={{ lineHeight: '1.05', letterSpacing: '-0.02em' }}>
+            <h1 className="text-6xl md:text-7xl text-gray-900 dark:text-white mb-6" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, lineHeight: '1.05', letterSpacing: '-0.03em' }}>
               <span className="heading-word-0 inline-block">Ship</span>{' '}
               <span className="heading-word-1 inline-block">something</span>{' '}
               <span className="heading-word-2 inline-block">beautiful</span>
             </h1>
             <p 
-              className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8 font-normal"
-              style={{ animation: 'fadeInSlide 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both', lineHeight: '1.5' }}
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-8"
+              style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, animation: 'fadeInSlide 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both', lineHeight: '1.5' }}
             >
               Build in less than 60 seconds. Deploy instantly. Share everywhere.
               {!user && (
