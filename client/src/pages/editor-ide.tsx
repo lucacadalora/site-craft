@@ -956,6 +956,18 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                 if (eventData.projectName) {
                   projectName = eventData.projectName;
                 }
+              } else if (isFollowUp && eventData.files && eventData.files.length === 0) {
+                // Follow-up edit failed to parse files (SEARCH/REPLACE blocks didn't match)
+                console.warn('⚠️ Follow-up edit failed: No files were parsed from AI response');
+                setIsGenerating(false);
+                eventSource.close();
+                
+                toast({
+                  title: "⚠️ Edit Failed",
+                  description: "The AI couldn't apply your changes. Try being more specific or regenerate the entire project.",
+                  variant: "destructive"
+                });
+                return; // Exit early to prevent version creation with no changes
               }
               
               // Mark all files as complete and remove cursors
@@ -1072,6 +1084,43 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                     </Button>
                   )
                 });
+              } else if (project?.id) {
+                // Existing project - save the update and create a version for Cerebras flow
+                (async () => {
+                  try {
+                    console.log('Saving follow-up edit for project:', project.id);
+                    
+                    // Save the updated files
+                    const updatedProject = await saveProject(project.id, project.name, finalFilesArray, finalPrompt);
+                    
+                    // Create a version for this edit
+                    try {
+                      await createVersion(finalPrompt, finalFilesArray, true);
+                      console.log('Version created for Cerebras follow-up edit on project:', project.id);
+                      
+                      // Manually invalidate versions query to refresh History component
+                      if (queryClient) {
+                        queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/versions`] });
+                      }
+                    } catch (versionError) {
+                      console.error('Failed to create version for Cerebras edit:', versionError);
+                      // Non-critical error, continue
+                    }
+                    
+                    toast({
+                      title: "✨ Changes Applied",
+                      description: "Your edits have been saved to the project history.",
+                      className: "bg-green-900 border-green-700 text-white",
+                    });
+                  } catch (error) {
+                    console.error('Failed to save Cerebras follow-up edit:', error);
+                    toast({
+                      title: "❌ Save Failed",
+                      description: "Changes were applied but couldn't be saved.",
+                      variant: "destructive"
+                    });
+                  }
+                })();
               }
               
               return;
