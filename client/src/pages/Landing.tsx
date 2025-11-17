@@ -327,13 +327,17 @@ export default function Landing() {
                   <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-800/50">
                     <div className="flex items-center gap-2">
                       {/* Enhance Toggle - First for new projects */}
-                      <div className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-300 dark:border-gray-800/50 pr-3 mr-1">
-                        <Zap className={`w-3.5 h-3.5 ${enhanceEnabled ? "text-yellow-500" : ""}`} />
-                        <span>Enhance</span>
+                      <div 
+                        className="flex items-center gap-2 h-8 px-3 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-300 dark:border-gray-800/50 pr-3 mr-1"
+                        title={stylePreference === 'v1' ? 'Enhancement disabled for v1 experimental style (includes its own optimizations)' : 'Enhance generated code with best practices'}
+                      >
+                        <Zap className={`w-3.5 h-3.5 ${enhanceEnabled ? "text-yellow-500" : ""} ${stylePreference === 'v1' ? "opacity-50" : ""}`} />
+                        <span className={stylePreference === 'v1' ? "opacity-50" : ""}>Enhance</span>
                         <Switch
                           checked={enhanceEnabled}
                           onCheckedChange={setEnhanceEnabled}
                           className="scale-75"
+                          disabled={stylePreference === 'v1'}
                         />
                       </div>
                       
