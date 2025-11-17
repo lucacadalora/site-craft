@@ -593,11 +593,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       try {
         toast({
           title: "Enhancing prompt...",
-          description: "Adding more details for better results",
+          description: stylePreference === 'v1' 
+            ? "Adding rich content and features for ultra-premium generation"
+            : "Adding more details for better results",
         });
-        finalPrompt = await rewritePrompt(prompt);
+        finalPrompt = await rewritePrompt(prompt, stylePreference);
         console.log('Original prompt:', prompt);
         console.log('Enhanced prompt:', finalPrompt);
+        console.log('Style preference:', stylePreference);
       } catch (error) {
         console.error('Failed to enhance prompt:', error);
         // Continue with original prompt if enhancement fails
