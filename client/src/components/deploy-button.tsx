@@ -5,14 +5,21 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Check, Loader2, Globe } from 'lucide-react';
+import { bundleFilesForDeployment } from '@/lib/bundle-for-deployment';
+
+interface ProjectFile {
+  name: string;
+  content: string;
+}
 
 interface DeployButtonProps {
-  html: string;
+  files?: ProjectFile[];
+  html?: string;
   css?: string;
   projectId?: number | null;
 }
 
-export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
+export function DeployButton({ files, html, css = '', projectId }: DeployButtonProps) {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -115,10 +122,32 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
 
   // Deploy the page
   const deployPage = async () => {
-    if (!html) {
+    // Determine what content to deploy
+    let deployHtml = '';
+    let deployCss = '';
+    
+    if (files && files.length > 0) {
+      // Multi-file project - bundle everything into a single HTML
+      try {
+        deployHtml = bundleFilesForDeployment(files);
+        // CSS is already bundled into the HTML, so no separate CSS
+        deployCss = '';
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to bundle files for deployment',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (html) {
+      // Single file project (legacy from /editor)
+      deployHtml = html;
+      deployCss = css;
+    } else {
       toast({
         title: 'Error',
-        description: 'No HTML content to deploy',
+        description: 'No content to deploy',
         variant: 'destructive',
       });
       return;
@@ -153,8 +182,8 @@ export function DeployButton({ html, css = '', projectId }: DeployButtonProps) {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          html,
-          css,
+          html: deployHtml,
+          css: deployCss,
           slug,
           projectId,
         }),

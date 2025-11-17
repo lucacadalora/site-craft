@@ -1405,8 +1405,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
           
           {project && project.files.length > 0 && (
             <DeployButton 
-              html={getFileByName('index.html')?.content || ''}
-              css={getFileByName('style.css')?.content}
+              files={project.files}
               projectId={project.id ? parseInt(project.id) : null}
             />
           )}
