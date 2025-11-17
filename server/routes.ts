@@ -14,7 +14,12 @@ import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
 import { db } from './db';
 import { processAiResponse, ProjectFile } from './format-ai-response';
-import { INITIAL_SYSTEM_PROMPT, FOLLOW_UP_SYSTEM_PROMPT } from './prompts';
+import { 
+  INITIAL_SYSTEM_PROMPT, 
+  FOLLOW_UP_SYSTEM_PROMPT,
+  INITIAL_SYSTEM_PROMPT_V1,
+  FOLLOW_UP_SYSTEM_PROMPT_V1
+} from './prompts';
 import { anonymousRateLimiter, incrementGenerationCount, getRemainingGenerations, checkRateLimit } from './middleware/rateLimiter';
 
 // Initialize the database schema and tables only on first run
@@ -994,12 +999,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for follow-up context (already extracted above)
       const isFollowUp = existingFilesParam && previousPromptsParam;
       
-      console.log(`Generating with DeepSeek (${isFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
+      // Extract stylePreference from session data (for v1 experimental style)
+      let stylePreference = 'default';
+      if (sessionData.has(sessionId)) {
+        const data = sessionData.get(sessionId);
+        stylePreference = data.stylePreference || 'default';
+      }
+      
+      console.log(`Generating with DeepSeek (${isFollowUp ? 'follow-up' : 'initial'}, style: ${stylePreference}) for prompt:`, prompt.substring(0, 50) + "...");
 
-      // Choose system prompt based on whether this is a follow-up
+      // Choose system prompt based on whether this is a follow-up and style preference
       const systemMessage = {
         role: "system",
-        content: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
+        content: stylePreference === 'v1' 
+          ? (isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V1 : INITIAL_SYSTEM_PROMPT_V1)
+          : (isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT)
       };
 
       // Build user message with context if follow-up
@@ -1398,12 +1412,21 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       // Check for follow-up context (already extracted above)
       const cerebrasIsFollowUp = cerebrasExistingFilesParam && cerebrasPreviousPromptsParam;
       
-      console.log(`Generating with Cerebras GLM-4.6 (${cerebrasIsFollowUp ? 'follow-up' : 'initial'}) for prompt:`, prompt.substring(0, 50) + "...");
+      // Extract stylePreference from session data (for v1 experimental style)
+      let stylePreference = 'default';
+      if (sessionData.has(sessionId)) {
+        const data = sessionData.get(sessionId);
+        stylePreference = data.stylePreference || 'default';
+      }
+      
+      console.log(`Generating with Cerebras GLM-4.6 (${cerebrasIsFollowUp ? 'follow-up' : 'initial'}, style: ${stylePreference}) for prompt:`, prompt.substring(0, 50) + "...");
 
-      // Choose system prompt based on whether this is a follow-up
+      // Choose system prompt based on whether this is a follow-up and style preference
       const systemMessage = {
         role: "system",
-        content: cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT
+        content: stylePreference === 'v1' 
+          ? (cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V1 : INITIAL_SYSTEM_PROMPT_V1)
+          : (cerebrasIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT)
       };
 
       // Build user message with context if follow-up
