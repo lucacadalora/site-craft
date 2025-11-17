@@ -384,10 +384,17 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         prompts: data.prompts || [],
         isDirty: false,
         createdAt: new Date(data.createdAt),
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined
+        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
+        versions: [],  // Initialize with empty versions array
+        currentVersionIndex: undefined
       };
 
       setProjectState(loadedProject);
+      
+      // Immediately load versions after loading the project
+      if (loadedProject.id) {
+        await loadProjectVersions(loadedProject.id);
+      }
     } catch (error) {
       console.error('Error loading project:', error);
       throw error;
@@ -448,7 +455,18 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const versionNumber = (project.versions?.length || 0) + 1;
+      
+      // First, fetch the current versions to ensure we have the latest count
+      const versionsResponse = await fetch(`/api/projects/${project.id}/versions`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      
+      let currentVersions = [];
+      if (versionsResponse.ok) {
+        currentVersions = await versionsResponse.json();
+      }
+      
+      const versionNumber = currentVersions.length + 1;
       
       // Create version in database
       const response = await fetch(`/api/projects/${project.id}/versions`, {
@@ -471,16 +489,17 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         throw new Error('Failed to create version');
       }
 
-      const newVersion = await response.json();
+      const versionResult = await response.json();
+      const newVersion = versionResult.version || versionResult;
       
-      // Update local state
+      // Update local state with all versions including the new one
+      const updatedVersions = [...currentVersions, newVersion];
       setProjectState(prev => {
         if (!prev) return null;
-        const versions = [...(prev.versions || []), newVersion];
         return {
           ...prev,
-          versions,
-          currentVersionIndex: versions.length - 1
+          versions: updatedVersions,
+          currentVersionIndex: updatedVersions.length - 1
         };
       });
       
