@@ -788,9 +788,33 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
                   
                   if (savedProject?.id) {
                     // Create a version for this generation (similar to v3's commit system)
+                    // We need to manually call the API here because the project context hasn't updated yet
                     try {
-                      await createVersion(finalPrompt, finalFilesArray, isFollowUp || false);
-                      console.log('Version created for project:', savedProject.id);
+                      const token = localStorage.getItem('auth_token');
+                      const versionPayload = {
+                        projectId: savedProject.id,
+                        versionNumber: 1,
+                        prompt: finalPrompt,
+                        files: finalFilesArray,
+                        isFollowUp: isFollowUp || false,
+                        commitTitle: isFollowUp ? `Follow-up: ${finalPrompt.substring(0, 50)}...` : `Initial: ${finalPrompt.substring(0, 50)}...`
+                      };
+                      
+                      const versionResponse = await fetch(`/api/projects/${savedProject.id}/versions`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify(versionPayload)
+                      });
+                      
+                      if (!versionResponse.ok) {
+                        throw new Error('Failed to create version');
+                      }
+                      
+                      const newVersion = await versionResponse.json();
+                      console.log('Version created for project:', savedProject.id, 'version ID:', newVersion.id);
                     } catch (versionError) {
                       console.error('Failed to create version:', versionError);
                       // Non-critical error, continue
