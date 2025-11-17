@@ -46,6 +46,7 @@ import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-respo
 import { rewritePrompt } from '@/lib/rewrite-prompt';
 import { EnhancedSettings } from '@shared/schema';
 import { PROMPTS_FOR_AI, FOLLOW_UP_SYSTEM_PROMPT } from '@/lib/prompts';
+import { queryClient } from '@/lib/queryClient';
 
 interface EditorIDEProps {
   initialApiConfig?: any;
@@ -175,7 +176,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     const loadVersions = async () => {
       if (project?.id) {
         try {
-          await loadProjectVersions(parseInt(project.id));
+          await loadProjectVersions(project.id);
           console.log('Loaded version history for project:', project.id);
         } catch (error) {
           console.error('Failed to load version history:', error);
