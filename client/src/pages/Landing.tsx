@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { 
   Zap, Globe, Code, Rocket, ArrowRight, Menu, X, Check, AlertCircle, Send,
-  AtSign, Paperclip, Edit3, ChevronUp, Dices, Paintbrush, Wand2
+  AtSign, Paperclip, Edit3, ChevronUp, Dices, Paintbrush
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
@@ -423,7 +423,7 @@ export default function Landing() {
                   className="input-wrapper-hover input-wrapper-focus bg-gray-50 dark:bg-gray-900/50 backdrop-blur-xl rounded-2xl border-2 border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300"
                   style={{ animation: 'inputEntry 1s cubic-bezier(0.16, 1, 0.3, 1) 1s both' }}
                 >
-                  {/* Prompt Input */}
+                  {/* Prompt Input with Dice Button */}
                   <div className="relative">
                     <Textarea
                       placeholder="Create something beautiful..."
@@ -437,23 +437,26 @@ export default function Landing() {
                           }
                         }
                       }}
-                      className="w-full min-h-[140px] p-6 resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 text-base focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
+                      className="w-full min-h-[140px] p-6 pr-16 resize-none border-0 bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-400 text-base focus-visible:ring-0 focus-visible:ring-offset-0 leading-relaxed"
                       style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
                       disabled={isGenerating || (!user && remainingGenerations === 0)}
                     />
+                    {/* Dice Button for Random Prompt */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => randomPrompt()}
+                      className={`absolute top-4 right-4 h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
+                      title="Get random prompt"
+                      disabled={isGenerating || (!user && remainingGenerations === 0)}
+                    >
+                      <Dices className="w-4 h-4" />
+                    </Button>
                   </div>
                   
                   {/* Controls Bar with Stagger Animation */}
                   <div className="flex items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/30">
                     <div className="flex items-center gap-3 flex-wrap">
-                      {/* Prompt Builder Button */}
-                      <div 
-                        className="control-btn-0 inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 cursor-pointer transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:transform hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <Wand2 className="w-4 h-4" />
-                        <span>Prompt Builder</span>
-                      </div>
-                      
                       {/* Enhance Toggle */}
                       <div 
                         className="control-btn-1 inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:transform hover:-translate-y-0.5 hover:shadow-md"
