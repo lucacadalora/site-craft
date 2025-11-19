@@ -458,11 +458,8 @@ const App = () => {
       cssFiles: cssFiles.map(f => ({ name: f.name, content: f.content }))
     });
     
-    console.log('Preview update: Found JS files:', jsFiles.length, jsFiles.map(f => f.name));
-    
     // Guard against transient empty states (React StrictMode double-execution)
     if (jsFiles.length === 0 && cssFiles.length === 0 && lastReactSnapshotRef.current) {
-      console.log('Empty files detected but have previous React snapshot - preserving preview');
       // Don't update preview - keep the last successful React render
       return;
     }
@@ -472,11 +469,7 @@ const App = () => {
     const allJsCode = jsFiles.map(f => f.content).join('\n');
     const isReactProject = jsFiles.length > 0 && detectReact(allJsCode);
     
-    console.log('React detection result:', isReactProject);
-    console.log('JS Code sample:', allJsCode.substring(0, 200));
-    
     if (isReactProject) {
-      console.log('Rendering as React project');
       // Handle React project
       let combinedCss = '';
       cssFiles.forEach(cssFile => {
