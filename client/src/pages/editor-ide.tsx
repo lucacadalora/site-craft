@@ -340,14 +340,24 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       
       // Create React components for Lucide icons
       window.LucideIcons = {};
-      Object.keys(icons).forEach(name => {
-        const iconData = icons[name];
-        window.LucideIcons[name] = (props) => {
+      
+      // Map icon names from kebab-case to PascalCase
+      const kebabToPascal = (str) => {
+        return str.split('-').map(part => 
+          part.charAt(0).toUpperCase() + part.slice(1)
+        ).join('');
+      };
+      
+      Object.keys(icons).forEach(kebabName => {
+        const pascalName = kebabToPascal(kebabName);
+        const iconData = icons[kebabName];
+        
+        const IconComponent = (props) => {
           return React.createElement('svg', {
             ...props,
             xmlns: 'http://www.w3.org/2000/svg',
-            width: props.size || 24,
-            height: props.size || 24,
+            width: props.size || props.className?.includes('h-') ? undefined : 24,
+            height: props.size || props.className?.includes('h-') ? undefined : 24,
             viewBox: '0 0 24 24',
             fill: 'none',
             stroke: 'currentColor',
@@ -357,26 +367,35 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             dangerouslySetInnerHTML: { __html: iconData }
           });
         };
+        
+        window.LucideIcons[pascalName] = IconComponent;
+        window[pascalName] = IconComponent; // Make available globally
       });
       
-      // Map common Lucide React imports to window.LucideIcons
-      const iconNames = [
+      // Common icon mappings (ensure these are available)
+      const commonIcons = [
         'ArrowRight', 'TrendingUp', 'Activity', 'Globe', 'Shield', 'Zap',
         'BarChart3', 'PieChart', 'Layers', 'Menu', 'X', 'ChevronRight', 
         'ChevronDown', 'Briefcase', 'Landmark', 'Cpu', 'ArrowUpRight',
         'MousePointer2', 'Check', 'ChevronLeft', 'Search', 'Settings',
-        'User', 'Users', 'Home', 'FileText', 'Calendar', 'Mail', 'Phone'
+        'User', 'Users', 'Home', 'FileText', 'Calendar', 'Mail', 'Phone',
+        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'Plus', 'Minus', 'Edit',
+        'Trash', 'Download', 'Upload', 'ExternalLink', 'Copy', 'Save'
       ];
       
-      iconNames.forEach(name => {
-        if (window.LucideIcons[name]) {
+      // Ensure all common icons are available
+      commonIcons.forEach(name => {
+        if (!window[name] && window.LucideIcons[name]) {
           window[name] = window.LucideIcons[name];
         }
       });
     }
     
     // Import React hooks and utilities into global scope
-    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect } = React;
+    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect, forwardRef } = React;
+    
+    // Make React.forwardRef available globally
+    window.forwardRef = React.forwardRef;
     
     ${jsCode}
     
