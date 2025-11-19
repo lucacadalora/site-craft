@@ -449,7 +449,7 @@ const App = () => {
     // Check if this is a React project - PRIORITIZE React over HTML
     // Even if there's an index.html, if we detect React code, use React preview
     const allJsCode = jsFiles.map(f => f.content).join('\n');
-    const isReactProject = allJsCode && detectReact(allJsCode);
+    const isReactProject = jsFiles.length > 0 && detectReact(allJsCode);
     
     if (isReactProject) {
       // Handle React project
@@ -500,8 +500,10 @@ const App = () => {
     // Original HTML preview logic (non-React)
     const htmlFile = getFileByName('index.html');
     
-    // If there's no HTML file and no React detected, show a helpful message
+    // If there's no HTML file, show appropriate message based on content
     if (!htmlFile) {
+      // If React was already handled above, we shouldn't reach here
+      // But if we do, check if there are any files at all
       if (project.files.length === 0) {
         // No files at all
         if (previewRef.current) {
@@ -543,7 +545,8 @@ const App = () => {
           `;
         }
       } else {
-        // Files exist but no index.html - show file list
+        // Files exist but no index.html and React wasn't detected
+        // This shouldn't normally happen if React files exist
         const fileList = project.files.map(f => `<li>${f.name}</li>`).join('');
         if (previewRef.current) {
           previewRef.current.srcdoc = `
@@ -582,14 +585,19 @@ const App = () => {
                   border-radius: 4px;
                   border-left: 4px solid #ffc107;
                 }
+                .error {
+                  color: #721c24;
+                  background: #f8d7da;
+                  border-left-color: #dc3545;
+                }
               </style>
             </head>
             <body>
               <div class="info">
                 <h2>Project Files</h2>
                 <ul>${fileList}</ul>
-                <div class="note">
-                  💡 Tip: Create an index.html file or a React component to see the preview.
+                <div class="note error">
+                  ⚠️ React code detected but not rendering. Please check your component is properly exported.
                 </div>
               </div>
             </body>
