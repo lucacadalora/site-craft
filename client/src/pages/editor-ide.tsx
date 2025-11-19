@@ -500,23 +500,51 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         }
       } else {
         console.error('No React component found to render');
-        // Show helpful error in the DOM
+        // Show helpful error in the DOM with clear instructions
         document.getElementById('root').innerHTML = \`
-          <div style="padding: 20px; font-family: monospace; color: red;">
-            <h2>React Component Not Found</h2>
-            <p>Please ensure your React component is defined properly.</p>
-            <p>Example:</p>
-            <pre style="background: #f0f0f0; padding: 10px; color: #333;">
-function App() {
-  return <div>Hello World</div>;
+          <div style="
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+          ">
+            <div style="max-width: 600px; text-align: center;">
+              <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+              <h1 style="font-size: 32px; margin-bottom: 20px; margin-top: 0;">No Main React Component Found</h1>
+              <p style="font-size: 18px; line-height: 1.6; opacity: 0.95; margin-bottom: 30px;">
+                Your React code needs a main component to render. You've defined components but haven't assembled them into an App.
+              </p>
+              <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; text-align: left; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px;">
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                  <strong style="color: #fbbf24;">Quick Fix:</strong> Add this at the end of your code:
+                </div>
+                <pre style="margin: 0; color: #a5f3fc; line-height: 1.5;">
+export default function App() {
+  return (
+    &lt;div&gt;
+      &lt;YourComponent /&gt;
+      &lt;AnotherComponent /&gt;
+    &lt;/div&gt;
+  );
 }
-
-// or
-
-const App = () => {
-  return <div>Hello World</div>;
-};
-            </pre>
+                </pre>
+              </div>
+              <div style="margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                <p style="font-size: 14px; margin: 0; opacity: 0.9;">
+                  💡 <strong>Pro tip:</strong> If you're pasting code from elsewhere, make sure it includes the main App component that ties everything together.
+                </p>
+              </div>
+            </div>
           </div>
         \`;
       }
