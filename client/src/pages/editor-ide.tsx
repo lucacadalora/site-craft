@@ -365,23 +365,42 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       // Look for default export or main component
       let MainComponent = null;
       
-      if (typeof App !== 'undefined') {
-        MainComponent = App;
-      } else if (typeof Main !== 'undefined') {
-        MainComponent = Main;
-      } else if (typeof Component !== 'undefined') {
-        MainComponent = Component;
-      } else {
-        // Try to find any defined React component
+      // Common component names to check
+      const componentNames = ['App', 'Main', 'Component', 'Application', 'Root', 
+                              'Dashboard', 'Home', 'Index'];
+      
+      // Check for common component names
+      for (const name of componentNames) {
+        if (typeof window[name] !== 'undefined' && typeof window[name] === 'function') {
+          MainComponent = window[name];
+          console.log('Found component:', name);
+          break;
+        }
+      }
+      
+      // If not found, try to find any defined React component
+      if (!MainComponent) {
         for (const key in window) {
           if (window.hasOwnProperty(key) && 
               typeof window[key] === 'function' && 
               key[0] === key[0].toUpperCase() &&
               key !== 'React' && 
               key !== 'ReactDOM' &&
-              !key.startsWith('Lucide')) {
-            MainComponent = window[key];
-            break;
+              !key.startsWith('Lucide') &&
+              !key.startsWith('use')) {  // Exclude hooks
+            // Check if it looks like a React component (returns JSX)
+            try {
+              const testResult = window[key].toString();
+              if (testResult.includes('createElement') || 
+                  testResult.includes('return') ||
+                  testResult.includes('jsx')) {
+                MainComponent = window[key];
+                console.log('Found component by scanning:', key);
+                break;
+              }
+            } catch (e) {
+              // Continue searching
+            }
           }
         }
       }
@@ -389,8 +408,22 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       if (MainComponent) {
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(MainComponent));
+        console.log('React app rendered successfully');
       } else {
-        console.error('No React component found to render. Make sure to define an App, Main, or Component.');
+        console.error('No React component found to render. Make sure to define a component like App, Main, etc.');
+        // Show helpful error in the DOM
+        document.getElementById('root').innerHTML = \`
+          <div style="padding: 20px; font-family: monospace; color: red;">
+            <h2>React Component Not Found</h2>
+            <p>Please ensure your React component is defined properly.</p>
+            <p>Example:</p>
+            <pre style="background: #f0f0f0; padding: 10px; color: #333;">
+const App = () => {
+  return <div>Hello World</div>;
+};
+            </pre>
+          </div>
+        \`;
       }
     })();
   </script>
@@ -413,9 +446,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     // Get ALL CSS files
     const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
     
-    // Check if this is a React project
+    // Check if this is a React project - PRIORITIZE React over HTML
+    // Even if there's an index.html, if we detect React code, use React preview
     const allJsCode = jsFiles.map(f => f.content).join('\n');
-    const isReactProject = detectReact(allJsCode);
+    const isReactProject = allJsCode && detectReact(allJsCode);
     
     if (isReactProject) {
       // Handle React project
