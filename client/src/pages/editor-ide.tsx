@@ -500,60 +500,160 @@ const App = () => {
     // Original HTML preview logic (non-React)
     const htmlFile = getFileByName('index.html');
     
-    if (htmlFile) {
-      let fullHtml = htmlFile.content;
-      
-      // Create a virtual file system for multi-page navigation
-      const allHtmlFiles = project.files.filter(f => f.name.endsWith('.html'));
-      const fileSystem = allHtmlFiles.reduce((acc, file) => {
-        acc[file.name] = file.content;
-        return acc;
-      }, {} as Record<string, string>);
-      
-      // Remove the base href hack - it breaks relative URLs
-      // We'll handle links properly instead
-      
-      // Inject ALL CSS files inline
-      if (cssFiles.length > 0) {
-        // Remove ALL external CSS references
-        fullHtml = fullHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
-        fullHtml = fullHtml.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
-        
-        // Build combined CSS from all CSS files
-        let combinedCss = '';
-        cssFiles.forEach(cssFile => {
-          combinedCss += `\n/* ${cssFile.name} */\n${cssFile.content}\n`;
-        });
-        
-        // Inject combined CSS inline
-        const headEnd = fullHtml.indexOf('</head>');
-        if (headEnd > -1) {
-          fullHtml = fullHtml.slice(0, headEnd) + 
-            `\n<style>\n${combinedCss}\n</style>\n` + 
-            fullHtml.slice(headEnd);
+    // If there's no HTML file and no React detected, show a helpful message
+    if (!htmlFile) {
+      if (project.files.length === 0) {
+        // No files at all
+        if (previewRef.current) {
+          previewRef.current.srcdoc = `
+            <html>
+            <head>
+              <style>
+                body { 
+                  font-family: system-ui, -apple-system, sans-serif; 
+                  display: flex; 
+                  align-items: center; 
+                  justify-content: center; 
+                  min-height: 100vh; 
+                  margin: 0;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }
+                .empty-state {
+                  text-align: center;
+                  color: white;
+                  padding: 40px;
+                }
+                .empty-state h2 {
+                  font-size: 24px;
+                  margin-bottom: 10px;
+                }
+                .empty-state p {
+                  opacity: 0.9;
+                  font-size: 16px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="empty-state">
+                <h2>Ready to Create! 🚀</h2>
+                <p>Start by describing what you want to build in the prompt below.</p>
+              </div>
+            </body>
+            </html>
+          `;
+        }
+      } else {
+        // Files exist but no index.html - show file list
+        const fileList = project.files.map(f => `<li>${f.name}</li>`).join('');
+        if (previewRef.current) {
+          previewRef.current.srcdoc = `
+            <html>
+            <head>
+              <style>
+                body { 
+                  font-family: system-ui, -apple-system, sans-serif; 
+                  padding: 20px;
+                  background: #f5f5f5;
+                }
+                .info {
+                  background: white;
+                  padding: 20px;
+                  border-radius: 8px;
+                  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                h2 { color: #333; }
+                ul { 
+                  list-style: none; 
+                  padding: 0;
+                }
+                li {
+                  padding: 8px;
+                  margin: 4px 0;
+                  background: #f9f9f9;
+                  border-radius: 4px;
+                  font-family: monospace;
+                }
+                .note {
+                  color: #666;
+                  font-size: 14px;
+                  margin-top: 20px;
+                  padding: 12px;
+                  background: #fff3cd;
+                  border-radius: 4px;
+                  border-left: 4px solid #ffc107;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="info">
+                <h2>Project Files</h2>
+                <ul>${fileList}</ul>
+                <div class="note">
+                  💡 Tip: Create an index.html file or a React component to see the preview.
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
         }
       }
+      return; // Exit since there's no HTML to process
+    }
+    
+    // Process the HTML file
+    let fullHtml = htmlFile.content;
+    
+    // Create a virtual file system for multi-page navigation
+    const allHtmlFiles = project.files.filter(f => f.name.endsWith('.html'));
+    const fileSystem = allHtmlFiles.reduce((acc, file) => {
+      acc[file.name] = file.content;
+      return acc;
+    }, {} as Record<string, string>);
       
-      // Build complete JavaScript including ALL JS files
-      let completeJs = '';
+    // Remove the base href hack - it breaks relative URLs
+    // We'll handle links properly instead
+    
+    // Inject ALL CSS files inline
+    if (cssFiles.length > 0) {
+      // Remove ALL external CSS references
+      fullHtml = fullHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+      fullHtml = fullHtml.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
       
-      // Sort JS files to ensure components load before main scripts
-      // Components first, then other JS files
-      const componentFiles = jsFiles.filter(f => f.name.includes('component') || f.name.includes('navbar') || f.name.includes('footer'));
-      const otherJsFiles = jsFiles.filter(f => !componentFiles.includes(f));
-      
-      // Add component files first
-      componentFiles.forEach(jsFile => {
-        completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+      // Build combined CSS from all CSS files
+      let combinedCss = '';
+      cssFiles.forEach(cssFile => {
+        combinedCss += `\n/* ${cssFile.name} */\n${cssFile.content}\n`;
       });
       
-      // Add all other JS files
-      otherJsFiles.forEach(jsFile => {
-        completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
-      });
-      
-      // Add a DOM ready handler and re-initialization script
-      completeJs += `
+      // Inject combined CSS inline
+      const headEnd = fullHtml.indexOf('</head>');
+      if (headEnd > -1) {
+        fullHtml = fullHtml.slice(0, headEnd) + 
+          `\n<style>\n${combinedCss}\n</style>\n` + 
+          fullHtml.slice(headEnd);
+      }
+    }
+    
+    // Build complete JavaScript including ALL JS files
+    let completeJs = '';
+    
+    // Sort JS files to ensure components load before main scripts
+    // Components first, then other JS files
+    const componentFiles = jsFiles.filter(f => f.name.includes('component') || f.name.includes('navbar') || f.name.includes('footer'));
+    const otherJsFiles = jsFiles.filter(f => !componentFiles.includes(f));
+    
+    // Add component files first
+    componentFiles.forEach(jsFile => {
+      completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+    });
+    
+    // Add all other JS files
+    otherJsFiles.forEach(jsFile => {
+      completeJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+    });
+    
+    // Add a DOM ready handler and re-initialization script
+    completeJs += `
 // Ensure DOM is ready and reinitialize event listeners
 (function() {
   function initializeEventHandlers() {
