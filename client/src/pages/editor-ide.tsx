@@ -446,12 +446,18 @@ const App = () => {
     // Get ALL CSS files
     const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
     
+    console.log('Preview update: Found JS files:', jsFiles.length, jsFiles.map(f => f.name));
+    
     // Check if this is a React project - PRIORITIZE React over HTML
     // Even if there's an index.html, if we detect React code, use React preview
     const allJsCode = jsFiles.map(f => f.content).join('\n');
     const isReactProject = jsFiles.length > 0 && detectReact(allJsCode);
     
+    console.log('React detection result:', isReactProject);
+    console.log('JS Code sample:', allJsCode.substring(0, 200));
+    
     if (isReactProject) {
+      console.log('Rendering as React project');
       // Handle React project
       let combinedCss = '';
       cssFiles.forEach(cssFile => {
