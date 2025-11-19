@@ -248,20 +248,226 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     return () => window.removeEventListener('message', handleIframeMessage);
   }, [project, openFile]);
 
+  // Detect if code contains React/JSX
+  const detectReact = (code: string): boolean => {
+    const reactPatterns = [
+      /import\s+(?:React|{\s*useState|useEffect|useRef|useMemo|useCallback|Component)/,
+      /from\s+['"]react['"]/,
+      /React\.createElement/,
+      /React\.Component/,
+      /ReactDOM\.render/,
+      /ReactDOM\.createRoot/,
+      /<[A-Z][a-zA-Z]*(?:\s|>|\/>)/,  // JSX components (uppercase)
+      /className=/,  // React uses className instead of class
+      /onClick=/,    // React event handlers
+      /useState\(/,
+      /useEffect\(/,
+      /export\s+default\s+(?:function|class|const)/
+    ];
+    
+    return reactPatterns.some(pattern => pattern.test(code));
+  };
+
+  // Generate React-compatible HTML wrapper
+  const generateReactHTML = (jsCode: string, cssCode: string): string => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React App</title>
+  
+  <!-- React and ReactDOM from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Babel Standalone for JSX transformation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide React Icons (if needed) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  <!-- Tailwind CSS for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    ${cssCode}
+    
+    /* Base styles for React apps */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    // Make Lucide icons available globally if used
+    if (typeof lucide !== 'undefined') {
+      const icons = lucide.icons;
+      
+      // Create React components for Lucide icons
+      window.LucideIcons = {};
+      Object.keys(icons).forEach(name => {
+        const iconData = icons[name];
+        window.LucideIcons[name] = (props) => {
+          return React.createElement('svg', {
+            ...props,
+            xmlns: 'http://www.w3.org/2000/svg',
+            width: props.size || 24,
+            height: props.size || 24,
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            stroke: 'currentColor',
+            strokeWidth: props.strokeWidth || 2,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+            dangerouslySetInnerHTML: { __html: iconData }
+          });
+        };
+      });
+      
+      // Map common Lucide React imports to window.LucideIcons
+      const iconNames = [
+        'ArrowRight', 'TrendingUp', 'Activity', 'Globe', 'Shield', 'Zap',
+        'BarChart3', 'PieChart', 'Layers', 'Menu', 'X', 'ChevronRight', 
+        'ChevronDown', 'Briefcase', 'Landmark', 'Cpu', 'ArrowUpRight',
+        'MousePointer2', 'Check', 'ChevronLeft', 'Search', 'Settings',
+        'User', 'Users', 'Home', 'FileText', 'Calendar', 'Mail', 'Phone'
+      ];
+      
+      iconNames.forEach(name => {
+        if (window.LucideIcons[name]) {
+          window[name] = window.LucideIcons[name];
+        }
+      });
+    }
+    
+    ${jsCode}
+    
+    // Auto-detect and render the main component
+    (function() {
+      // Look for default export or main component
+      let MainComponent = null;
+      
+      if (typeof App !== 'undefined') {
+        MainComponent = App;
+      } else if (typeof Main !== 'undefined') {
+        MainComponent = Main;
+      } else if (typeof Component !== 'undefined') {
+        MainComponent = Component;
+      } else {
+        // Try to find any defined React component
+        for (const key in window) {
+          if (window.hasOwnProperty(key) && 
+              typeof window[key] === 'function' && 
+              key[0] === key[0].toUpperCase() &&
+              key !== 'React' && 
+              key !== 'ReactDOM' &&
+              !key.startsWith('Lucide')) {
+            MainComponent = window[key];
+            break;
+          }
+        }
+      }
+      
+      if (MainComponent) {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(MainComponent));
+      } else {
+        console.error('No React component found to render. Make sure to define an App, Main, or Component.');
+      }
+    })();
+  </script>
+</body>
+</html>`;
+  };
+
   // Update preview when active file changes
   useEffect(() => {
     if (!project || !previewRef.current) return;
     
+    // Get ALL JavaScript and JSX files
+    const jsFiles = project.files.filter(f => 
+      f.name.endsWith('.js') || 
+      f.name.endsWith('.jsx') || 
+      f.name.endsWith('.tsx') || 
+      f.name.endsWith('.ts')
+    );
+    
+    // Get ALL CSS files
+    const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
+    
+    // Check if this is a React project
+    const allJsCode = jsFiles.map(f => f.content).join('\n');
+    const isReactProject = detectReact(allJsCode);
+    
+    if (isReactProject) {
+      // Handle React project
+      let combinedCss = '';
+      cssFiles.forEach(cssFile => {
+        combinedCss += `\n/* ${cssFile.name} */\n${cssFile.content}\n`;
+      });
+      
+      // Combine all JS/JSX files
+      let combinedJs = '';
+      
+      // Sort to ensure proper load order
+      const componentFiles = jsFiles.filter(f => 
+        f.name.includes('component') || 
+        f.name.includes('Component') ||
+        f.name.startsWith('components/')
+      );
+      const otherJsFiles = jsFiles.filter(f => !componentFiles.includes(f));
+      
+      // Add components first
+      componentFiles.forEach(jsFile => {
+        combinedJs += `\n// ${jsFile.name}\n${jsFile.content}\n`;
+      });
+      
+      // Add other files
+      otherJsFiles.forEach(jsFile => {
+        // Clean up imports since we're combining everything
+        let content = jsFile.content;
+        // Remove module imports (we're putting everything in global scope for simplicity)
+        content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
+        content = content.replace(/^export\s+default\s+/gm, '');
+        content = content.replace(/^export\s+/gm, '');
+        
+        combinedJs += `\n// ${jsFile.name}\n${content}\n`;
+      });
+      
+      // Generate React-compatible HTML
+      const reactHtml = generateReactHTML(combinedJs, combinedCss);
+      
+      // Set the preview
+      if (previewRef.current) {
+        previewRef.current.srcdoc = reactHtml;
+      }
+      
+      return; // Exit early for React projects
+    }
+    
+    // Original HTML preview logic (non-React)
     const htmlFile = getFileByName('index.html');
     
     if (htmlFile) {
       let fullHtml = htmlFile.content;
-      
-      // Get ALL CSS files (not just style.css)
-      const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
-      
-      // Get ALL JavaScript files (not just hardcoded names)
-      const jsFiles = project.files.filter(f => f.name.endsWith('.js'));
       
       // Create a virtual file system for multi-page navigation
       const allHtmlFiles = project.files.filter(f => f.name.endsWith('.html'));

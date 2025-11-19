@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Theft Auto VI | Rockstar Games</title>
+    <meta name="description" content="Welcome to Leonida. Grand Theft Auto VI is coming 2025. Watch the trailer, meet the characters, and explore the new Vice City.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (via CDN for single file requirement) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'vi-pink': '#ff00ea',
+                        'vi-purple': '#9d00ff',
+                        'vi-orange': '#ff4d00',
+                        'vi-yellow': '#ffea00',
+                        'vi-teal': '#00fff2',
+                        'r-black': '#0a0a0a',
+                        'r-dark': '#121212',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'vice-gradient': 'linear-gradient(to bottom right, #ff00ea, #9d00ff, #ff4d00)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* --- CORE & UTILITIES --- */
+        :root {
+            --cursor-size: 20px;
+            --neon-glow: 0 0 10px rgba(255, 0, 234, 0.7), 0 0 20px rgba(255, 0, 234, 0.5), 0 0 30px rgba(255, 0, 234, 0.3);
+            --grid-color: rgba(255, 0, 234, 0.1);
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            overflow-x: hidden;
+            cursor: none; /* Custom cursor */
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #ff00ea, #ff4d00);
+            border-radius: 4px;
+        }
+
+        /* --- CUSTOM CURSOR --- */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--cursor-size);
+            height: var(--cursor-size);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s;
+            mix-blend-mode: difference;
+        }
+        #cursor.hover {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: #ff00ea;
+            mix-blend-mode: normal;
+            backdrop-filter: blur(2px);
+        }
+        #cursor-dot {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 4px;
+            background-color: #ff00ea;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 234, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(255, 0, 234, 0.9); }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes title-reveal {
+            0% { opacity: 0; transform: scale(0.8) translateY(50px); filter: blur(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-pulse-glow { animation: pulse-glow 2s infinite; }
+        
+        /* --- HERO SECTION --- */
+        .hero-bg {
+            position: relative;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            background: radial-gradient(circle at center bottom, #2a0e36 0%, #000000 70%);
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .logo-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .vi-logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-size: clamp(8rem, 20vw, 18rem);
+            font-weight: 900;
+            line-height: 0.9;
+            background: linear-gradient(to bottom, #fff 10%, #ff00ea 50%, #9d00ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(255, 0, 234, 0.4));
+            animation: title-reveal 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            letter-spacing: -0.05em;
+        }
+        
+        .gta-text {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: clamp(1rem, 2vw, 2rem);
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            color: #fff;
+            margin-bottom: -1rem;
+            z-index: 2;
+            position: relative;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            animation: title-reveal 1.5s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        /* --- GLASSMORPHISM UI --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .neon-border {
+            position: relative;
+        }
+        .neon-border::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff00ea, #ff4d00, transparent);
+            opacity: 0.7;
+        }
+
+        /* --- CHARACTER CARDS --- */
+        .char-card {
+            transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s;
+            transform-style: preserve-3d;
+        }
+        .char-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 50px rgba(255, 0, 234, 0.2);
+        }
+        .char-image-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        .char-image-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+        }
+        
+        /* --- INTERACTIVE MAP SLIDER --- */
+        .map-point {
+            width: 20px;
+            height: 20px;
+            background: #ff00ea;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            box-shadow: 0 0 20px #ff00ea;
+            transition: all 0.3s ease;
+        }
+        .map-point:hover {
+            transform: scale(1.5);
+            background: #fff;
+        }
+        .map-point::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ff00ea;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { width: 20px; height: 20px; opacity: 1; }
+            100% { width: 60px; height: 60px; opacity: 0; }
+        }
+
+        /* --- BUTTONS --- */
+        .btn-glitch {
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .btn-glitch::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
+        .btn-glitch:hover::before {
+            left: 100%;
+        }
+
+        /* --- SCANLINES OVERLAY --- */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9998;
+            opacity: 0.15;
+        }
+
+        /* --- LOADER --- */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.5s ease-out;
+        }
+        .loader-bar {
+            width: 200px;
+            height: 4px;
+            background: #333;
+            margin-top: 20px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .loader-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff00ea, #ff4d00);
+            transition: width 0.1s linear;
+        }
+
+        /* --- RESPONSIVE TWEAKS --- */
+        @media (max-width: 768px) {
+            .vi-logo-text { font-size: 6rem; }
+            .char-card:hover { transform: none; }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-vi-pink selection:text-white">
+
+    <!-- PRELOADER -->
+    <div id="loader">
+        <div class="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-vi-pink to-vi-orange animate-pulse">
+            R<span class="text-white">⋆</span>
+        </div>
+        <div class="loader-bar">
+            <div class="loader-progress" id="loader-progress"></div>
+        </div>
+        <p class="mt-4 text-xs text-gray-500 font-mono">LOADING ASSETS...</p>
+    </div>
+
+    <!-- CUSTOM CURSOR ELEMENTS -->
+    <div id="cursor"></div>
+    <div id="cursor-dot"></div>
+
+    <!-- SCANLINES EFFECT -->
+    <div class="scanlines"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 w-full z-50 px-6 py-4 transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto flex justify-between items-center glass-panel px-6 py-3">
+            <div class="flex items-center gap-2 cursor-pointer hover-trigger">
+                <div class="bg-vi-yellow text-black font-bold w-8 h-8 flex items-center justify-center rounded text-xl">R</div>
+                <i class="fa-solid fa-star text-white text-xs"></i>
+            </div>
+            
+            <div class="hidden md:flex items-center gap-8 font-semibold text-sm uppercase tracking-widest text-gray-300">
+                <a href="#home" class="hover:text-vi-pink transition-colors hover-trigger">Home</a>
+                <a href="#characters" class="hover:text-vi-pink transition-colors hover-trigger">Characters</a>
+                <a href="#world" class="hover:text-vi-pink transition-colors hover-trigger">Leonida</a>
+                <a href="#features" class="hover:text-vi-pink transition-colors hover-trigger">Features</a>
+                <a href="#preorder" class="hover:text-vi-pink transition-colors hover-trigger">Pre-Order</a>
+            </div>
+
+            <button class="bg-white text-black px-6 py-2 font-black uppercase text-xs tracking-widest hover:bg-vi-pink hover:text-white transition-all hover-trigger clip-path-slant btn-glitch">
+                Buy Now
+            </button>
+
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden text-2xl hover-trigger" onclick="toggleMobileMenu()">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section id="home" class="hero-bg relative">
+        <div class="canvas-container" id="hero-canvas"></div>
+        
+        <div class="hero-content px-4">
+            <div class="logo-container">
+                <h2 class="gta-text">Grand Theft Auto</h2>
+                <h1 class="vi-logo-text">VI</h1>
+            </div>
+            
+            <div class="space-y-6 opacity-0 animate-[fadeIn_1s_1.5s_forwards]">
+                <p class="text-xl md:text-2xl font-light tracking-wide text-gray-200 max-w-2xl mx-auto">
+                    Welcome to <span class="text-vi-pink font-bold">Leonida</span>. <br>
+                    The most immersive evolution of the Grand Theft Auto experience yet.
+                </p>
+                <div class="text-vi-yellow font-mono text-sm tracking-[0.5em] uppercase mb-8">
+                    Coming Fall 2025
+                </div>
+                
+                <div class="flex flex-col md:flex-row gap-4 justify-center items-center mt-8">
+                    <button class="group relative px-8 py-4 bg-transparent border border-vi-pink text-white font-bold uppercase tracking-widest overflow-hidden hover-trigger">
+                        <span class="absolute inset-0 w-full h-full bg-vi-pink/20 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 skew-x-12"></span>
+                        <span class="relative flex items-center gap-3">
+                            <i class="fa-solid fa-play text-xs"></i> Watch Trailer 1
+                        </span>
+                    </button>
+                    <button class="group relative px-8 py-4 bg-white text-black font-bold uppercase tracking-widest overflow-hidden hover-trigger">
+                        <span class="absolute inset-0 w-full h-full bg-gray-200 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+                        <span class="relative">Join the List</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-white/50 flex flex-col items-center gap-2 animate-bounce">
+            <span class="text-[10px] uppercase tracking-widest">Scroll to Explore</span>
+            <i class="fa-solid fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- CHARACTERS SECTION -->
+    <section id="characters" class="py-24 bg-r-dark relative overflow-hidden">
+        <!-- Background Gradient Blur -->
+        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-vi-purple/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-vi-orange/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="flex items-end justify-between mb-16 border-b border-gray-800 pb-4">
+                <div>
+                    <h2 class="text-4xl md:text-6xl font-black uppercase italic tracking-tighter text-white">
+                        The <span class="text-transparent bg-clip-text bg-gradient-to-r from-vi-pink to-vi-orange">Duo</span>
+                    </h2>
+                    <p class="text-gray-400 mt-2">Trust is the only currency that matters.</p>
+                </div>
+                <div class="hidden md:block text-right">
+                    <div class="text-xs text-gray-500 font-mono">WANTED LEVEL</div>
+                    <div class="flex gap-1 text-vi-pink text-sm">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star-half-stroke"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12">
+                <!-- Lucia Card -->
+                <div class="char-card group hover-trigger">
+                    <div class="char-image-wrapper h-[500px] bg-gray-900 relative">
+                        <!-- Placeholder using CSS Graphics since external images can break -->
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48Y2lyY2xlIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjQwIiBmaWxsPSIjNDQ0Ii8+PC9zdmc+')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-50"></div>
+                        
+                        <!-- Character Silhouette Mockup (SVG) -->
+                        <svg class="absolute bottom-0 left-1/2 -translate-x-1/2 h-[90%] w-auto drop-shadow-2xl" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M100,50 Q130,50 130,90 Q130,110 110,120 L120,250 L140,300 L130,400 L70,400 L60,300 L80,250 L90,120 Q70,110 70,90 Q70,50 100,50" fill="#d6d6d6" opacity="0.9"/>
+                            <path d="M100,60 Q120,60 120,85" fill="none" stroke="#000" stroke-width="2"/>
+                        </svg>
+                        
+                        <div class="absolute bottom-0 left-0 w-full p-8 z-20">
+                            <h3 class="text-5xl font-black uppercase italic text-white mb-2 group-hover:text-vi-pink transition-colors">Lucia</h3>
+                            <div class="h-1 w-12 bg-vi-pink mb-4 group-hover:w-full transition-all duration-500"></div>
+                            <p class="text-gray-300 text-sm leading-relaxed opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                                Fresh out of Leonida Penitentiary. She's looking for a way out of the life, but the life has a way of pulling you back in. 
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Stats Overlay -->
+                    <div class="mt-4 grid grid-cols-3 gap-2 text-center opacity-50 group-hover:opacity-100 transition-opacity">
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">DRIVING</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-pink h-full w-[80%]"></div></div>
+                        </div>
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">STEALTH</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-pink h-full w-[90%]"></div></div>
+                        </div>
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">STAMINA</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-pink h-full w-[60%]"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jason Card -->
+                <div class="char-card group hover-trigger">
+                    <div class="char-image-wrapper h-[500px] bg-gray-900 relative">
+                         <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMyMjIiLz48cGF0aCBkPSJNMCAwIEwxMDAgMTAwIiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iMTAiLz48L3N2Zz4=')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110 opacity-50"></div>
+                        
+                        <!-- Character Silhouette Mockup (SVG) -->
+                        <svg class="absolute bottom-0 left-1/2 -translate-x-1/2 h-[90%] w-auto drop-shadow-2xl" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M100,40 Q135,40 135,85 Q135,110 115,120 L130,250 L150,300 L140,400 L60,400 L50,300 L70,250 L85,120 Q65,110 65,85 Q65,40 100,40" fill="#c4c4c4" opacity="0.9"/>
+                            <!-- Bandana -->
+                            <path d="M85,100 L115,100 L100,120 Z" fill="#333"/>
+                        </svg>
+
+                        <div class="absolute bottom-0 left-0 w-full p-8 z-20">
+                            <h3 class="text-5xl font-black uppercase italic text-white mb-2 group-hover:text-vi-teal transition-colors">Jason</h3>
+                            <div class="h-1 w-12 bg-vi-teal mb-4 group-hover:w-full transition-all duration-500"></div>
+                            <p class="text-gray-300 text-sm leading-relaxed opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                                A man trying to keep his head above water in a state that's drowning in excess. Loyalty is his strength, and his weakness.
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Stats Overlay -->
+                     <div class="mt-4 grid grid-cols-3 gap-2 text-center opacity-50 group-hover:opacity-100 transition-opacity">
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">SHOOTING</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-teal h-full w-[85%]"></div></div>
+                        </div>
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">STRENGTH</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-teal h-full w-[95%]"></div></div>
+                        </div>
+                        <div class="glass-panel p-2">
+                            <div class="text-xs text-gray-500">PILOTING</div>
+                            <div class="w-full bg-gray-800 h-1 mt-1"><div class="bg-vi-teal h-full w-[40%]"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- WORLD SECTION (LEONIDA) -->
+    <section id="world" class="py-24 bg-black relative">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="mb-12 text-center">
+                <h2 class="text-4xl md:text-7xl font-black text-transparent bg-clip-text bg-vice-gradient tracking-tighter mb-4">LEONIDA</h2>
+                <p class="text-xl text-gray-400 font-light">The state that has it all. And then some.</p>
+            </div>
+
+            <!-- Interactive Map Container -->
+            <div class="relative w-full aspect-video bg-[#050505] rounded-xl border border-gray-800 overflow-hidden group shadow-2xl shadow-purple-900/20">
+                <!-- Stylized SVG Map Background -->
+                <svg class="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+                    <path d="M100,500 Q150,400 200,450 T300,400 T500,350 T700,400 T850,300 T950,200" fill="none" stroke="#333" stroke-width="2"/>
+                    <path d="M0,600 L1000,600 L1000,300 Q800,500 600,450 T300,550 L0,550 Z" fill="#111"/>
+                    <!-- Grid Lines -->
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+
+                <!-- Map Points -->
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none">
+                    <!-- Vice City -->
+                    <div class="map-point pointer-events-auto hover-trigger" style="top: 40%; left: 80%;" data-location="Vice City"></div>
+                    <div class="absolute top-[45%] left-[80%] text-vi-pink font-black text-xs uppercase tracking-widest -translate-x-1/2 mt-2">Vice City</div>
+
+                    <!-- Kelly County -->
+                    <div class="map-point pointer-events-auto hover-trigger" style="top: 30%; left: 40%; background: #00ffff; box-shadow: 0 0 20px #00ffff;" data-location="Kelly County"></div>
+                    <div class="absolute top-[35%] left-[40%] text-vi-teal font-black text-xs uppercase tracking-widest -translate-x-1/2 mt-2">Grassrivers</div>
+
+                    <!-- Leonida Keys -->
+                    <div class="map-point pointer-events-auto hover-trigger" style="top: 70%; left: 75%; background: #ff4d00; box-shadow: 0 0 20px #ff4d00;" data-location="Keys"></div>
+                    <div class="absolute top-[75%] left-[75%] text-vi-orange font-black text-xs uppercase tracking-widest -translate-x-1/2 mt-2">The Keys</div>
+                </div>
+
+                <!-- Location Info Panel (Dynamic) -->
+                <div id="location-panel" class="absolute bottom-8 left-8 max-w-md p-6 glass-panel transform translate-y-full opacity-0 transition-all duration-500">
+                    <h3 class="text-3xl font-black italic text-white mb-2" id="loc-title">VICE CITY</h3>
+                    <p class="text-sm text-gray-300" id="loc-desc">The city of neon dreams and nightmares. From the beaches of Vice Beach to the boardroom of the skyscrapers.</p>
+                    <div class="mt-4 flex gap-2">
+                        <span class="px-2 py-1 bg-white/10 rounded text-[10px] uppercase">Nightlife</span>
+                        <span class="px-2 py-1 bg-white/10 rounded text-[10px] uppercase">Luxury</span>
+                        <span class="px-2 py-1 bg-white/10 rounded text-[10px] uppercase">Crime</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES GRID (SOCIAL MEDIA VIBE) -->
+    <section id="features" class="py-24 bg-[#0a0a0a]">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Feature 1: Social Feed -->
+                <div class="glass-panel p-6 relative overflow-hidden group hover-trigger h-[400px]">
+                    <div class="absolute top-0 right-0 p-4">
+                        <i class="fa-brands fa-instagram text-2xl text-gray-500 group-hover:text-vi-pink transition-colors"></i>
+                    </div>
+                    <h3 class="text-2xl font-black uppercase mb-4">Viral <br>Sensation</h3>
+                    <p class="text-gray-400 text-sm mb-8">In Leonida, if it's not on camera, it didn't happen. Build your rep or ruin it.</p>
+                    
+                    <!-- Animated Comments -->
+                    <div class="absolute bottom-0 left-0 w-full p-4 space-y-3">
+                        <div class="bg-white/5 p-2 rounded text-xs flex gap-2 animate-float" style="animation-delay: 0s;">
+                            <div class="w-6 h-6 bg-blue-500 rounded-full"></div>
+                            <div>
+                                <div class="font-bold text-vi-pink">@ViceCityGirl</div>
+                                <div class="text-gray-300">OMG did you see that explosion?? 🔥🔥</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 p-2 rounded text-xs flex gap-2 animate-float" style="animation-delay: 1s;">
+                            <div class="w-6 h-6 bg-green-500 rounded-full"></div>
+                            <div>
+                                <div class="font-bold text-vi-teal">@LeonidaMan</div>
+                                <div class="text-gray-300">Gator in the pool again smh 🐊</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Customization -->
+                <div class="glass-panel p-6 relative overflow-hidden group hover-trigger h-[400px] md:col-span-2">
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-blue-900/20"></div>
+                    <div class="relative z-10 h-full flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-2xl font-black uppercase mb-4">Your Ride, <br>Your Rules</h3>
+                            <p class="text-gray-400 text-sm max-w-md">Deep customization for vehicles. Lowriders, donks, swamp buggies, and high-end exotics. Make it yours.</p>
+                        </div>
+                        
+                        <!-- Interactive Wheel Spinner Concept -->
+                        <div class="flex justify-end items-end">
+                             <div class="w-48 h-48 border-4 border-gray-800 rounded-full flex items-center justify-center relative group-hover:border-vi-pink transition-colors duration-500">
+                                <i class="fa-solid fa-car-side text-4xl text-gray-600 group-hover:text-white transition-colors"></i>
+                                <div class="absolute w-full h-full border-t-4 border-vi-pink rounded-full animate-spin" style="animation-duration: 3s;"></div>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- AUDIO VISUALIZER / FOOTER -->
+    <footer class="bg-black border-t border-gray-800 pt-12 pb-6 relative">
+        <div class="max-w-7xl mx-auto px-6">
+            
+            <!-- Fake Audio Player -->
+            <div class="glass-panel p-4 mb-12 flex items-center gap-6 max-w-2xl mx-auto hover-trigger">
+                <div class="w-12 h-12 bg-gradient-to-br from-vi-pink to-vi-orange rounded flex items-center justify-center animate-pulse">
+                    <i class="fa-solid fa-music text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-xs text-gray-500 uppercase tracking-wider">Now Playing</div>
+                    <div class="text-white font-bold">Love Is A Long Road</div>
+                </div>
+                <!-- Visualizer Bars -->
+                <div class="flex gap-1 h-8 items-end" id="visualizer">
+                    <div class="w-1 bg-vi-pink h-full animate-[pulse_0.5s_infinite]"></div>
+                    <div class="w-1 bg-vi-pink h-2/3 animate-[pulse_0.6s_infinite]"></div>
+                    <div class="w-1 bg-vi-pink h-full animate-[pulse_0.4s_infinite]"></div>
+                    <div class="w-1 bg-vi-pink h-1/2 animate-[pulse_0.7s_infinite]"></div>
+                    <div class="w-1 bg-vi-pink h-3/4 animate-[pulse_0.5s_infinite]"></div>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
+                <div class="text-2xl font-black tracking-tighter">ROCKSTAR GAMES</div>
+                <div class="flex gap-6 text-gray-500">
+                    <a href="#" class="hover:text-white transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="fa-brands fa-facebook"></i></a>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center text-xs text-gray-700 font-mono">
+                &copy; 2025 Rockstar Games, Inc. | Grand Theft Auto and Rockstar Games are registered trademarks of Take-Two Interactive. <br>
+                This is a fan-made concept site. Not affiliated with Rockstar Games.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 1. LOADER ---
+            const loader = document.getElementById('loader');
+            const progress = document.getElementById('loader-progress');
+            
+            // Simulate loading
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loader.style.opacity = '0';
+                        setTimeout(() => loader.remove(), 500);
+                        initHeroCanvas(); // Start canvas animation after load
+                    }, 500);
+                } else {
+                    width += Math.random() * 10;
+                    progress.style.width = width + '%';
+                }
+            }, 100);
+
+
+            // --- 2. CUSTOM CURSOR LOGIC ---
+            const cursor = document.getElementById('cursor');
+            const cursorDot = document.getElementById('cursor-dot');
+            
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+                cursorDot.style.left = e.clientX + 'px';
+                cursorDot.style.top = e.clientY + 'px';
+            });
+
+            // Hover effects
+            const hoverTriggers = document.querySelectorAll('.hover-trigger');
+            hoverTriggers.forEach(trigger => {
+                trigger.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+                trigger.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            });
+
+
+            // --- 3. MAP INTERACTIVITY ---
+            const mapPoints = document.querySelectorAll('.map-point');
+            const panel = document.getElementById('location-panel');
+            const locTitle = document.getElementById('loc-title');
+            const locDesc = document.getElementById('loc-desc');
+
+            const locationData = {
+                'Vice City': {
+                    desc: "The neon-soaked jewel of the south. Where the party never ends and the money never sleeps.",
+                    color: "text-vi-pink"
+                },
+                'Kelly County': {
+                    desc: "Grassrivers swamp. Home to gators, mud bogs, and people who don't like visitors.",
+                    color: "text-vi-teal"
+                },
+                'Keys': {
+                    desc: "A tropical paradise connected by bridges. Perfect for boat smuggling and sunsets.",
+                    color: "text-vi-orange"
+                }
+            };
+
+            mapPoints.forEach(point => {
+                point.addEventListener('mouseenter', (e) => {
+                    const loc = e.target.getAttribute('data-location');
+                    const data = locationData[loc];
+                    
+                    locTitle.innerText = loc;
+                    locDesc.innerText = data.desc;
+                    locTitle.className = `text-3xl font-black italic mb-2 ${data.color}`;
+                    
+                    panel.classList.remove('translate-y-full', 'opacity-0');
+                });
+            });
+
+            // Hide panel when leaving the map area container
+            document.querySelector('.aspect-video').addEventListener('mouseleave', () => {
+                panel.classList.add('translate-y-full', 'opacity-0');
+            });
+
+
+            // --- 4. NAVBAR SCROLL EFFECT ---
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 50) {
+                    navbar.classList.add('bg-black/80', 'backdrop-blur-md');
+                    navbar.querySelector('.glass-panel').classList.remove('glass-panel'); // simplify
+                } else {
+                    navbar.classList.remove('bg-black/80', 'backdrop-blur-md');
+                    navbar.querySelector('.max-w-7xl').classList.add('glass-panel');
+                }
+            });
+        });
+
+        // --- 5. CANVAS ANIMATION (RETRO SUNSET & STARS) ---
+        function initHeroCanvas() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('hero-canvas');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            container.appendChild(canvas);
+
+            let particles = [];
+            const particleCount = 100;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 2;
+                    this.speedX = (Math.random() - 0.5) * 0.5;
+                    this.speedY = (Math.random() - 0.5) * 0.5;
+                    this.color = `rgba(255, 255, 255, ${Math.random() * 0.5})`;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    
+                    if (this.x > canvas.width) this.x = 0;
+                    if (this.x < 0) this.x = canvas.width;
+                    if (this.y > canvas.height) this.y = 0;
+                    if (this.y < 0) this.y = canvas.height;
+                }
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+
+            // Sunset Gradient Params
+            let gradientOffset = 0;
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw Dynamic Gradient Background
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#2a0e36'); // Deep Purple
+                gradient.addColorStop(0.5, '#4a1c40'); 
+                gradient.addColorStop(1, '#000000');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Particles
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+
+                // Draw "Grid" floor effect (Retrowave style)
+                ctx.strokeStyle = 'rgba(255, 0, 234, 0.2)';
+                ctx.lineWidth = 1;
+                const horizon = canvas.height * 0.8;
+                
+                // Vertical lines
+                for (let i = 0; i < canvas.width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, horizon);
+                    ctx.lineTo((i - canvas.width/2) * 4 + canvas.width/2, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Horizontal moving lines
+                gradientOffset = (gradientOffset + 0.5) % 50;
+                for (let i = 0; i < canvas.height - horizon; i += 20) {
+                    let y = horizon + i + gradientOffset;
+                    if(y > canvas.height) continue;
+                    // Perspective scaling for lines
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        function toggleMobileMenu() {
+            alert("Mobile menu would slide out here. (Simulated for this demo)");
+        }
+    </script>
+</body>
+</html>

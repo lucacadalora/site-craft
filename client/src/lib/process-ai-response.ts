@@ -37,6 +37,25 @@ const createFlexibleRegex = (searchBlock: string): RegExp => {
   return new RegExp(searchRegex);
 };
 
+// Detect if code is React/JSX
+const detectReact = (code: string): boolean => {
+  const reactPatterns = [
+    /import\s+(?:React|{\s*useState|useEffect|useRef|useMemo|useCallback|Component)/,
+    /from\s+['"]react['"]/,
+    /React\.createElement/,
+    /React\.Component/,
+    /ReactDOM\.render/,
+    /ReactDOM\.createRoot/,
+    /<[A-Z][a-zA-Z]*(?:\s|>|\/>)/,  // JSX components
+    /className=/,
+    /onClick=/,
+    /useState\(/,
+    /useEffect\(/
+  ];
+  
+  return reactPatterns.some(pattern => pattern.test(code));
+};
+
 export function processAiResponse(response: string): ParsedResponse {
   const result: ParsedResponse = {
     files: []
@@ -46,6 +65,37 @@ export function processAiResponse(response: string): ParsedResponse {
   const projectNameMatch = response.match(/<<<<<<<\s*PROJECT_NAME_START\s*([\s\S]*?)\s*>>>>>>>\s*PROJECT_NAME_END/);
   if (projectNameMatch) {
     result.projectName = projectNameMatch[1].trim();
+  }
+
+  // Check if this is a single React component without file markers
+  // Look for a code block that contains React code
+  const codeBlockRegex = /```(?:jsx?|javascript|typescript|tsx?)?\n([\s\S]*?)```/;
+  const codeBlockMatch = response.match(codeBlockRegex);
+  
+  if (codeBlockMatch && !response.includes('NEW_FILE_START')) {
+    const code = codeBlockMatch[1];
+    if (detectReact(code)) {
+      // This is a React component without file markers
+      // Create it as App.jsx
+      result.files.push({
+        path: 'App.jsx',
+        content: code.trim(),
+        action: 'create'
+      });
+      
+      // If there's CSS in another code block, extract it
+      const cssBlockRegex = /```css\n([\s\S]*?)```/;
+      const cssMatch = response.match(cssBlockRegex);
+      if (cssMatch) {
+        result.files.push({
+          path: 'styles.css',
+          content: cssMatch[1].trim(),
+          action: 'create'
+        });
+      }
+      
+      return result; // Early return for single React component
+    }
   }
 
   // Parse NEW_FILE sections (7 '<' and '>' characters to match prompts)
