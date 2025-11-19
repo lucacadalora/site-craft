@@ -997,7 +997,6 @@ const App = () => {
       if (previewRef.current) {
         previewRef.current.srcdoc = fullHtml;
       }
-    }
   }, [project?.files, project?.activeFile]);
 
   const randomPrompt = () => {
