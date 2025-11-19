@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
@@ -267,6 +267,23 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     return reactPatterns.some(pattern => pattern.test(code));
   };
+  
+  // Ref to maintain last successful React render to handle transient empty states
+  const lastReactSnapshotRef = useRef<{ html: string; fileHash: string } | null>(null);
+  
+  // Memoize derived file arrays to prevent unnecessary re-renders
+  const jsFiles = useMemo(() => 
+    project?.files.filter(f => 
+      f.name.endsWith('.js') || 
+      f.name.endsWith('.jsx') || 
+      f.name.endsWith('.tsx') || 
+      f.name.endsWith('.ts')
+    ) || [],
+  [project?.files]);
+  
+  const cssFiles = useMemo(() => 
+    project?.files.filter(f => f.name.endsWith('.css')) || [],
+  [project?.files]);
 
   // Generate React-compatible HTML wrapper
   const generateReactHTML = (jsCode: string, cssCode: string): string => {
@@ -435,18 +452,20 @@ const App = () => {
   useEffect(() => {
     if (!project || !previewRef.current) return;
     
-    // Get ALL JavaScript and JSX files
-    const jsFiles = project.files.filter(f => 
-      f.name.endsWith('.js') || 
-      f.name.endsWith('.jsx') || 
-      f.name.endsWith('.tsx') || 
-      f.name.endsWith('.ts')
-    );
-    
-    // Get ALL CSS files
-    const cssFiles = project.files.filter(f => f.name.endsWith('.css'));
+    // Create a file hash to detect real changes
+    const fileHash = JSON.stringify({
+      jsFiles: jsFiles.map(f => ({ name: f.name, content: f.content })),
+      cssFiles: cssFiles.map(f => ({ name: f.name, content: f.content }))
+    });
     
     console.log('Preview update: Found JS files:', jsFiles.length, jsFiles.map(f => f.name));
+    
+    // Guard against transient empty states (React StrictMode double-execution)
+    if (jsFiles.length === 0 && cssFiles.length === 0 && lastReactSnapshotRef.current) {
+      console.log('Empty files detected but have previous React snapshot - preserving preview');
+      // Don't update preview - keep the last successful React render
+      return;
+    }
     
     // Check if this is a React project - PRIORITIZE React over HTML
     // Even if there's an index.html, if we detect React code, use React preview
@@ -494,6 +513,12 @@ const App = () => {
       
       // Generate React-compatible HTML
       const reactHtml = generateReactHTML(combinedJs, combinedCss);
+      
+      // Store successful React render for future guard
+      lastReactSnapshotRef.current = {
+        html: reactHtml,
+        fileHash: fileHash
+      };
       
       // Set the preview
       if (previewRef.current) {
@@ -1011,7 +1036,7 @@ const App = () => {
       if (previewRef.current) {
         previewRef.current.srcdoc = fullHtml;
       }
-  }, [project?.files, project?.activeFile]);
+  }, [jsFiles, cssFiles, project?.activeFile, getFileByName]);
 
   const randomPrompt = () => {
     setRandomPromptLoading(true);
