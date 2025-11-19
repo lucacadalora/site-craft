@@ -340,24 +340,14 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       
       // Create React components for Lucide icons
       window.LucideIcons = {};
-      
-      // Map icon names from kebab-case to PascalCase
-      const kebabToPascal = (str) => {
-        return str.split('-').map(part => 
-          part.charAt(0).toUpperCase() + part.slice(1)
-        ).join('');
-      };
-      
-      Object.keys(icons).forEach(kebabName => {
-        const pascalName = kebabToPascal(kebabName);
-        const iconData = icons[kebabName];
-        
-        const IconComponent = (props) => {
+      Object.keys(icons).forEach(name => {
+        const iconData = icons[name];
+        window.LucideIcons[name] = (props) => {
           return React.createElement('svg', {
             ...props,
             xmlns: 'http://www.w3.org/2000/svg',
-            width: props.size || props.className?.includes('h-') ? undefined : 24,
-            height: props.size || props.className?.includes('h-') ? undefined : 24,
+            width: props.size || 24,
+            height: props.size || 24,
             viewBox: '0 0 24 24',
             fill: 'none',
             stroke: 'currentColor',
@@ -367,35 +357,26 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             dangerouslySetInnerHTML: { __html: iconData }
           });
         };
-        
-        window.LucideIcons[pascalName] = IconComponent;
-        window[pascalName] = IconComponent; // Make available globally
       });
       
-      // Common icon mappings (ensure these are available)
-      const commonIcons = [
+      // Map common Lucide React imports to window.LucideIcons
+      const iconNames = [
         'ArrowRight', 'TrendingUp', 'Activity', 'Globe', 'Shield', 'Zap',
         'BarChart3', 'PieChart', 'Layers', 'Menu', 'X', 'ChevronRight', 
         'ChevronDown', 'Briefcase', 'Landmark', 'Cpu', 'ArrowUpRight',
         'MousePointer2', 'Check', 'ChevronLeft', 'Search', 'Settings',
-        'User', 'Users', 'Home', 'FileText', 'Calendar', 'Mail', 'Phone',
-        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'Plus', 'Minus', 'Edit',
-        'Trash', 'Download', 'Upload', 'ExternalLink', 'Copy', 'Save'
+        'User', 'Users', 'Home', 'FileText', 'Calendar', 'Mail', 'Phone'
       ];
       
-      // Ensure all common icons are available
-      commonIcons.forEach(name => {
-        if (!window[name] && window.LucideIcons[name]) {
+      iconNames.forEach(name => {
+        if (window.LucideIcons[name]) {
           window[name] = window.LucideIcons[name];
         }
       });
     }
     
     // Import React hooks and utilities into global scope
-    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect, forwardRef } = React;
-    
-    // Make React.forwardRef available globally
-    window.forwardRef = React.forwardRef;
+    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect } = React;
     
     ${jsCode}
     
@@ -417,19 +398,6 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
               (typeof candidate === 'object' && candidate && candidate.$$typeof)) {
             MainComponent = candidate;
             console.log('Found component:', name);
-            break;
-          }
-        }
-      }
-      
-      // Special check for exported functions (LUMINA QUANT pattern)
-      if (!MainComponent) {
-        // Check if there's an App function that was processed from export default
-        const exportPatterns = ['App', 'LuminaApp', 'LuminaQuant'];
-        for (const name of exportPatterns) {
-          if (typeof window[name] === 'function') {
-            MainComponent = window[name];
-            console.log('Found exported component:', name);
             break;
           }
         }
@@ -500,51 +468,23 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         }
       } else {
         console.error('No React component found to render');
-        // Show helpful error in the DOM with clear instructions
+        // Show helpful error in the DOM
         document.getElementById('root').innerHTML = \`
-          <div style="
-            padding: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-          ">
-            <div style="max-width: 600px; text-align: center;">
-              <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
-              <h1 style="font-size: 32px; margin-bottom: 20px; margin-top: 0;">No Main React Component Found</h1>
-              <p style="font-size: 18px; line-height: 1.6; opacity: 0.95; margin-bottom: 30px;">
-                Your React code needs a main component to render. You've defined components but haven't assembled them into an App.
-              </p>
-              <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; text-align: left; font-family: 'Monaco', 'Menlo', monospace; font-size: 14px;">
-                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2);">
-                  <strong style="color: #fbbf24;">Quick Fix:</strong> Add this at the end of your code:
-                </div>
-                <pre style="margin: 0; color: #a5f3fc; line-height: 1.5;">
-export default function App() {
-  return (
-    &lt;div&gt;
-      &lt;YourComponent /&gt;
-      &lt;AnotherComponent /&gt;
-    &lt;/div&gt;
-  );
+          <div style="padding: 20px; font-family: monospace; color: red;">
+            <h2>React Component Not Found</h2>
+            <p>Please ensure your React component is defined properly.</p>
+            <p>Example:</p>
+            <pre style="background: #f0f0f0; padding: 10px; color: #333;">
+function App() {
+  return <div>Hello World</div>;
 }
-                </pre>
-              </div>
-              <div style="margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <p style="font-size: 14px; margin: 0; opacity: 0.9;">
-                  💡 <strong>Pro tip:</strong> If you're pasting code from elsewhere, make sure it includes the main App component that ties everything together.
-                </p>
-              </div>
-            </div>
+
+// or
+
+const App = () => {
+  return <div>Hello World</div>;
+};
+            </pre>
           </div>
         \`;
       }
@@ -576,7 +516,6 @@ export default function App() {
     const isReactProject = jsFiles.length > 0 && detectReact(allJsCode);
     
     if (isReactProject) {
-      console.log('Processing React project with', jsFiles.length, 'JS files');
       // Handle React project
       let combinedCss = '';
       cssFiles.forEach(cssFile => {
@@ -605,26 +544,17 @@ export default function App() {
         let content = jsFile.content;
         
         // Remove ES6 module imports (they'll be replaced with globals)
-        // More comprehensive import removal
-        content = content.replace(/^import\s+React[^;]*from\s+['"]react['"];?\s*$/gm, '');
-        content = content.replace(/^import\s+\{[^}]+\}\s+from\s+['"]react['"];?\s*$/gm, '');
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
-        content = content.replace(/^import\s+['"].*?['"];?\s*$/gm, '');
         
-        // Handle export default with better patterns
-        // Function declarations
+        // Handle export default function/const/class patterns
         content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, 'function $1');
-        // Arrow functions assigned to const
-        content = content.replace(/^export\s+default\s+(.*?)=>/gm, 'const App = $1=>');
-        // Class declarations  
         content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, 'class $1');
-        // Const/let/var declarations
-        content = content.replace(/^export\s+default\s+(const|let|var)\s+(\w+)/gm, '$1 $2');
+        content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
         
-        // Handle standalone export default (for already defined components)
-        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, '// Default export: $1');
+        // Handle anonymous export default
+        content = content.replace(/^export\s+default\s+/gm, 'const App = ');
         
-        // Remove other export patterns
+        // Handle named exports  
         content = content.replace(/^export\s+{[^}]+}[^;]*;?\s*$/gm, '');
         content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
         
