@@ -115,6 +115,15 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Updated AI prompts to enforce multi-file generation (minimum 3 files: index.html, style.css, script.js)
   - Added explicit multi-file example in system prompt to guide AI behavior
   - Integrated v3 prompt architecture with Web Components support in components/ folder
+- November 19, 2025. Enhanced React support with universal compatibility:
+  - Implemented automatic library detection for React projects (Material-UI, Axios, Framer Motion, Recharts, etc.)
+  - Added TypeScript support with automatic type stripping for .ts and .tsx files
+  - Enhanced import/export processing for ES6 modules, CommonJS, and various export patterns
+  - Added JSX Fragment support and improved component detection
+  - Updated deployment bundler to properly handle React projects
+  - Deployment now generates React-compatible HTML with all necessary CDN links
+  - React preview works universally for ANY React code pasted (Create React App, Next.js, Vite, etc.)
+  - Both IDE preview and deployment now handle React projects correctly
 
 ## User Preferences
 
