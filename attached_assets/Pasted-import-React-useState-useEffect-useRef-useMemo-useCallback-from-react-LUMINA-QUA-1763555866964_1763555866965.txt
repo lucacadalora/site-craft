@@ -1,0 +1,804 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+/**
+ * LUMINA QUANTITATIVE
+ * * A simulation-heavy, aesthetic single-page application for a high-end 
+ * market maker and liquidity provider.
+ * * ARCHITECTURE:
+ * 1. Core Design System: "Swiss International" - Grids, Sans-serif, High Contrast.
+ * 2. Interactive Engine: HTML5 Canvas for fluid dynamics (Liquidity visualization).
+ * 3. Simulation Engine: Mock WebSocket for Level 2 Data (Order Book).
+ * 4. Components: Modular, utilizing Tailwind for layout and custom inline styles for complex animations.
+ */
+
+// --- UTILITIES & MATH ---
+
+const lerp = (start, end, t) => start * (1 - t) + end * t;
+const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// --- ASSETS & ICONS (CUSTOM SVGs) ---
+
+const Icons = {
+  Logo: ({ className }) => (
+    <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="4">
+      <path d="M20 20 L20 80 L80 80" strokeLinecap="square" />
+      <path d="M80 20 L80 80" strokeLinecap="square" className="opacity-30" />
+      <circle cx="50" cy="50" r="20" className="animate-pulse" strokeWidth="2" />
+      <path d="M20 80 L50 50 L80 20" strokeDasharray="10 5" />
+    </svg>
+  ),
+  Algo: ({ className }) => (
+    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="10" y="10" width="44" height="44" rx="2" className="opacity-20" />
+      <path d="M10 32 H54" />
+      <path d="M32 10 V54" />
+      <circle cx="32" cy="32" r="6" fill="currentColor" className="text-blue-600" />
+      <circle cx="18" cy="18" r="3" />
+      <circle cx="46" cy="46" r="3" />
+      <path d="M18 18 L32 32 L46 46" className="opacity-50" />
+    </svg>
+  ),
+  Liquidity: ({ className }) => (
+    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M8 32 C8 32 16 16 32 16 C48 16 56 32 56 32 C56 32 48 48 32 48 C16 48 8 32 8 32 Z" />
+      <circle cx="32" cy="32" r="12" />
+      <path d="M32 20 V44" strokeDasharray="4 4" />
+      <path d="M20 32 H44" strokeDasharray="4 4" />
+    </svg>
+  ),
+  Speed: ({ className }) => (
+    <svg viewBox="0 0 64 64" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M32 8 L40 24 H24 L32 8 Z" fill="currentColor" className="text-blue-600" />
+      <path d="M32 56 V24" />
+      <path d="M12 40 L32 24" />
+      <path d="M52 40 L32 24" />
+      <circle cx="12" cy="40" r="4" />
+      <circle cx="52" cy="40" r="4" />
+    </svg>
+  ),
+  ArrowRight: ({ className }) => (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M5 12H19M19 12L12 5M19 12L12 19" />
+    </svg>
+  )
+};
+
+// --- HOOKS ---
+
+const useScrollProgress = () => {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scroll = `${totalScroll / windowHeight}`;
+      setProgress(Number(scroll));
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  return progress;
+};
+
+const useMousePosition = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    const updateMousePosition = (ev) => {
+      setMousePosition({ x: ev.clientX, y: ev.clientY });
+    };
+    window.addEventListener('mousemove', updateMousePosition);
+    return () => window.removeEventListener('mousemove', updateMousePosition);
+  }, []);
+  return mousePosition;
+};
+
+// --- SIMULATION ENGINE: MARKET MAKER CORE ---
+
+const MarketSimulator = () => {
+  const canvasRef = useRef(null);
+  const [currentPrice, setCurrentPrice] = useState(4250.25);
+  const [spread, setSpread] = useState(0.15);
+  
+  // Order book state
+  const [bids, setBids] = useState([]);
+  const [asks, setAsks] = useState([]);
+
+  // Initialize Simulation
+  useEffect(() => {
+    const generateBook = (basePrice, type) => {
+      let orders = [];
+      let currentP = basePrice;
+      for (let i = 0; i < 15; i++) {
+        const volume = Math.random() * 10 + 2;
+        const step = Math.random() * 0.5;
+        currentP = type === 'bid' ? currentP - step : currentP + step;
+        orders.push({ price: currentP, vol: volume, total: 0 });
+      }
+      // Calc cumulative depth
+      let accum = 0;
+      orders.forEach(o => {
+        accum += o.vol;
+        o.total = accum;
+      });
+      return orders;
+    };
+
+    const interval = setInterval(() => {
+      // Random Walk
+      const volatility = (Math.random() - 0.5) * 2.5;
+      const newPrice = Math.max(100, currentPrice + volatility);
+      
+      setCurrentPrice(newPrice);
+      setBids(generateBook(newPrice - spread, 'bid'));
+      setAsks(generateBook(newPrice + spread, 'ask'));
+    }, 500); // Update rate
+
+    return () => clearInterval(interval);
+  }, [currentPrice, spread]);
+
+  // Canvas Renderer for Depth Chart
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    // HiDPI scaling
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    
+    const width = rect.width;
+    const height = rect.height;
+    
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      
+      // Grid
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for(let i=0; i<width; i+=40) { ctx.moveTo(i, 0); ctx.lineTo(i, height); }
+      for(let i=0; i<height; i+=40) { ctx.moveTo(0, i); ctx.lineTo(width, i); }
+      ctx.stroke();
+
+      const midX = width / 2;
+      const maxVol = 100; // Normalization factor
+      
+      // Draw Bids (Green-ish/Blue)
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.1)';
+      ctx.strokeStyle = '#2563eb';
+      ctx.beginPath();
+      ctx.moveTo(midX, height);
+      bids.forEach((bid, i) => {
+        const x = midX - (i * (width/30));
+        const y = height - ((bid.total / maxVol) * height);
+        ctx.lineTo(x, y);
+      });
+      ctx.lineTo(0, height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw Asks (Orange/Red - but kept professional, so maybe a deep Slate)
+      ctx.fillStyle = 'rgba(71, 85, 105, 0.1)';
+      ctx.strokeStyle = '#475569';
+      ctx.beginPath();
+      ctx.moveTo(midX, height);
+      asks.forEach((ask, i) => {
+        const x = midX + (i * (width/30));
+        const y = height - ((ask.total / maxVol) * height);
+        ctx.lineTo(x, y);
+      });
+      ctx.lineTo(width, height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Center Line (Price)
+      ctx.strokeStyle = '#000';
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(midX, 0);
+      ctx.lineTo(midX, height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+
+    draw();
+  }, [bids, asks]);
+
+  return (
+    <div className="w-full h-full bg-white border border-slate-200 overflow-hidden flex flex-col font-mono text-xs">
+      <div className="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+        <span className="font-bold text-slate-800">LUMINA.ENG | ETH-PERP</span>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span className="text-slate-500">CONNECTED (12ms)</span>
+        </div>
+      </div>
+      
+      <div className="flex-1 relative">
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+        
+        {/* Overlay UI */}
+        <div className="absolute top-4 left-4 bg-white/80 backdrop-blur p-2 border border-slate-200 shadow-sm rounded-sm">
+          <div className="text-slate-400 text-[10px] uppercase tracking-widest">Mark Price</div>
+          <div className="text-xl font-bold tracking-tight text-slate-900">
+            {currentPrice.toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* Order Book Table (Simplified) */}
+      <div className="h-1/3 border-t border-slate-200 flex">
+        <div className="w-1/2 border-r border-slate-200 p-2 overflow-hidden">
+          <div className="flex justify-between text-slate-400 mb-1 text-[10px]"><span>VOL</span><span>BID</span></div>
+          {bids.slice(0, 5).map((b, i) => (
+            <div key={`b-${i}`} className="flex justify-between py-0.5">
+              <span className="text-blue-600">{b.vol.toFixed(2)}</span>
+              <span className="font-medium text-slate-700">{b.price.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="w-1/2 p-2 overflow-hidden">
+          <div className="flex justify-between text-slate-400 mb-1 text-[10px]"><span>ASK</span><span>VOL</span></div>
+          {asks.slice(0, 5).map((a, i) => (
+            <div key={`a-${i}`} className="flex justify-between py-0.5">
+              <span className="font-medium text-slate-700">{a.price.toFixed(2)}</span>
+              <span className="text-slate-600">{a.vol.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- BACKGROUND ENGINE: FLUIDITY ---
+
+const FluidBackground = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let particles = [];
+    
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    };
+
+    const initParticles = () => {
+      particles = [];
+      const count = Math.floor(window.innerWidth / 20);
+      for(let i=0; i<count; i++){
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          size: Math.random() * 2,
+          life: Math.random() * 100
+        });
+      }
+    };
+
+    const animate = () => {
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.2)'; // Fade trail
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = '#cbd5e1'; // Particle color
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+
+        if(p.life <= 0 || p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+          // Reset particle
+          p.x = Math.random() * canvas.width;
+          p.y = Math.random() * canvas.height;
+          p.life = 100 + Math.random() * 100;
+          p.vx = (Math.random() - 0.5) * 0.5;
+          p.vy = (Math.random() - 0.5) * 0.5;
+        }
+        
+        // Draw
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Connections (Simulating liquidity network)
+        particles.forEach((p2, j) => {
+          if (i === j) return;
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist < 100) {
+            ctx.strokeStyle = `rgba(148, 163, 184, ${0.1 - dist/1000})`;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        });
+      });
+      
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('resize', resize);
+    resize();
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none" />;
+};
+
+// --- UI COMPONENTS ---
+
+const Badge = ({ children }) => (
+  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 border border-slate-200 tracking-wide uppercase">
+    {children}
+  </span>
+);
+
+const MagneticButton = ({ children, primary = false }) => {
+  const btnRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const { left, top, width, height } = btnRef.current.getBoundingClientRect();
+    const x = clientX - (left + width / 2);
+    const y = clientY - (top + height / 2);
+    setPosition({ x: x * 0.2, y: y * 0.2 });
+  };
+
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  return (
+    <button
+      ref={btnRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      className={`
+        relative px-8 py-4 text-sm font-medium tracking-widest transition-all duration-200 ease-out
+        ${primary 
+          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20' 
+          : 'bg-white text-slate-900 border border-slate-200 hover:border-slate-400 hover:bg-slate-50'}
+      `}
+    >
+      {children}
+    </button>
+  );
+};
+
+const ServiceCard = ({ title, description, icon: Icon, tags }) => {
+  return (
+    <div className="group relative p-8 bg-white border border-slate-200 hover:border-blue-500 transition-colors duration-500 overflow-hidden">
+      <div className="absolute top-0 left-0 w-1 h-0 bg-blue-600 group-hover:h-full transition-all duration-500 ease-in-out" />
+      
+      <div className="mb-6 relative">
+        <div className="w-12 h-12 bg-slate-50 flex items-center justify-center rounded-full group-hover:scale-110 transition-transform duration-500">
+          <Icon className="w-6 h-6 text-slate-700 group-hover:text-blue-600 transition-colors" />
+        </div>
+      </div>
+
+      <h3 className="text-xl font-bold text-slate-900 mb-3 tracking-tight">{title}</h3>
+      <p className="text-slate-500 leading-relaxed mb-6 font-light">{description}</p>
+
+      <div className="flex flex-wrap gap-2">
+        {tags.map(tag => (
+          <span key={tag} className="text-[10px] px-2 py-1 bg-slate-50 text-slate-600 uppercase tracking-wider">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const StatItem = ({ label, value, prefix = "", suffix = "" }) => (
+  <div className="flex flex-col border-l border-slate-200 pl-6">
+    <span className="text-slate-400 text-xs uppercase tracking-widest mb-1">{label}</span>
+    <span className="text-3xl font-light text-slate-900 font-mono">
+      {prefix}{value}{suffix}
+    </span>
+  </div>
+);
+
+// --- PAGE SECTIONS ---
+
+const Navbar = () => (
+  <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50">
+    <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <Icons.Logo className="w-8 h-8 text-blue-600" />
+        <span className="text-lg font-bold tracking-tighter text-slate-900">LUMINA<span className="font-light text-slate-500">QUANT</span></span>
+      </div>
+      
+      <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+        <a href="#" className="hover:text-blue-600 transition-colors">Liquidity</a>
+        <a href="#" className="hover:text-blue-600 transition-colors">Ventures</a>
+        <a href="#" className="hover:text-blue-600 transition-colors">Governance</a>
+        <a href="#" className="hover:text-blue-600 transition-colors">Research</a>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <span className="hidden md:block text-xs font-mono text-slate-400">SYS.STATUS: ONLINE</span>
+        <button className="px-4 py-2 bg-slate-900 text-white text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors">
+          Client Portal
+        </button>
+      </div>
+    </div>
+  </nav>
+);
+
+const TickerTape = () => {
+  const [items] = useState([
+    { pair: "BTC/USD", price: 64231.20, change: "+1.2%" },
+    { pair: "ETH/USD", price: 3452.10, change: "+0.8%" },
+    { pair: "SOL/USD", price: 145.20, change: "-0.4%" },
+    { pair: "LUM/ETF", price: 12.40, change: "+2.1%" },
+    { pair: "FX/EUR", price: 1.08, change: "+0.01%" },
+    { pair: "GOLD/OZ", price: 2341.50, change: "+0.5%" },
+    { pair: "VOL/IDX", price: 14.20, change: "-3.2%" },
+  ]);
+
+  return (
+    <div className="w-full bg-slate-900 py-3 overflow-hidden flex border-b border-slate-800">
+      <div className="flex animate-marquee whitespace-nowrap">
+        {[...items, ...items, ...items].map((item, i) => (
+          <div key={i} className="flex items-center gap-4 mx-8 font-mono text-xs">
+            <span className="text-slate-400 font-bold">{item.pair}</span>
+            <span className="text-slate-100">{item.price.toFixed(2)}</span>
+            <span className={item.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}>
+              {item.change}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Hero = () => {
+  return (
+    <section className="relative min-h-screen flex flex-col justify-center pt-20 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 w-full z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        
+        {/* Text Content */}
+        <div className="space-y-8">
+          <Badge>Since 2018</Badge>
+          <h1 className="text-6xl md:text-8xl font-bold text-slate-900 leading-[0.9] tracking-tighter">
+            Architecting <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">
+              Deep Liquidity
+            </span>
+          </h1>
+          <p className="text-xl text-slate-500 max-w-md leading-relaxed font-light">
+            Lumina Quantitative provides institutional-grade market making for digital assets, ETFs, and sovereign funds. We turn volatility into efficiency.
+          </p>
+          
+          <div className="flex flex-wrap gap-4 pt-4">
+            <MagneticButton primary>Partner With Us</MagneticButton>
+            <MagneticButton>View Markets</MagneticButton>
+          </div>
+
+          <div className="pt-12 flex items-center gap-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+             <div className="h-8 w-24 bg-slate-300 mask-logo"></div> {/* Placeholder for partner logos */}
+             <div className="text-sm font-mono text-slate-400">TRUSTED BY 50+ PROTOCOLS</div>
+          </div>
+        </div>
+
+        {/* Hero Interactive Visualization */}
+        <div className="relative h-[600px] w-full perspective-1000">
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Decorative blurred circles */}
+            <div className="absolute w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute w-64 h-64 bg-purple-400/10 rounded-full blur-3xl -translate-x-20 translate-y-20" />
+            
+            {/* The Simulation Component */}
+            <div className="relative w-full max-w-md aspect-[4/5] bg-white shadow-2xl shadow-blue-900/10 border border-slate-200 transform rotate-y-12 rotate-x-6 hover:rotate-0 transition-transform duration-700 ease-out p-2">
+              <MarketSimulator />
+              
+              {/* Floating Elements */}
+              <div className="absolute -right-12 top-20 bg-slate-900 text-white p-4 shadow-xl w-48">
+                <div className="text-[10px] text-slate-400 uppercase mb-2">Algo Performance</div>
+                <div className="text-2xl font-mono font-light text-green-400">+14.2%</div>
+                <div className="h-1 w-full bg-slate-800 mt-2 overflow-hidden">
+                  <div className="h-full bg-green-500 w-[70%]"></div>
+                </div>
+              </div>
+
+              <div className="absolute -left-8 bottom-32 bg-white border border-slate-200 p-4 shadow-xl w-56">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping"></div>
+                  <span className="text-xs font-bold uppercase">Large Order Detected</span>
+                </div>
+                <div className="font-mono text-xs text-slate-500">
+                  Blocks executed across 3 exchanges. Slippage &lt; 0.01%.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
+};
+
+const Offerings = () => {
+  return (
+    <section className="py-32 bg-slate-50 relative">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-20">
+          <div>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4 tracking-tight">Institutional Services</h2>
+            <p className="text-slate-500 max-w-lg">
+              Bespoke financial infrastructure for the world's most demanding capital allocators.
+            </p>
+          </div>
+          <div className="hidden md:block">
+             <a href="#" className="group flex items-center gap-2 text-blue-600 font-medium">
+                Explore all solutions 
+                <Icons.ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+             </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-l border-slate-200">
+          <ServiceCard 
+            title="Market Making" 
+            description="Providing tight spreads and deep liquidity across centralized and decentralized venues 24/7/365."
+            icon={Icons.Liquidity}
+            tags={['Spot', 'Derivatives', 'Options']}
+          />
+          <ServiceCard 
+            title="OTC Execution" 
+            description="High-touch block trading services for institutions looking to enter or exit positions with minimal market impact."
+            icon={Icons.Algo}
+            tags={['Block Trade', 'Privacy', 'Settlement']}
+          />
+          <ServiceCard 
+            title="Venture Liquidity" 
+            description="Strategic liquidity provision for token generation events and post-TGE market stabilization."
+            icon={Icons.Speed}
+            tags={['Launch', 'Advisory', 'Treasury']}
+          />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SimulationLog = () => {
+  const [logs, setLogs] = useState([]);
+  const logEndRef = useRef(null);
+
+  useEffect(() => {
+    const actions = ['REBALANCING', 'ARB_EXEC', 'HEDGE_INIT', 'LIQ_PROVIDE', 'ORDER_FILL'];
+    const assets = ['BTC', 'ETH', 'SOL', 'AVAX', 'LINK', 'UNI'];
+    
+    const interval = setInterval(() => {
+      const action = actions[Math.floor(Math.random() * actions.length)];
+      const asset = assets[Math.floor(Math.random() * assets.length)];
+      const time = new Date().toISOString().split('T')[1].slice(0,12);
+      const id = generateId();
+      
+      const newLog = { id, time, action, asset, val: (Math.random() * 100000).toFixed(2) };
+      
+      setLogs(prev => [...prev.slice(-6), newLog]); // Keep last 7
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
+      <div className="absolute inset-0 opacity-10">
+         {/* Grid pattern overlay */}
+         <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+        <div>
+          <h2 className="text-4xl font-bold mb-6 tracking-tight">
+            Powered by <span className="text-blue-500">Lumina.OS</span>
+          </h2>
+          <p className="text-slate-400 text-lg mb-12 leading-relaxed">
+            Our proprietary technology stack processes over 500 million data points daily. We don't just predict the market; we help structure it.
+          </p>
+          
+          <div className="grid grid-cols-2 gap-8">
+             <StatItem label="Daily Volume" value="2.4" prefix="$" suffix="B" />
+             <StatItem label="Trades / Sec" value="12" suffix="K" />
+             <StatItem label="Uptime" value="99.99" suffix="%" />
+             <StatItem label="Venues" value="85" suffix="+" />
+          </div>
+        </div>
+
+        <div className="bg-slate-950 border border-slate-800 rounded-lg p-6 font-mono text-xs shadow-2xl font-light">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+            <span className="text-blue-500">root@lumina-core:~# ./tail-logs</span>
+            <div className="flex gap-1">
+               <div className="w-2 h-2 rounded-full bg-red-500"></div>
+               <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+               <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            </div>
+          </div>
+          <div className="space-y-2 h-[300px] flex flex-col justify-end">
+            {logs.map(log => (
+              <div key={log.id} className="flex gap-4 opacity-80 hover:opacity-100 transition-opacity border-l-2 border-transparent hover:border-blue-500 pl-2">
+                <span className="text-slate-500">[{log.time}]</span>
+                <span className={
+                   log.action === 'ARB_EXEC' ? 'text-green-400' : 
+                   log.action === 'HEDGE_INIT' ? 'text-yellow-400' : 'text-blue-400'
+                }>{log.action}</span>
+                <span className="text-slate-300">{log.asset}-PERP</span>
+                <span className="ml-auto text-slate-500">${log.val}</span>
+              </div>
+            ))}
+            <div className="animate-pulse text-blue-500">_</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Footer = () => (
+  <footer className="bg-white border-t border-slate-200 pt-20 pb-10">
+    <div className="max-w-7xl mx-auto px-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Icons.Logo className="w-6 h-6 text-slate-900" />
+            <span className="font-bold tracking-tighter">LUMINA</span>
+          </div>
+          <p className="text-slate-500 text-sm">
+            London • Singapore • New York • Dubai
+          </p>
+        </div>
+        
+        <div>
+          <h4 className="font-bold mb-4 text-sm uppercase tracking-widest">Services</h4>
+          <ul className="space-y-2 text-sm text-slate-500">
+            <li><a href="#" className="hover:text-blue-600">Liquidity Provision</a></li>
+            <li><a href="#" className="hover:text-blue-600">OTC Desk</a></li>
+            <li><a href="#" className="hover:text-blue-600">Treasury Management</a></li>
+            <li><a href="#" className="hover:text-blue-600">ETF Creation</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-bold mb-4 text-sm uppercase tracking-widest">Company</h4>
+          <ul className="space-y-2 text-sm text-slate-500">
+            <li><a href="#" className="hover:text-blue-600">About Us</a></li>
+            <li><a href="#" className="hover:text-blue-600">Careers</a> <Badge>Hiring</Badge></li>
+            <li><a href="#" className="hover:text-blue-600">Insights</a></li>
+            <li><a href="#" className="hover:text-blue-600">Press</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-bold mb-4 text-sm uppercase tracking-widest">Connect</h4>
+          <div className="flex flex-col gap-4">
+            <input 
+              type="email" 
+              placeholder="Institutional Email" 
+              className="bg-slate-50 border border-slate-200 px-4 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <button className="bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800">
+              Request Access
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between text-xs text-slate-400">
+        <p>© 2024 Lumina Quantitative Ltd. All rights reserved.</p>
+        <div className="flex gap-6 mt-4 md:mt-0">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Disclosures</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+);
+
+// --- MAIN APP COMPONENT ---
+
+export default function App() {
+  const scrollProgress = useScrollProgress();
+
+  return (
+    <div className="bg-white min-h-screen text-slate-900 font-sans selection:bg-blue-100">
+      {/* Global Styles for custom animations */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.33%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #fff;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
+
+      <FluidBackground />
+      
+      {/* Progress Bar */}
+      <div 
+        className="fixed top-0 left-0 h-1 bg-blue-600 z-[60]"
+        style={{ width: `${scrollProgress * 100}%` }}
+      />
+
+      <Navbar />
+      <TickerTape />
+      
+      <main>
+        <Hero />
+        <Offerings />
+        <SimulationLog />
+        
+        {/* CTA Section */}
+        <section className="py-32 bg-white text-center relative overflow-hidden">
+           <div className="max-w-4xl mx-auto px-6 relative z-10">
+              <h2 className="text-5xl md:text-7xl font-bold mb-8 tracking-tighter text-slate-900">
+                Ready to deploy capital?
+              </h2>
+              <p className="text-xl text-slate-500 mb-12 font-light">
+                Join the network of forward-thinking institutions defining the future of finance.
+              </p>
+              <div className="flex justify-center gap-6">
+                <MagneticButton primary>Contact Sales</MagneticButton>
+                <MagneticButton>View Documentation</MagneticButton>
+              </div>
+           </div>
+           
+           {/* Decorative background elements */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-slate-100 rounded-full opacity-50 pointer-events-none" />
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-slate-100 rounded-full opacity-50 pointer-events-none" />
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
