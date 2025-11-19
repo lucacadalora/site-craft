@@ -930,7 +930,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         ...(isFollowUp ? {} : { stylePreference: stylePreference })
       };
       
-      if (isFollowUp) {
+      if (isFollowUp && project) {
         sessionPayload.existingFiles = project.files;
         sessionPayload.previousPrompts = project.prompts;
       }
