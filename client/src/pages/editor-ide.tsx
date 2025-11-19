@@ -375,6 +375,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       });
     }
     
+    // Import React hooks and utilities into global scope
+    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect } = React;
+    
     ${jsCode}
     
     // Auto-detect and render the main component
@@ -382,52 +385,89 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       // Look for default export or main component
       let MainComponent = null;
       
-      // Common component names to check
+      // Common component names to check (App is most common)
       const componentNames = ['App', 'Main', 'Component', 'Application', 'Root', 
-                              'Dashboard', 'Home', 'Index'];
+                              'Dashboard', 'Home', 'Index', 'LuminaApp', 'MyApp'];
       
       // Check for common component names
       for (const name of componentNames) {
-        if (typeof window[name] !== 'undefined' && typeof window[name] === 'function') {
-          MainComponent = window[name];
-          console.log('Found component:', name);
-          break;
+        if (typeof window[name] !== 'undefined') {
+          const candidate = window[name];
+          // Check if it's a valid React component (function or class)
+          if (typeof candidate === 'function' || 
+              (typeof candidate === 'object' && candidate && candidate.$$typeof)) {
+            MainComponent = candidate;
+            console.log('Found component:', name);
+            break;
+          }
         }
       }
       
       // If not found, try to find any defined React component
       if (!MainComponent) {
-        for (const key in window) {
-          if (window.hasOwnProperty(key) && 
-              typeof window[key] === 'function' && 
-              key[0] === key[0].toUpperCase() &&
-              key !== 'React' && 
-              key !== 'ReactDOM' &&
-              !key.startsWith('Lucide') &&
-              !key.startsWith('use')) {  // Exclude hooks
-            // Check if it looks like a React component (returns JSX)
-            try {
-              const testResult = window[key].toString();
-              if (testResult.includes('createElement') || 
-                  testResult.includes('return') ||
-                  testResult.includes('jsx')) {
-                MainComponent = window[key];
-                console.log('Found component by scanning:', key);
-                break;
-              }
-            } catch (e) {
-              // Continue searching
+        // Get all global variables defined in our script
+        const globalKeys = Object.keys(window).filter(key => {
+          try {
+            // Check if it's a function with uppercase first letter (React convention)
+            return typeof window[key] === 'function' && 
+                   key[0] === key[0].toUpperCase() &&
+                   key !== 'React' && 
+                   key !== 'ReactDOM' &&
+                   !key.startsWith('Lucide') &&
+                   !key.includes('Icon') &&
+                   !key.startsWith('use');  // Exclude hooks
+          } catch (e) {
+            return false;
+          }
+        });
+        
+        // Try each candidate
+        for (const key of globalKeys) {
+          try {
+            const candidate = window[key];
+            const fnString = candidate.toString();
+            
+            // Check if it looks like a React component
+            if (fnString.includes('return') && 
+                (fnString.includes('React.createElement') || 
+                 fnString.includes('jsx') ||
+                 fnString.includes('<') ||
+                 fnString.includes('div') ||
+                 fnString.includes('span'))) {
+              MainComponent = candidate;
+              console.log('Found component by scanning:', key);
+              break;
             }
+          } catch (e) {
+            // Continue searching
           }
         }
       }
       
+      // Last resort: check if there's a direct function that returns JSX
+      if (!MainComponent && typeof App !== 'undefined') {
+        MainComponent = App;
+      }
+      
       if (MainComponent) {
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(MainComponent));
-        console.log('React app rendered successfully');
+        try {
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(React.createElement(MainComponent));
+          console.log('React app rendered successfully');
+        } catch (error) {
+          console.error('Error rendering React component:', error);
+          document.getElementById('root').innerHTML = \`
+            <div style="padding: 20px; font-family: monospace; color: red;">
+              <h2>React Render Error</h2>
+              <p>\${error.message}</p>
+              <pre style="background: #f0f0f0; padding: 10px; color: #333; overflow: auto;">
+\${error.stack}
+              </pre>
+            </div>
+          \`;
+        }
       } else {
-        console.error('No React component found to render. Make sure to define a component like App, Main, etc.');
+        console.error('No React component found to render');
         // Show helpful error in the DOM
         document.getElementById('root').innerHTML = \`
           <div style="padding: 20px; font-family: monospace; color: red;">
@@ -435,6 +475,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
             <p>Please ensure your React component is defined properly.</p>
             <p>Example:</p>
             <pre style="background: #f0f0f0; padding: 10px; color: #333;">
+function App() {
+  return <div>Hello World</div>;
+}
+
+// or
+
 const App = () => {
   return <div>Hello World</div>;
 };
@@ -494,12 +540,23 @@ const App = () => {
       
       // Add other files
       otherJsFiles.forEach(jsFile => {
-        // Clean up imports since we're combining everything
+        // Process the content more carefully to preserve component structure
         let content = jsFile.content;
-        // Remove module imports (we're putting everything in global scope for simplicity)
+        
+        // Remove ES6 module imports (they'll be replaced with globals)
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
-        content = content.replace(/^export\s+default\s+/gm, '');
-        content = content.replace(/^export\s+/gm, '');
+        
+        // Handle export default function/const/class patterns
+        content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, 'function $1');
+        content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, 'class $1');
+        content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
+        
+        // Handle anonymous export default
+        content = content.replace(/^export\s+default\s+/gm, 'const App = ');
+        
+        // Handle named exports  
+        content = content.replace(/^export\s+{[^}]+}[^;]*;?\s*$/gm, '');
+        content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
         
         combinedJs += `\n// ${jsFile.name}\n${content}\n`;
       });
