@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA QUANTUM | Algorithmic Liquidity Provision</title>
+    
+    <!-- Fonts: Professional, Non-AI Slop. Clean Grotesk and Monospace -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (via CDN for single file portability) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- GSAP for high-end animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7; /* Swiss White */
+            --text-main: #111827; /* Deep Slate */
+            --text-muted: #6B7280;
+            --accent: #2563EB; /* International Klein Blue */
+            --accent-light: #BFDBFE;
+            --grid-color: #E5E7EB;
+            --glass: rgba(255, 255, 255, 0.7);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            cursor: none; /* Custom cursor logic */
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* --- Custom Cursor --- */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 12px;
+            height: 12px;
+            background-color: var(--text-main);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, background-color 0.3s;
+            mix-blend-mode: difference;
+        }
+        
+        #cursor-follower {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--text-main);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, opacity 0.3s;
+        }
+
+        .hover-active #cursor {
+            width: 0px;
+            height: 0px;
+        }
+        
+        .hover-active #cursor-follower {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(17, 24, 39, 0.1);
+            border-color: transparent;
+        }
+
+        /* --- Layout Utilities --- */
+        .section-padding {
+            padding-top: 120px;
+            padding-bottom: 120px;
+        }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* --- Text Reveals --- */
+        .reveal-text {
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+        }
+        .reveal-text span {
+            transform: translateY(100%);
+            display: inline-block;
+        }
+
+        /* --- Ticker Animation --- */
+        .ticker-wrap {
+            width: 100%;
+            overflow: hidden;
+            background: #fff;
+            border-bottom: 1px solid var(--grid-color);
+            white-space: nowrap;
+        }
+        .ticker {
+            display: inline-block;
+            animation: ticker 30s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
+        }
+
+        /* --- Grid Background --- */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* --- Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+
+        /* --- Interactive Nodes Canvas --- */
+        #network-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .magnetic-btn {
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+    </style>
+</head>
+<body class="loading">
+    
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+    <div id="cursor-follower"></div>
+
+    <!-- Background Grid -->
+    <div class="grid-bg"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 py-6 mix-blend-difference text-white pointer-events-none">
+        <div class="pointer-events-auto">
+            <a href="#" class="text-2xl font-bold tracking-tighter font-space hover-trigger" data-cursor="LOGO">
+                AURA <span class="text-blue-500">.</span> QUANTUM
+            </a>
+        </div>
+        <div class="hidden md:flex gap-8 items-center pointer-events-auto">
+            <a href="#services" class="text-sm uppercase tracking-widest hover:text-blue-400 transition-colors hover-trigger">Services</a>
+            <a href="#technology" class="text-sm uppercase tracking-widest hover:text-blue-400 transition-colors hover-trigger">Technology</a>
+            <a href="#markets" class="text-sm uppercase tracking-widest hover:text-blue-400 transition-colors hover-trigger">Markets</a>
+            <a href="#contact" class="px-6 py-2 border border-white/30 rounded-full hover:bg-white hover:text-black transition-all hover-trigger">Connect</a>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <header class="relative w-full h-screen flex items-center justify-center overflow-hidden">
+        <canvas id="network-canvas"></canvas>
+        
+        <div class="relative z-10 container mx-auto px-6 pointer-events-none">
+            <div class="max-w-5xl">
+                <div class="overflow-hidden mb-4">
+                    <p class="text-sm md:text-base text-slate-500 uppercase tracking-[0.3em] mono hero-anim">Global Market Maker</p>
+                </div>
+                <h1 class="text-6xl md:text-8xl lg:text-9xl font-light leading-[0.9] tracking-tight text-slate-900 mb-8">
+                    <div class="overflow-hidden"><span class="hero-anim block">Liquidity</span></div>
+                    <div class="overflow-hidden"><span class="hero-anim block italic font-serif text-blue-600">Reimagined</span></div>
+                    <div class="overflow-hidden"><span class="hero-anim block">By Code.</span></div>
+                </h1>
+                
+                <div class="flex flex-col md:flex-row gap-8 mt-12 items-start md:items-center pointer-events-auto">
+                    <button class="group relative px-8 py-4 bg-slate-900 text-white overflow-hidden hover-trigger magnetic-btn">
+                        <span class="relative z-10 font-medium group-hover:text-blue-300 transition-colors">Explore Algorithms</span>
+                        <div class="absolute inset-0 bg-slate-800 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300 ease-out"></div>
+                    </button>
+                    <div class="w-full md:w-64 h-[1px] bg-slate-300 hero-anim origin-left"></div>
+                    <p class="text-sm text-slate-600 max-w-xs hero-anim">
+                        Providing deep liquidity for Pension Funds, ETFs, and Crypto Assets through proprietary HFT strategies.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Data Widget (Bottom Right) -->
+        <div class="absolute bottom-10 right-10 z-20 hidden md:block glass-panel p-6 w-80 rounded-lg border-l-4 border-blue-600 hover-trigger">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Live Order Book</span>
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            </div>
+            <div class="font-mono text-xs space-y-1" id="order-book-feed">
+                <!-- JS will populate this -->
+            </div>
+        </div>
+    </header>
+
+    <!-- INFINITE TICKER -->
+    <div class="ticker-wrap py-4 border-y border-slate-200">
+        <div class="ticker mono text-sm font-medium text-slate-600" id="ticker-content">
+            <!-- JS Populated -->
+        </div>
+    </div>
+
+    <!-- INTRO / PHILOSOPHY -->
+    <section id="about" class="section-padding relative bg-white">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-12">
+                <div class="md:col-span-4">
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4">The Philosophy</h2>
+                    <div class="w-12 h-[2px] bg-slate-900"></div>
+                </div>
+                <div class="md:col-span-8">
+                    <p class="text-3xl md:text-5xl font-light leading-tight text-slate-800 split-reveal">
+                        Markets are no longer human. They are mathematical landscapes. We build the <span class="text-blue-600 italic font-serif">infrastructure</span> that navigates chaos with nanosecond precision, ensuring capital flows where it is needed most.
+                    </p>
+                    <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
+                        <div class="stat-card">
+                            <h3 class="text-4xl font-bold text-slate-900 mb-2 counter" data-target="50">0</h3>
+                            <p class="text-xs uppercase tracking-wider text-slate-500">Bn+ Monthly Vol</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 class="text-4xl font-bold text-slate-900 mb-2 counter" data-target="1200">0</h3>
+                            <p class="text-xs uppercase tracking-wider text-slate-500">Pairs Traded</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 class="text-4xl font-bold text-slate-900 mb-2 counter" data-target="24">0</h3>
+                            <p class="text-xs uppercase tracking-wider text-slate-500">Global Venues</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 class="text-4xl font-bold text-slate-900 mb-2 counter" data-target="0">0</h3>
+                            <p class="text-xs uppercase tracking-wider text-slate-500">Latency (Optimized)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES (Interactive Cards) -->
+    <section id="services" class="section-padding bg-slate-50 relative overflow-hidden">
+        <!-- Decorative SVG Background -->
+        <svg class="absolute top-0 right-0 w-1/2 h-full opacity-5 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path d="M0 0 C 50 100 80 100 100 0 Z" fill="none" stroke="currentColor" stroke-width="0.5" />
+            <path d="M10 0 C 60 100 90 100 110 0 Z" fill="none" stroke="currentColor" stroke-width="0.5" />
+        </svg>
+
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="mb-20">
+                <h2 class="text-6xl md:text-7xl font-light text-slate-900 mb-6">Our Capabilities</h2>
+                <p class="text-xl text-slate-500 max-w-2xl">Institutional-grade services for the modern financial ecosystem.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Service 1 -->
+                <div class="group relative bg-white border border-slate-200 p-10 h-[500px] flex flex-col justify-between hover:border-blue-500 transition-colors duration-500 hover-trigger service-card">
+                    <div class="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M8 12h8M12 8v8" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors">Market Making</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            Providing tight spreads and deep order books across centralized and decentralized exchanges. We reduce slippage and ensure price efficiency for your token or asset.
+                        </p>
+                    </div>
+                    <div class="w-full h-32 bg-slate-50 rounded overflow-hidden relative simulation-container" id="sim-mm">
+                        <!-- JS Physics Simulation Here -->
+                        <canvas class="w-full h-full absolute top-0 left-0"></canvas>
+                    </div>
+                </div>
+
+                <!-- Service 2 -->
+                <div class="group relative bg-white border border-slate-200 p-10 h-[500px] flex flex-col justify-between hover:border-blue-500 transition-colors duration-500 hover-trigger service-card" style="transition-delay: 0.1s">
+                    <div class="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors">OTC Trading</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            High-touch execution for large block trades. We offer bespoke liquidity for institutions, pension funds, and high-net-worth individuals, minimizing market impact.
+                        </p>
+                    </div>
+                    <div class="w-full h-32 border-t border-slate-200 flex items-center justify-center font-mono text-xs text-slate-400">
+                        <div class="otc-animation flex gap-2">
+                            <span class="text-slate-800">BUY</span> 1,500 BTC <span class="text-blue-500">>>></span> <span class="text-slate-800">FILLED</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Service 3 -->
+                <div class="group relative bg-white border border-slate-200 p-10 h-[500px] flex flex-col justify-between hover:border-blue-500 transition-colors duration-500 hover-trigger service-card" style="transition-delay: 0.2s">
+                    <div class="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                            <polyline points="2 17 12 22 22 17"></polyline>
+                            <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-bold mb-4 group-hover:text-blue-600 transition-colors">Venture Liquidity</h3>
+                        <p class="text-slate-500 leading-relaxed">
+                            Supporting early-stage projects with go-to-market liquidity strategies, exchange listing support, and treasury management optimization.
+                        </p>
+                    </div>
+                    <div class="relative w-full h-32">
+                        <!-- SVG Graph growing -->
+                        <svg class="w-full h-full" viewBox="0 0 200 100" fill="none" stroke="#CBD5E1" stroke-width="2">
+                            <polyline points="0,100 20,90 40,95 60,80 80,85 100,60 120,65 140,40 160,45 180,20 200,10" class="graph-line" stroke-dasharray="300" stroke-dashoffset="300" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECHNOLOGY SECTION (The "Black Box") -->
+    <section id="technology" class="py-32 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-20"></div>
+        
+        <div class="container mx-auto px-6 flex flex-col md:flex-row items-center relative z-10">
+            <div class="w-full md:w-1/2 pr-0 md:pr-12 mb-12 md:mb-0">
+                <h2 class="text-xs font-bold uppercase tracking-widest text-blue-400 mb-4">The Engine</h2>
+                <h3 class="text-4xl md:text-6xl font-light mb-8">Algorithmic Dominance.</h3>
+                <p class="text-slate-400 text-lg mb-8">
+                    Our proprietary execution engine, <span class="text-white font-mono">NEXUS-7</span>, processes millions of data points per second. Connecting centralized exchanges, DeFi pools, and OTC networks into a single liquidity fabric.
+                </p>
+                
+                <ul class="space-y-6">
+                    <li class="flex items-center gap-4 hover-trigger">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span class="font-mono text-sm text-slate-300">Latency: &lt; 5ms Execution</span>
+                    </li>
+                    <li class="flex items-center gap-4 hover-trigger">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span class="font-mono text-sm text-slate-300">Redundancy: Multi-Region Failover</span>
+                    </li>
+                    <li class="flex items-center gap-4 hover-trigger">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <span class="font-mono text-sm text-slate-300">Logic: Adaptive Spread Modeling</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="w-full md:w-1/2 h-[400px] bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden terminal-window">
+                <div class="absolute top-0 left-0 w-full h-8 bg-slate-900 border-b border-slate-700 flex items-center px-4 gap-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span class="ml-4 text-xs font-mono text-slate-500">nexus_kernel.py</span>
+                </div>
+                <div class="p-6 mt-6 font-mono text-xs md:text-sm text-blue-300 opacity-80 leading-relaxed" id="code-stream">
+                    <!-- JS Typewriter Effect -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section-padding bg-slate-50">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-5xl md:text-7xl font-light text-slate-900 mb-12">Become a Partner</h2>
+            
+            <div class="max-w-2xl mx-auto bg-white p-8 md:p-12 shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-100">
+                <form class="space-y-8 text-left">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="relative group">
+                            <input type="text" id="name" class="w-full bg-transparent border-b border-slate-300 py-2 focus:outline-none focus:border-blue-600 transition-colors text-slate-900" required>
+                            <label for="name" class="absolute left-0 top-2 text-slate-400 pointer-events-none transition-all group-focus-within:-top-5 group-focus-within:text-xs group-focus-within:text-blue-600">Entity Name</label>
+                        </div>
+                        <div class="relative group">
+                            <input type="email" id="email" class="w-full bg-transparent border-b border-slate-300 py-2 focus:outline-none focus:border-blue-600 transition-colors text-slate-900" required>
+                            <label for="email" class="absolute left-0 top-2 text-slate-400 pointer-events-none transition-all group-focus-within:-top-5 group-focus-within:text-xs group-focus-within:text-blue-600">Corporate Email</label>
+                        </div>
+                    </div>
+                    
+                    <div class="relative group">
+                        <select class="w-full bg-transparent border-b border-slate-300 py-2 focus:outline-none focus:border-blue-600 transition-colors text-slate-900 appearance-none rounded-none">
+                            <option value="" disabled selected>Interest Type</option>
+                            <option value="mm">Market Making</option>
+                            <option value="otc">OTC / Block Trading</option>
+                            <option value="vc">Venture Partnership</option>
+                        </select>
+                        <div class="absolute right-0 top-4 pointer-events-none">
+                            <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="#94A3B8" stroke-linecap="round"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="pt-8 text-center">
+                        <button type="button" class="hover-trigger px-12 py-4 bg-blue-600 text-white rounded-none hover:bg-slate-900 transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl">
+                            Initialize Connection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
+        <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="text-2xl font-bold tracking-tighter font-space text-white">
+                AURA <span class="text-blue-500">.</span> QUANTUM
+            </div>
+            <div class="flex gap-8 text-sm font-mono">
+                <a href="#" class="hover:text-blue-400 transition-colors">Privacy Protocol</a>
+                <a href="#" class="hover:text-blue-400 transition-colors">Terms of Execution</a>
+                <a href="#" class="hover:text-blue-400 transition-colors">Regulatory</a>
+            </div>
+            <div class="text-xs text-slate-600">
+                © 2024 Aura Quantum Technologies. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPT ENGINE -->
+    <script>
+        /**
+         * AURA QUANTUM CORE ENGINE
+         * Handles Animations, Data Simulation, and Canvas Renderers
+         */
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. INIT GSAP & SCROLL ---
+            gsap.registerPlugin(ScrollTrigger);
+
+            // Hero Animations
+            const heroTl = gsap.timeline();
+            heroTl.to('.hero-anim', {
+                y: '0%',
+                opacity: 1,
+                duration: 1.2,
+                stagger: 0.1,
+                ease: 'power4.out'
+            });
+
+            // Split Text Reveal (Philosophy Section)
+            const splitText = document.querySelector('.split-reveal');
+            // Simple word wrap logic for animation since we don't have SplitText plugin
+            const words = splitText.innerText.split(' ');
+            splitText.innerHTML = '';
+            words.forEach(word => {
+                const span = document.createElement('span');
+                span.innerText = word + ' ';
+                span.style.display = 'inline-block';
+                span.style.opacity = '0';
+                span.style.transform = 'translateY(20px)';
+                splitText.appendChild(span);
+            });
+
+            gsap.to('.split-reveal span', {
+                scrollTrigger: {
+                    trigger: '#about',
+                    start: 'top 75%',
+                },
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.02,
+                ease: 'power2.out'
+            });
+
+            // Counter Animation
+            gsap.utils.toArray('.counter').forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                gsap.to(counter, {
+                    scrollTrigger: {
+                        trigger: counter,
+                        start: 'top 85%',
+                    },
+                    innerText: target,
+                    duration: 2,
+                    snap: { innerText: 1 },
+                    ease: 'power2.out'
+                });
+            });
+
+            // Service Cards Hover Effect Logic (Additional JS for smoothness)
+            const cards = document.querySelectorAll('.service-card');
+            cards.forEach(card => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: '#services',
+                        start: 'top 70%'
+                    },
+                    y: 100,
+                    opacity: 0,
+                    duration: 1,
+                    ease: 'power3.out',
+                    delay: parseFloat(card.style.transitionDelay) || 0
+                });
+            });
+
+            // Graph Animation
+            gsap.to('.graph-line', {
+                scrollTrigger: {
+                    trigger: '#services',
+                    start: 'top 60%',
+                },
+                strokeDashoffset: 0,
+                duration: 2,
+                ease: 'power2.inOut'
+            });
+
+            // --- 2. CUSTOM CURSOR LOGIC ---
+            const cursor = document.getElementById('cursor');
+            const follower = document.getElementById('cursor-follower');
+            let mouseX = 0, mouseY = 0;
+            let cursorX = 0, cursorY = 0;
+            let followerX = 0, followerY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
+
+            // Magnetic Button Logic
+            const magneticBtns = document.querySelectorAll('.magnetic-btn');
+            magneticBtns.forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    
+                    gsap.to(btn, {
+                        x: x * 0.3,
+                        y: y * 0.3,
+                        duration: 0.3,
+                        ease: 'power2.out'
+                    });
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    gsap.to(btn, { x: 0, y: 0, duration: 0.5, ease: 'elastic.out(1, 0.3)' });
+                });
+            });
+
+            // Hover States
+            const hoverTriggers = document.querySelectorAll('.hover-trigger');
+            hoverTriggers.forEach(trigger => {
+                trigger.addEventListener('mouseenter', () => document.body.classList.add('hover-active'));
+                trigger.addEventListener('mouseleave', () => document.body.classList.remove('hover-active'));
+            });
+
+            function animateCursor() {
+                let dt = 0.15; // Softness factor
+                
+                cursorX += (mouseX - cursorX) * 0.5;
+                cursorY += (mouseY - cursorY) * 0.5;
+                
+                followerX += (mouseX - followerX) * dt;
+                followerY += (mouseY - followerY) * dt;
+
+                cursor.style.left = `${cursorX}px`;
+                cursor.style.top = `${cursorY}px`;
+                follower.style.left = `${followerX}px`;
+                follower.style.top = `${followerY}px`;
+
+                requestAnimationFrame(animateCursor);
+            }
+            animateCursor();
+
+            // --- 3. HERO CANVAS NETWORK SIMULATION ---
+            const canvas = document.getElementById('network-canvas');
+            const ctx = canvas.getContext('2d');
+            let width, height;
+            
+            // Physics settings
+            const PARTICLE_COUNT = 60;
+            const CONNECTION_DIST = 150;
+            const MOUSE_DIST = 200;
+            
+            let particles = [];
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * width;
+                    this.y = Math.random() * height;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2 + 1;
+                }
+
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+
+                    // Bounce off walls
+                    if (this.x < 0 || this.x > width) this.vx *= -1;
+                    if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                    // Mouse repulsion
+                    let dx = mouseX - this.x;
+                    let dy = mouseY - this.y;
+                    let distance = Math.sqrt(dx*dx + dy*dy);
+
+                    if (distance < MOUSE_DIST) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (MOUSE_DIST - distance) / MOUSE_DIST;
+                        const repulsionStrength = 0.8; // Strength
+
+                        this.vx -= forceDirectionX * force * repulsionStrength;
+                        this.vy -= forceDirectionY * force * repulsionStrength;
+                    }
+
+                    // Friction to stabilize
+                    this.vx *= 0.99;
+                    this.vy *= 0.99;
+                }
+
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fill();
+                }
+            }
+
+            function initCanvas() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                
+                particles = [];
+                for(let i=0; i<PARTICLE_COUNT; i++) {
+                    particles.push(new Particle());
+                }
+            }
+
+            function animateCanvas() {
+                ctx.clearRect(0, 0, width, height);
+                
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+
+                // Draw connections
+                for(let i=0; i<particles.length; i++) {
+                    for(let j=i; j<particles.length; j++) {
+                        let dx = particles[i].x - particles[j].x;
+                        let dy = particles[i].y - particles[j].y;
+                        let distance = Math.sqrt(dx*dx + dy*dy);
+
+                        if (distance < CONNECTION_DIST) {
+                            ctx.beginPath();
+                            let opacity = 1 - (distance / CONNECTION_DIST);
+                            ctx.strokeStyle = `rgba(37, 99, 235, ${opacity * 0.4})`; // Blue tint
+                            ctx.lineWidth = 1;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animateCanvas);
+            }
+
+            window.addEventListener('resize', initCanvas);
+            initCanvas();
+            animateCanvas();
+
+
+            // --- 4. DATA SIMULATOR (Ticker & Order Book) ---
+            
+            // 4a. Ticker Data
+            const pairs = [
+                {s: 'BTC/USDT', p: 64231.50}, {s: 'ETH/USDT', p: 3452.20}, 
+                {s: 'SOL/USDT', p: 145.60}, {s: 'AAPL', p: 178.35}, 
+                {s: 'MSFT', p: 412.00}, {s: 'EUR/USD', p: 1.084},
+                {s: 'GBP/USD', p: 1.265}, {s: 'XAU/USD', p: 2345.10},
+                {s: 'NVDA', p: 890.50}, {s: 'TSLA', p: 175.40}
+            ];
+
+            // Clone pairs for infinite scroll visual
+            const tickerContent = document.getElementById('ticker-content');
+            
+            function renderTicker() {
+                let html = '';
+                // Create 3 sets to ensure loop is smooth
+                [...pairs, ...pairs, ...pairs].forEach(pair => {
+                    const change = (Math.random() * 2 - 1).toFixed(2);
+                    const color = change >= 0 ? 'text-green-600' : 'text-red-500';
+                    const arrow = change >= 0 ? '▲' : '▼';
+                    html += `
+                        <span class="mx-8 inline-flex items-center">
+                            <span class="font-bold mr-2">${pair.s}</span>
+                            <span class="mr-2">$${pair.p.toLocaleString()}</span>
+                            <span class="${color} text-xs">${arrow} ${Math.abs(change)}%</span>
+                        </span>
+                    `;
+                });
+                tickerContent.innerHTML = html;
+            }
+            renderTicker();
+
+            // 4b. Order Book Simulation
+            const orderBookEl = document.getElementById('order-book-feed');
+            
+            function updateOrderBook() {
+                const type = Math.random() > 0.5 ? 'BID' : 'ASK';
+                const color = type === 'BID' ? 'text-green-600' : 'text-red-500';
+                const size = (Math.random() * 5).toFixed(4);
+                const price = (64200 + Math.random() * 50).toFixed(2);
+                
+                const row = document.createElement('div');
+                row.className = `flex justify-between opacity-0 transition-opacity duration-200`;
+                row.innerHTML = `
+                    <span class="${color}">${type}</span>
+                    <span class="text-slate-600">${price}</span>
+                    <span class="text-slate-400">${size} BTC</span>
+                `;
+                
+                orderBookEl.prepend(row);
+                
+                // Fade in
+                setTimeout(() => row.classList.remove('opacity-0'), 50);
+
+                // Keep only 5 rows
+                if (orderBookEl.children.length > 5) {
+                    orderBookEl.lastElementChild.remove();
+                }
+                
+                // Random interval for next update to simulate irregular market activity
+                setTimeout(updateOrderBook, Math.random() * 400 + 100);
+            }
+            updateOrderBook();
+
+
+            // --- 5. CODE TYPING SIMULATION ---
+            const codeContainer = document.getElementById('code-stream');
+            const codeLines = [
+                "> INITIALIZING NEXUS_KERNEL_V7...",
+                "> LOADING MODULES: ARBITRAGE_CORE, SPREAD_OPTIMIZER...",
+                "> CONNECTING TO VENUES: [BINANCE, COINBASE, CME, LMAX]...",
+                "[OK] LATENCY CHECK: 3.2ms",
+                "> LISTENING FOR ORDER FLOW...",
+                "warn: Spread deviation detected on pair ETH-USDT. Adjusting.",
+                "> EXECUTING: REBALANCE_STRATEGY_A12",
+                "info: Liquidity pool depth increased by 15%",
+                "> SYSTEM OPTIMAL. WAITING FOR INPUT..."
+            ];
+            
+            let lineIndex = 0;
+            let charIndex = 0;
+            
+            function typeCode() {
+                if (lineIndex < codeLines.length) {
+                    const currentLine = codeLines[lineIndex];
+                    
+                    if (charIndex === 0) {
+                        const div = document.createElement('div');
+                        div.className = "mb-1";
+                        div.id = `line-${lineIndex}`;
+                        codeContainer.appendChild(div);
+                    }
+                    
+                    document.getElementById(`line-${lineIndex}`).textContent += currentLine.charAt(charIndex);
+                    charIndex++;
+                    
+                    if (charIndex < currentLine.length) {
+                        setTimeout(typeCode, 20 + Math.random() * 30);
+                    } else {
+                        charIndex = 0;
+                        lineIndex++;
+                        setTimeout(typeCode, 300); // Pause between lines
+                    }
+                } else {
+                    // Reset to loop indefinitely
+                    setTimeout(() => {
+                        codeContainer.innerHTML = '';
+                        lineIndex = 0;
+                        typeCode();
+                    }, 5000);
+                }
+            }
+            
+            // Start typing when section is visible
+            ScrollTrigger.create({
+                trigger: "#technology",
+                start: "top 60%",
+                onEnter: () => {
+                    if(codeContainer.innerHTML === "") typeCode();
+                },
+                once: true
+            });
+
+
+            // --- 6. MARKET MAKER CANVAS SIMULATION (Mini Physics) ---
+            const mmCanvas = document.querySelector('#sim-mm canvas');
+            if(mmCanvas) {
+                // Need to handle resize for this specific container
+                const container = document.getElementById('sim-mm');
+                mmCanvas.width = container.offsetWidth;
+                mmCanvas.height = container.offsetHeight;
+                
+                const mCtx = mmCanvas.getContext('2d');
+                
+                // Simple sin wave that tightens
+                let offset = 0;
+                
+                function animateMM() {
+                    mCtx.clearRect(0, 0, mmCanvas.width, mmCanvas.height);
+                    mCtx.strokeStyle = '#3B82F6'; // Blue
+                    mCtx.lineWidth = 2;
+                    
+                    mCtx.beginPath();
+                    for (let x = 0; x < mmCanvas.width; x++) {
+                        // Squeeze effect: Amplitude decreases towards center
+                        let normalizedX = x / mmCanvas.width;
+                        let amplitude = 20 * Math.sin(normalizedX * Math.PI); // Bulge in middle logic inverted? No, we want tight spread.
+                        // Actually, let's make two lines converging
+                        
+                        let y = mmCanvas.height/2 + Math.sin(x * 0.05 + offset) * 15 * (1 - normalizedX); 
+                        // 1-normalizedX makes it calm down at the right
+                        
+                        if (x===0) mCtx.moveTo(x, y);
+                        else mCtx.lineTo(x, y);
+                    }
+                    mCtx.stroke();
+                    
+                    // Bottom line mirroring
+                    mCtx.beginPath();
+                    mCtx.strokeStyle = '#94A3B8'; // Slate
+                    for (let x = 0; x < mmCanvas.width; x++) {
+                        let normalizedX = x / mmCanvas.width;
+                        let y = mmCanvas.height/2 - Math.sin(x * 0.05 + offset) * 15 * (1 - normalizedX); 
+                        if (x===0) mCtx.moveTo(x, y);
+                        else mCtx.lineTo(x, y);
+                    }
+                    mCtx.stroke();
+
+                    offset += 0.1;
+                    requestAnimationFrame(animateMM);
+                }
+                animateMM();
+            }
+
+        });
+    </script>
+</body>
+</html>
