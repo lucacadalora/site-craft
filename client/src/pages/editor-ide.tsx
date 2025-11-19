@@ -422,6 +422,19 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
         }
       }
       
+      // Special check for exported functions (LUMINA QUANT pattern)
+      if (!MainComponent) {
+        // Check if there's an App function that was processed from export default
+        const exportPatterns = ['App', 'LuminaApp', 'LuminaQuant'];
+        for (const name of exportPatterns) {
+          if (typeof window[name] === 'function') {
+            MainComponent = window[name];
+            console.log('Found exported component:', name);
+            break;
+          }
+        }
+      }
+      
       // If not found, try to find any defined React component
       if (!MainComponent) {
         // Get all global variables defined in our script
@@ -535,6 +548,7 @@ const App = () => {
     const isReactProject = jsFiles.length > 0 && detectReact(allJsCode);
     
     if (isReactProject) {
+      console.log('Processing React project with', jsFiles.length, 'JS files');
       // Handle React project
       let combinedCss = '';
       cssFiles.forEach(cssFile => {
@@ -563,17 +577,26 @@ const App = () => {
         let content = jsFile.content;
         
         // Remove ES6 module imports (they'll be replaced with globals)
+        // More comprehensive import removal
+        content = content.replace(/^import\s+React[^;]*from\s+['"]react['"];?\s*$/gm, '');
+        content = content.replace(/^import\s+\{[^}]+\}\s+from\s+['"]react['"];?\s*$/gm, '');
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
+        content = content.replace(/^import\s+['"].*?['"];?\s*$/gm, '');
         
-        // Handle export default function/const/class patterns
+        // Handle export default with better patterns
+        // Function declarations
         content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, 'function $1');
+        // Arrow functions assigned to const
+        content = content.replace(/^export\s+default\s+(.*?)=>/gm, 'const App = $1=>');
+        // Class declarations  
         content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, 'class $1');
-        content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
+        // Const/let/var declarations
+        content = content.replace(/^export\s+default\s+(const|let|var)\s+(\w+)/gm, '$1 $2');
         
-        // Handle anonymous export default
-        content = content.replace(/^export\s+default\s+/gm, 'const App = ');
+        // Handle standalone export default (for already defined components)
+        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, '// Default export: $1');
         
-        // Handle named exports  
+        // Remove other export patterns
         content = content.replace(/^export\s+{[^}]+}[^;]*;?\s*$/gm, '');
         content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
         
