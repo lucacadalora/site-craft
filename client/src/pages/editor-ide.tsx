@@ -391,22 +391,49 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       handleParallax(); // Initialize immediately
     }
     
-    // Handle custom cursor if defined
+    // Enhanced custom cursor handling
     const cursor = document.getElementById('cursor') || document.querySelector('.cursor, .custom-cursor');
-    if (cursor) {
+    const cursorFollower = document.getElementById('cursor-follower') || document.querySelector('.cursor-follower');
+    
+    if (cursor || cursorFollower) {
+      let mouseX = 0, mouseY = 0;
+      let cursorX = 0, cursorY = 0;
+      let followerX = 0, followerY = 0;
+      
+      // Track mouse position
       document.addEventListener('mousemove', (e) => {
-        cursor.style.left = e.clientX - 10 + 'px';
-        cursor.style.top = e.clientY - 10 + 'px';
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        
+        // Direct cursor update (no lag)
+        if (cursor) {
+          cursor.style.transform = \`translate(\${mouseX}px, \${mouseY}px)\`;
+        }
       });
       
-      // Handle hover triggers for custom cursor
-      const hoverTriggers = document.querySelectorAll('.hover-trigger, a, button, [role="button"]');
+      // Smooth follower animation
+      if (cursorFollower) {
+        const animateFollower = () => {
+          followerX += (mouseX - followerX) * 0.1;
+          followerY += (mouseY - followerY) * 0.1;
+          cursorFollower.style.transform = \`translate(\${followerX}px, \${followerY}px)\`;
+          requestAnimationFrame(animateFollower);
+        };
+        animateFollower();
+      }
+      
+      // Handle hover states
+      const hoverTriggers = document.querySelectorAll('.hover-trigger, .magnetic-btn, a, button, [role="button"], [data-cursor]');
       hoverTriggers.forEach(trigger => {
         trigger.addEventListener('mouseenter', () => {
-          cursor.classList.add('hovered', 'hover', 'active');
+          document.body.classList.add('hover-active');
+          if (cursor) cursor.classList.add('hovered', 'hover', 'active');
+          if (cursorFollower) cursorFollower.classList.add('hovered', 'hover', 'active');
         });
         trigger.addEventListener('mouseleave', () => {
-          cursor.classList.remove('hovered', 'hover', 'active');
+          document.body.classList.remove('hover-active');
+          if (cursor) cursor.classList.remove('hovered', 'hover', 'active');
+          if (cursorFollower) cursorFollower.classList.remove('hovered', 'hover', 'active');
         });
       });
     }
@@ -561,16 +588,66 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 `;
       }
       
-      // Always inject complete JS inline (remove ALL external script references first)
+      // Handle JavaScript injection - preserve external CDN scripts
       if (completeJs) {
-        // Remove ALL external script references (not just hardcoded names)
-        fullHtml = fullHtml.replace(/<script[^>]*src=["'][^"']*\.js["'][^>]*><\/script>/gi, '');
+        // Only remove LOCAL script references (not CDN scripts)
+        // This regex matches only local script files (script.js, app.js, components/xxx.js, etc.)
+        // But preserves CDN scripts (https://, http://, //)
+        fullHtml = fullHtml.replace(/<script[^>]*src=["'](?!https?:\/\/|\/\/)[^"']*\.js["'][^>]*><\/script>/gi, '');
         
-        // Inject complete JS inline
+        // Wait for external libraries to load, then inject our code
+        const libraryLoader = `
+// Wait for external libraries to load before running our code
+(function() {
+  let attempts = 0;
+  const maxAttempts = 50;
+  
+  function checkLibraries() {
+    attempts++;
+    
+    // Check if GSAP is expected and wait for it
+    const hasGSAPScript = document.querySelector('script[src*="gsap"]');
+    if (hasGSAPScript && typeof gsap === 'undefined' && attempts < maxAttempts) {
+      setTimeout(checkLibraries, 100);
+      return;
+    }
+    
+    // Check if ScrollTrigger is expected and wait for it
+    const hasScrollTriggerScript = document.querySelector('script[src*="ScrollTrigger"]');
+    if (hasScrollTriggerScript && typeof ScrollTrigger === 'undefined' && attempts < maxAttempts) {
+      setTimeout(checkLibraries, 100);
+      return;
+    }
+    
+    // Libraries are loaded (or timeout reached), run our code
+    runApplicationCode();
+  }
+  
+  function runApplicationCode() {
+    ${completeJs}
+    
+    // If GSAP is available, refresh ScrollTrigger after DOM updates
+    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+      setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 100);
+    }
+  }
+  
+  // Start checking for libraries
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkLibraries);
+  } else {
+    checkLibraries();
+  }
+})();
+`;
+        
+        // Inject complete JS inline at the end of body
         const bodyEnd = fullHtml.indexOf('</body>');
         if (bodyEnd > -1) {
           fullHtml = fullHtml.slice(0, bodyEnd) + 
-            `\n<script>\n${completeJs}\n</script>\n` + 
+            `\n<script>\n${libraryLoader}\n</script>\n` + 
             fullHtml.slice(bodyEnd);
         }
       }
