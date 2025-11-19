@@ -72,8 +72,11 @@ export function processAiResponse(response: string): ParsedResponse {
   const codeBlockRegex = /```(?:jsx?|javascript|typescript|tsx?)?\n([\s\S]*?)```/;
   const codeBlockMatch = response.match(codeBlockRegex);
   
-  if (codeBlockMatch && !response.includes('NEW_FILE_START')) {
-    const code = codeBlockMatch[1];
+  // Also check if the entire response is React code (no markdown wrapper)
+  const isPlainReactCode = !response.includes('```') && detectReact(response);
+  
+  if ((codeBlockMatch && !response.includes('NEW_FILE_START')) || isPlainReactCode) {
+    const code = codeBlockMatch ? codeBlockMatch[1] : response;
     if (detectReact(code)) {
       // This is a React component without file markers
       // Create it as App.jsx
