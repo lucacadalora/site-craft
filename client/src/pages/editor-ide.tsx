@@ -285,8 +285,118 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     project?.files.filter(f => f.name.endsWith('.css')) || [],
   [project?.files]);
 
+  // Detect libraries from imports
+  const detectLibraries = (code: string): Set<string> => {
+    const libraries = new Set<string>();
+    const importRegex = /import\s+(?:[\s\S]*?)from\s+['"]([^'"]+)['"]/g;
+    let match;
+    
+    while ((match = importRegex.exec(code)) !== null) {
+      const lib = match[1];
+      
+      // Map common library imports to their CDN requirements
+      if (lib.includes('react-router') || lib.includes('wouter')) {
+        libraries.add('react-router');
+      }
+      if (lib.includes('@mui/material') || lib.includes('@material-ui')) {
+        libraries.add('material-ui');
+      }
+      if (lib.includes('antd')) {
+        libraries.add('antd');
+      }
+      if (lib.includes('axios')) {
+        libraries.add('axios');
+      }
+      if (lib.includes('lodash')) {
+        libraries.add('lodash');
+      }
+      if (lib.includes('date-fns')) {
+        libraries.add('date-fns');
+      }
+      if (lib.includes('moment')) {
+        libraries.add('moment');
+      }
+      if (lib.includes('framer-motion')) {
+        libraries.add('framer-motion');
+      }
+      if (lib.includes('recharts')) {
+        libraries.add('recharts');
+      }
+      if (lib.includes('chart.js')) {
+        libraries.add('chartjs');
+      }
+      if (lib.includes('three')) {
+        libraries.add('threejs');
+      }
+      if (lib.includes('@emotion') || lib.includes('styled-components')) {
+        libraries.add('styled-components');
+      }
+    }
+    
+    return libraries;
+  };
+  
+  // Generate CDN links for detected libraries
+  const generateLibraryCDNs = (libraries: Set<string>): string => {
+    let cdnLinks = '';
+    
+    const cdnMap: Record<string, string> = {
+      'react-router': `
+  <!-- React Router -->
+  <script crossorigin src="https://unpkg.com/react-router-dom@6/dist/umd/react-router-dom.production.min.js"></script>`,
+      'material-ui': `
+  <!-- Material-UI -->
+  <script crossorigin src="https://unpkg.com/@mui/material@latest/umd/material-ui.production.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />`,
+      'antd': `
+  <!-- Ant Design -->
+  <script crossorigin src="https://unpkg.com/antd@5/dist/antd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/antd@5/dist/reset.css" />`,
+      'axios': `
+  <!-- Axios -->
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>`,
+      'lodash': `
+  <!-- Lodash -->
+  <script src="https://unpkg.com/lodash@4/lodash.min.js"></script>`,
+      'date-fns': `
+  <!-- Date-fns -->
+  <script src="https://unpkg.com/date-fns@2/index.js"></script>`,
+      'moment': `
+  <!-- Moment.js -->
+  <script src="https://unpkg.com/moment@2/moment.min.js"></script>`,
+      'framer-motion': `
+  <!-- Framer Motion -->
+  <script crossorigin src="https://unpkg.com/framer-motion@10/dist/framer-motion.js"></script>`,
+      'recharts': `
+  <!-- Recharts -->
+  <script crossorigin src="https://unpkg.com/recharts@2/dist/Recharts.js"></script>`,
+      'chartjs': `
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>`,
+      'threejs': `
+  <!-- Three.js -->
+  <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>`,
+      'styled-components': `
+  <!-- Styled Components -->
+  <script crossorigin src="https://unpkg.com/styled-components@5/dist/styled-components.min.js"></script>`
+    };
+    
+    libraries.forEach(lib => {
+      if (cdnMap[lib]) {
+        cdnLinks += cdnMap[lib];
+      }
+    });
+    
+    return cdnLinks;
+  };
+
   // Generate React-compatible HTML wrapper
   const generateReactHTML = (jsCode: string, cssCode: string): string => {
+    // Detect what libraries are needed
+    const detectedLibraries = detectLibraries(jsCode);
+    const additionalCDNs = generateLibraryCDNs(detectedLibraries);
+    
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -306,6 +416,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   
   <!-- Tailwind CSS for styling -->
   <script src="https://cdn.tailwindcss.com"></script>
+  ${additionalCDNs}
   
   <style>
     ${cssCode}
@@ -376,8 +487,12 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     }
     
     // Import React hooks and utilities into global scope
-    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect } = React;
+    const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer, useLayoutEffect, memo, forwardRef, createContext } = React;
     
+    // Make Fragment available for JSX fragments <> </>
+    const Fragment = React.Fragment;
+    
+    // Inject the user's code
     ${jsCode}
     
     // Auto-detect and render the main component
@@ -543,20 +658,52 @@ const App = () => {
         // Process the content more carefully to preserve component structure
         let content = jsFile.content;
         
+        // Strip TypeScript type annotations if present
+        if (jsFile.name.endsWith('.tsx') || jsFile.name.endsWith('.ts')) {
+          // Remove type imports
+          content = content.replace(/^import\s+type\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
+          // Remove interface declarations
+          content = content.replace(/^interface\s+\w+\s*{[^}]*}/gm, '');
+          // Remove type aliases
+          content = content.replace(/^type\s+\w+\s*=\s*[^;]+;/gm, '');
+          // Remove type annotations from parameters and variables
+          content = content.replace(/:\s*[\w\[\]<>,\s|&{}]+(?=[,\)])/g, '');
+          content = content.replace(/:\s*[\w\[\]<>,\s|&{}]+(?=\s*[=;])/g, '');
+          // Remove generic type parameters
+          content = content.replace(/<[\w\s,]+>(?=\()/g, '');
+          // Remove 'as' type assertions
+          content = content.replace(/\s+as\s+[\w\[\]<>,\s|&{}]+/g, '');
+        }
+        
         // Remove ES6 module imports (they'll be replaced with globals)
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
         
-        // Handle export default function/const/class patterns
+        // Handle various export patterns
+        // export default function ComponentName() {...}
         content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, 'function $1');
+        
+        // export default class ComponentName {...}
         content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, 'class $1');
+        
+        // export default const ComponentName = 
         content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
         
-        // Handle anonymous export default
+        // const Component = () => {}; export default Component;
+        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, '// Default export: $1');
+        
+        // export default () => {} or export default {...}
+        content = content.replace(/^export\s+default\s+(\(|{)/gm, 'const App = $1');
+        
+        // Handle remaining export default
         content = content.replace(/^export\s+default\s+/gm, 'const App = ');
         
-        // Handle named exports  
-        content = content.replace(/^export\s+{[^}]+}[^;]*;?\s*$/gm, '');
+        // Handle named exports
+        content = content.replace(/^export\s+{[^}]+}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, '');
         content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
+        
+        // Handle module.exports (CommonJS)
+        content = content.replace(/^module\.exports\s*=\s*/gm, 'const App = ');
+        content = content.replace(/^exports\.\w+\s*=\s*/gm, '');
         
         combinedJs += `\n// ${jsFile.name}\n${content}\n`;
       });
