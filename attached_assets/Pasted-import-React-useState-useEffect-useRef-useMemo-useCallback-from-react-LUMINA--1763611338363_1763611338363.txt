@@ -1,0 +1,655 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+/**
+ * LUMINA KINETIC & SPA
+ * A High-Fidelity Interactive Experience
+ * * Design System: "Ethereal Structure"
+ * Core Tech: React, Tailwind CSS, Native SVG, CSS 3D Transforms
+ */
+
+// --- UTILITIES & HOOKS ---
+
+const useMousePosition = () => {
+  const [mouse, setMouse] = useState({ x: 0, y: 0, docX: 0, docY: 0 });
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMouse({ x: e.clientX, y: e.clientY, docX: e.pageX, docY: e.pageY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+  return mouse;
+};
+
+const useScrollProgress = () => {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalScroll = document.documentElement.scrollTop;
+      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scroll = `${totalScroll / windowHeight}`;
+      setProgress(Number(scroll));
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  return progress;
+};
+
+const useParallax = (ref, speed = 0.1) => {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        const scrollY = window.scrollY;
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+           setOffset((scrollY - rect.top) * speed);
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [ref, speed]);
+  return offset;
+};
+
+// --- ASSETS: CUSTOM GEOMETRIC SVGS ---
+
+const IconGym = ({ className }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+    <circle cx="20" cy="50" r="15" className="opacity-20 fill-current" />
+    <circle cx="80" cy="50" r="15" className="opacity-20 fill-current" />
+    <path d="M20 50 L80 50" strokeLinecap="round" />
+    <path d="M35 50 L35 30 M35 50 L35 70" strokeLinecap="round" />
+    <path d="M65 50 L65 30 M65 50 L65 70" strokeLinecap="round" />
+    <rect x="35" y="25" width="30" height="5" rx="2" fill="currentColor" className="opacity-10" />
+    <rect x="35" y="70" width="30" height="5" rx="2" fill="currentColor" className="opacity-10" />
+  </svg>
+);
+
+const IconSauna = ({ className }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M20 80 Q35 60 50 80 T80 80" className="opacity-30" />
+    <path d="M20 60 Q35 40 50 60 T80 60" className="opacity-50" />
+    <path d="M20 40 Q35 20 50 40 T80 40" />
+    <circle cx="50" cy="50" r="40" strokeWidth="1" className="opacity-10 dashed" strokeDasharray="4 4" />
+  </svg>
+);
+
+const IconMassage = ({ className }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+    <path d="M50 20 C30 20 20 40 20 60 C20 80 50 90 50 90 C50 90 80 80 80 60 C80 40 70 20 50 20 Z" />
+    <path d="M50 20 V60" strokeDasharray="2 2" className="opacity-40" />
+    <circle cx="50" cy="40" r="10" className="fill-current opacity-10" />
+    <path d="M30 60 Q50 70 70 60" className="opacity-40" />
+  </svg>
+);
+
+const IconPool = ({ className }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="10" y="30" width="80" height="50" rx="10" className="opacity-10 fill-current" />
+    <path d="M20 45 Q35 35 50 45 T80 45" strokeLinecap="round" />
+    <path d="M20 55 Q35 45 50 55 T80 55" strokeLinecap="round" className="opacity-70" />
+    <path d="M20 65 Q35 55 50 65 T80 65" strokeLinecap="round" className="opacity-40" />
+    <line x1="80" y1="30" x2="80" y2="60" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+);
+
+const LogoMark = ({ className }) => (
+  <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor">
+    <circle cx="50" cy="50" r="45" strokeWidth="1" className="opacity-20" />
+    <path d="M50 10 L90 80 L10 80 Z" strokeWidth="1.5" className="opacity-80" />
+    <circle cx="50" cy="55" r="15" fill="currentColor" className="opacity-10" />
+    <path d="M50 25 V80" strokeWidth="0.5" />
+  </svg>
+);
+
+// --- UI PRIMITIVES ---
+
+const Button = ({ children, variant = 'primary', className = '', onClick }) => {
+  const baseStyle = "relative overflow-hidden px-8 py-4 transition-all duration-500 ease-out group font-medium tracking-wide text-sm uppercase";
+  
+  const variants = {
+    primary: "bg-stone-900 text-stone-50 hover:bg-stone-800 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1",
+    glass: "bg-white/10 backdrop-blur-md border border-white/40 text-stone-800 hover:bg-white/40 rounded-full shadow-sm hover:shadow-lg",
+    outline: "border border-stone-900 text-stone-900 hover:bg-stone-900 hover:text-white rounded-full"
+  };
+
+  return (
+    <button className={`${baseStyle} ${variants[variant]} ${className}`} onClick={onClick}>
+      <span className="relative z-10 flex items-center gap-2">{children}</span>
+      {variant === 'primary' && (
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transform skew-x-12" />
+      )}
+    </button>
+  );
+};
+
+const SectionHeading = ({ title, subtitle, align = 'center' }) => (
+  <div className={`mb-16 ${align === 'center' ? 'text-center' : 'text-left'}`}>
+    <span className="block text-xs font-bold tracking-[0.2em] text-stone-500 uppercase mb-4 fade-in-up">{subtitle}</span>
+    <h2 className="text-4xl md:text-6xl font-serif text-stone-900 leading-tight fade-in-up delay-100">
+      {title.split(' ').map((word, i) => (
+        <span key={i} className="inline-block mr-3 opacity-90">{word}</span>
+      ))}
+    </h2>
+    <div className={`h-1 w-20 bg-stone-900 mt-6 ${align === 'center' ? 'mx-auto' : ''} opacity-20`} />
+  </div>
+);
+
+// --- COMPLEX INTERACTIVE COMPONENTS ---
+
+// 1. The Facility Map (Isometric Simulation)
+const InteractiveMap = () => {
+  const [activeZone, setActiveZone] = useState(null);
+  const zones = [
+    { id: 'strength', label: 'Kinetic Lab', desc: 'Biomechanical resistance training.', color: 'bg-stone-300', pos: 'top-0 left-0' },
+    { id: 'cardio', label: 'Aerobic Deck', desc: 'Endurance & cardiovascular health.', color: 'bg-stone-200', pos: 'top-0 right-0' },
+    { id: 'recovery', label: 'Thermal Suite', desc: 'Sauna, Cryo, & Steam.', color: 'bg-stone-400', pos: 'bottom-0 left-0' },
+    { id: 'aqua', label: 'Hydro Zone', desc: 'Saline pools & floatation.', color: 'bg-stone-300', pos: 'bottom-0 right-0' }
+  ];
+
+  return (
+    <div className="relative w-full h-[600px] perspective-1000 flex items-center justify-center bg-[#f4f1ee] overflow-hidden">
+      {/* Architectural Grid Background */}
+      <div className="absolute inset-0 opacity-5" 
+           style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
+      </div>
+
+      <div className="relative w-[90%] md:w-[600px] h-[600px] transform-style-3d rotate-x-60 rotate-z-45 transition-transform duration-1000">
+        {zones.map((zone, idx) => (
+          <div 
+            key={zone.id}
+            onMouseEnter={() => setActiveZone(zone.id)}
+            onMouseLeave={() => setActiveZone(null)}
+            className={`
+              absolute w-1/2 h-1/2 ${zone.pos} ${zone.color}
+              border-4 border-[#f4f1ee] shadow-xl
+              transition-all duration-500 ease-out
+              cursor-pointer hover:z-50
+              flex items-center justify-center
+              group
+            `}
+            style={{
+              transform: activeZone === zone.id ? 'translateZ(40px)' : 'translateZ(0px)',
+              boxShadow: activeZone === zone.id ? '20px 20px 60px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            <div className="transform -rotate-z-45 -rotate-x-60 text-center pointer-events-none">
+              <span className="block text-xs font-bold tracking-widest uppercase text-stone-500 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                Zone 0{idx + 1}
+              </span>
+              <h3 className="text-2xl font-serif text-stone-800 group-hover:scale-110 transition-transform duration-300">
+                {zone.label}
+              </h3>
+            </div>
+            
+            {/* 3D Extrusion Fake Sides */}
+            <div className="absolute -bottom-2 left-0 w-full h-2 bg-stone-500/20 origin-top transform rotate-x-90" />
+            <div className="absolute top-0 -right-2 w-2 h-full bg-stone-500/10 origin-left transform rotate-y-90" />
+          </div>
+        ))}
+      </div>
+
+      {/* Overlay Detail Panel */}
+      <div className={`absolute bottom-10 left-10 right-10 md:left-auto md:right-20 md:w-80 bg-white/80 backdrop-blur-xl p-8 border border-white/50 shadow-2xl transition-all duration-500 transform ${activeZone ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Facility Detail</span>
+          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+        </div>
+        <h3 className="text-2xl font-serif mb-2 text-stone-800">{zones.find(z => z.id === activeZone)?.label}</h3>
+        <p className="text-stone-600 text-sm leading-relaxed">{zones.find(z => z.id === activeZone)?.desc}</p>
+        <div className="mt-6 flex gap-2">
+           <span className="px-3 py-1 bg-stone-100 text-[10px] uppercase tracking-wide rounded-full text-stone-600">Available</span>
+           <span className="px-3 py-1 bg-stone-100 text-[10px] uppercase tracking-wide rounded-full text-stone-600">Capacity: 85%</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 2. The Wellness Calculator (Glassmorphism Tool)
+const WellnessCalculator = () => {
+  const [goal, setGoal] = useState('hypertrophy');
+  const [days, setDays] = useState(3);
+  const [calculated, setCalculated] = useState(false);
+
+  const getPlan = () => {
+    if (goal === 'hypertrophy') return { cals: '2800', type: 'Strength', recovery: 'Sauna 3x/week' };
+    if (goal === 'mobility') return { cals: '2200', type: 'Functional', recovery: 'Daily Stretch' };
+    if (goal === 'endurance') return { cals: '2600', type: 'Cardio Zone 2', recovery: 'Cold Plunge' };
+    return { cals: '2000', type: 'Balanced', recovery: 'Massage' };
+  };
+
+  const plan = getPlan();
+
+  return (
+    <div className="w-full max-w-4xl mx-auto bg-white/40 backdrop-blur-2xl border border-white/60 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden group">
+      {/* Aesthetic Background Blob */}
+      <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-orange-100 to-rose-100 rounded-full filter blur-3xl opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
+      
+      <div className="relative z-10 grid md:grid-cols-2 gap-12">
+        <div>
+          <h3 className="text-3xl font-serif mb-6 text-stone-800">Architect Your Routine</h3>
+          <p className="text-stone-600 mb-8 font-light">Use our simulation tool to generate a preliminary wellness stack tailored to your physiology.</p>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Primary Objective</label>
+              <div className="flex flex-wrap gap-3">
+                {['Hypertrophy', 'Mobility', 'Endurance', 'Balance'].map((t) => (
+                  <button 
+                    key={t}
+                    onClick={() => { setGoal(t.toLowerCase()); setCalculated(false); }}
+                    className={`px-4 py-2 rounded-lg text-sm transition-all border ${
+                      goal === t.toLowerCase() 
+                      ? 'bg-stone-900 text-white border-stone-900' 
+                      : 'bg-transparent border-stone-300 text-stone-600 hover:border-stone-500'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Frequency (Days/Week)</label>
+              <input 
+                type="range" 
+                min="1" max="7" 
+                value={days} 
+                onChange={(e) => { setDays(e.target.value); setCalculated(false); }}
+                className="w-full h-1 bg-stone-300 rounded-lg appearance-none cursor-pointer accent-stone-900"
+              />
+              <div className="flex justify-between text-xs text-stone-500 mt-2 font-mono">
+                <span>1 Day</span>
+                <span className="text-stone-900 font-bold">{days} Days</span>
+                <span>7 Days</span>
+              </div>
+            </div>
+
+            <Button onClick={() => setCalculated(true)} className="w-full mt-4">
+              Generate Protocol
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative bg-white/50 rounded-2xl p-8 border border-white shadow-inner flex flex-col justify-center items-center text-center min-h-[300px]">
+           {!calculated ? (
+             <div className="animate-pulse flex flex-col items-center opacity-50">
+               <IconGym className="w-16 h-16 text-stone-300 mb-4" />
+               <p className="text-stone-400 text-sm uppercase tracking-widest">Waiting for input...</p>
+             </div>
+           ) : (
+             <div className="fade-in-up w-full">
+               <div className="mb-8">
+                 <span className="text-xs text-stone-500 uppercase tracking-widest block mb-1">Recommended Focus</span>
+                 <span className="text-4xl font-serif text-stone-900 block">{plan.type}</span>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="bg-white/60 p-4 rounded-xl">
+                    <span className="text-[10px] text-stone-500 uppercase block">Daily Input</span>
+                    <span className="text-xl font-bold text-stone-800">{plan.cals} <span className="text-xs font-normal">kcal</span></span>
+                  </div>
+                  <div className="bg-white/60 p-4 rounded-xl">
+                    <span className="text-[10px] text-stone-500 uppercase block">Recovery</span>
+                    <span className="text-xl font-bold text-stone-800">{plan.recovery}</span>
+                  </div>
+               </div>
+
+               <div className="w-full bg-stone-900 text-white py-3 rounded-lg text-xs uppercase tracking-widest">
+                 Protocol ID: #LUM-{Math.floor(Math.random() * 1000)}
+               </div>
+             </div>
+           )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN APP SECTIONS ---
+
+const Hero = () => {
+  const mouse = useMousePosition();
+  const x = (mouse.x / window.innerWidth - 0.5) * 20;
+  const y = (mouse.y / window.innerHeight - 0.5) * 20;
+
+  return (
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#ebe9e6]">
+      {/* Dynamic Background Pattern */}
+      <div className="absolute inset-0 opacity-30" 
+           style={{ 
+             backgroundImage: 'radial-gradient(circle at 50% 50%, #d6d3d1 1px, transparent 1px)', 
+             backgroundSize: '30px 30px',
+             transform: `translate(${x * -1}px, ${y * -1}px)` 
+           }} 
+      />
+      
+      {/* Abstract Shapes */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob" />
+      <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-stone-200 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-rose-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000" />
+
+      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+        <div className="flex justify-center mb-8">
+          <LogoMark className="w-24 h-24 text-stone-800 animate-spin-slow" />
+        </div>
+        
+        <h1 className="font-serif text-6xl md:text-8xl lg:text-9xl text-stone-900 leading-[0.9] tracking-tight mb-8">
+          <span className="block" style={{ transform: `translateX(${x}px)` }}>Design Your</span>
+          <span className="block italic opacity-70" style={{ transform: `translateX(${x * -1.5}px)` }}>Biology</span>
+        </h1>
+        
+        <p className="text-stone-600 text-lg md:text-xl max-w-2xl mx-auto mb-12 font-light leading-relaxed">
+          Lumina is not just a gym. It is a kinetic laboratory and thermal sanctuary designed for the modern aesthetic of living.
+        </p>
+        
+        <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+          <Button>Initiate Membership</Button>
+          <Button variant="glass">Explore Facility</Button>
+        </div>
+      </div>
+
+      {/* Scroll Indicator */}
+      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2">
+        <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">Scroll</span>
+        <div className="w-[1px] h-16 bg-stone-300 overflow-hidden">
+          <div className="w-full h-1/2 bg-stone-800 animate-scroll-down" />
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Services = () => {
+  const services = [
+    { title: "Kinetic Floor", icon: <IconGym className="w-12 h-12" />, desc: "Technogym Artis line equipment seamlessly integrated into a biophilic environment." },
+    { title: "Thermal Spa", icon: <IconSauna className="w-12 h-12" />, desc: "Finnish sauna, eucalyptus steam, and Himalayan salt walls for cellular recovery." },
+    { title: "Manual Therapy", icon: <IconMassage className="w-12 h-12" />, desc: "Deep tissue architecture and myofascial release by master practitioners." },
+    { title: "Hydro Zone", icon: <IconPool className="w-12 h-12" />, desc: "Contrast therapy plunge pools and zero-gravity saline floatation tanks." }
+  ];
+
+  return (
+    <section className="py-32 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
+        <SectionHeading title="The Four Pillars" subtitle="Holistic Engineering" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {services.map((s, i) => (
+            <div 
+              key={i} 
+              className="group p-8 border border-stone-100 hover:border-stone-300 bg-stone-50/50 rounded-2xl transition-all duration-500 hover:shadow-xl hover:-translate-y-2 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-stone-100 transform translate-y-full group-hover:translate-y-0 transition-transform duration-700 ease-in-out" />
+              
+              <div className="relative z-10">
+                <div className="mb-6 text-stone-800 group-hover:scale-110 transition-transform duration-500 origin-left">
+                  {s.icon}
+                </div>
+                <h3 className="text-xl font-serif text-stone-900 mb-3">{s.title}</h3>
+                <p className="text-sm text-stone-500 leading-relaxed group-hover:text-stone-700 transition-colors">{s.desc}</p>
+              </div>
+
+              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-x-2 group-hover:translate-x-0">
+                <svg className="w-6 h-6 text-stone-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Pricing = () => {
+  return (
+    <section className="py-32 px-6 bg-[#f4f1ee] relative overflow-hidden">
+      {/* Decorative Lines */}
+      <div className="absolute inset-0 pointer-events-none">
+         <div className="absolute top-0 left-1/3 w-px h-full bg-stone-300/30" />
+         <div className="absolute top-0 right-1/3 w-px h-full bg-stone-300/30" />
+      </div>
+
+      <div className="max-w-5xl mx-auto relative z-10">
+        <SectionHeading title="Membership Tiers" subtitle="Join the Collective" />
+
+        <div className="grid md:grid-cols-3 gap-8 items-center">
+          {/* Basic */}
+          <div className="p-8 bg-white/50 backdrop-blur rounded-2xl border border-white shadow-sm hover:shadow-md transition-all">
+            <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Essential</span>
+            <h3 className="text-3xl font-serif text-stone-900 mt-2 mb-6">$120<span className="text-sm font-sans text-stone-500 font-normal">/mo</span></h3>
+            <ul className="space-y-4 mb-8">
+              {['Full Gym Access', 'Locker Amenities', '1 Guest Pass/mo'].map(feat => (
+                <li key={feat} className="flex items-center text-sm text-stone-600">
+                  <div className="w-1.5 h-1.5 bg-stone-400 rounded-full mr-3" /> {feat}
+                </li>
+              ))}
+            </ul>
+            <Button variant="outline" className="w-full">Select</Button>
+          </div>
+
+          {/* Featured */}
+          <div className="p-10 bg-stone-900 text-stone-50 rounded-2xl shadow-2xl transform scale-105 relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-white/10 text-[10px] px-3 py-1 uppercase tracking-widest">Popular</div>
+            <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Kinetic + Spa</span>
+            <h3 className="text-4xl font-serif text-white mt-2 mb-6">$250<span className="text-sm font-sans text-stone-400 font-normal">/mo</span></h3>
+            <ul className="space-y-4 mb-10">
+              {['All Essential Features', 'Unlimited Sauna & Steam', 'Cold Plunge Access', 'Group Classes', 'Towel Service'].map(feat => (
+                <li key={feat} className="flex items-center text-sm text-stone-300">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full mr-3" /> {feat}
+                </li>
+              ))}
+            </ul>
+            <Button variant="glass" className="w-full bg-white text-stone-900 hover:bg-stone-200">Join Now</Button>
+          </div>
+
+          {/* Premium */}
+          <div className="p-8 bg-white/50 backdrop-blur rounded-2xl border border-white shadow-sm hover:shadow-md transition-all">
+            <span className="text-xs font-bold uppercase tracking-widest text-stone-400">Lumina Elite</span>
+            <h3 className="text-3xl font-serif text-stone-900 mt-2 mb-6">$450<span className="text-sm font-sans text-stone-500 font-normal">/mo</span></h3>
+            <ul className="space-y-4 mb-8">
+              {['All Kinetic Features', '2 Massages/mo', 'Personal Locker', 'Laundry Service', 'Priority Booking'].map(feat => (
+                <li key={feat} className="flex items-center text-sm text-stone-600">
+                  <div className="w-1.5 h-1.5 bg-stone-400 rounded-full mr-3" /> {feat}
+                </li>
+              ))}
+            </ul>
+            <Button variant="outline" className="w-full">Select</Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const Footer = () => (
+  <footer className="bg-stone-900 text-stone-400 py-20 px-6">
+    <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-12">
+      <div className="col-span-1 md:col-span-2">
+        <LogoMark className="w-16 h-16 text-stone-50 mb-6" />
+        <h2 className="text-2xl font-serif text-white mb-4">Lumina Kinetic</h2>
+        <p className="max-w-md font-light text-sm leading-relaxed">
+          Redefining the intersection of luxury, movement, and recovery. 
+          A space engineered for the optimization of the human form.
+        </p>
+      </div>
+      
+      <div>
+        <h4 className="text-white uppercase tracking-widest text-xs font-bold mb-6">Facility</h4>
+        <ul className="space-y-3 text-sm">
+          <li className="hover:text-white transition-colors cursor-pointer">Equipment</li>
+          <li className="hover:text-white transition-colors cursor-pointer">Thermal Suite</li>
+          <li className="hover:text-white transition-colors cursor-pointer">Trainers</li>
+          <li className="hover:text-white transition-colors cursor-pointer">Schedule</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="text-white uppercase tracking-widest text-xs font-bold mb-6">Connect</h4>
+        <ul className="space-y-3 text-sm">
+          <li className="hover:text-white transition-colors cursor-pointer">Instagram</li>
+          <li className="hover:text-white transition-colors cursor-pointer">LinkedIn</li>
+          <li className="hover:text-white transition-colors cursor-pointer">Contact Us</li>
+          <li className="hover:text-white transition-colors cursor-pointer">Careers</li>
+        </ul>
+      </div>
+    </div>
+    <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-stone-800 flex flex-col md:flex-row justify-between items-center text-xs">
+      <span>© 2025 Lumina Kinetic & Spa. All rights reserved.</span>
+      <div className="flex gap-6 mt-4 md:mt-0">
+        <span>Privacy Policy</span>
+        <span>Terms of Service</span>
+      </div>
+    </div>
+  </footer>
+);
+
+const Navbar = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 px-6 py-4 ${
+      scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'
+    }`}>
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <LogoMark className="w-8 h-8 text-stone-900" />
+          <span className="font-serif text-xl tracking-tight text-stone-900">Lumina</span>
+        </div>
+
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
+          {['Philosophy', 'The Space', 'Membership', 'Journal'].map(item => (
+            <a key={item} href="#" className="hover:text-stone-900 transition-colors relative group">
+              {item}
+              <span className="absolute -bottom-1 left-0 w-0 h-px bg-stone-900 transition-all duration-300 group-hover:w-full" />
+            </a>
+          ))}
+        </div>
+
+        <Button variant={scrolled ? 'primary' : 'outline'} className={scrolled ? '' : 'border-stone-800'}>
+          Book Visit
+        </Button>
+      </div>
+    </nav>
+  );
+};
+
+// --- ROOT APP COMPONENT ---
+
+export default function LuminaWellness() {
+  const scrollProgress = useScrollProgress();
+  
+  return (
+    <div className="bg-[#ebe9e6] min-h-screen font-sans text-stone-800 selection:bg-stone-200 selection:text-stone-900 overflow-x-hidden">
+      {/* Global Styles & Animations */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+        
+        body {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        h1, h2, h3, h4 {
+          font-family: 'Playfair Display', serif;
+        }
+        
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .rotate-x-60 { transform: rotateX(60deg); }
+        .rotate-z-45 { transform: rotateZ(45deg); }
+        
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        @keyframes scroll-down {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        .animate-scroll-down { animation: scroll-down 2s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+        
+        .fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        .delay-100 { animation-delay: 0.1s; }
+        
+        @keyframes fadeInUp {
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-spin-slow {
+          animation: spin 12s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 h-1 bg-stone-900 z-[60] transition-all duration-100" style={{ width: `${scrollProgress * 100}%` }} />
+
+      <Navbar />
+      
+      <main>
+        <Hero />
+        
+        <Services />
+        
+        {/* The Simulation Section */}
+        <section className="py-20 bg-[#f4f1ee] border-y border-stone-200">
+          <SectionHeading title="The Facility" subtitle="Interactive Map" />
+          <p className="text-center text-stone-500 max-w-2xl mx-auto mb-12">
+            Hover over the zones to explore our biophilic design zones and equipment distribution.
+          </p>
+          <InteractiveMap />
+        </section>
+
+        {/* Calculator Section */}
+        <section className="py-32 px-6 relative bg-gradient-to-b from-[#f4f1ee] to-[#ebe9e6]">
+          <WellnessCalculator />
+        </section>
+
+        <Pricing />
+        
+        {/* Call to Action Banner */}
+        <section className="py-32 px-6 bg-stone-900 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+             <svg width="100%" height="100%">
+               <pattern id="pattern-circles" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                 <circle cx="20" cy="20" r="1" fill="currentColor" className="text-white"/>
+               </pattern>
+               <rect x="0" y="0" width="100%" height="100%" fill="url(#pattern-circles)"/>
+             </svg>
+          </div>
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
+            <h2 className="text-5xl md:text-7xl font-serif text-white mb-8">Begin Your Architecture</h2>
+            <p className="text-stone-400 mb-12 text-lg">Consultations are complimentary. The transformation is priceless.</p>
+            <Button variant="glass" className="bg-white text-stone-900 hover:bg-stone-200 text-lg px-10 py-5">
+              Book Tour
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

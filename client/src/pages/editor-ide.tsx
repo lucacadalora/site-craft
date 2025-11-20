@@ -390,7 +390,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   };
 
   // Generate React-compatible HTML wrapper
-  const generateReactHTML = (jsCode: string, cssCode: string): string => {
+  const generateReactHTML = (jsCode: string, cssCode: string, exportedNames: string[] = []): string => {
     // Detect what libraries are needed
     const detectedLibraries = detectLibraries(jsCode);
     const additionalCDNs = generateLibraryCDNs(detectedLibraries);
@@ -498,11 +498,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
       // Look for default export or main component
       let MainComponent = null;
       
-      // Common component names to check (App is most common)
-      const componentNames = ['App', 'Main', 'Component', 'Application', 'Root', 
+      // DYNAMIC: Prioritize exported component names from code analysis
+      const exportedComponentNames = ${JSON.stringify(exportedNames)};
+      
+      // Fallback: Common component names to check (App is most common)
+      const commonComponentNames = ['App', 'Main', 'Component', 'Application', 'Root', 
                               'Dashboard', 'Home', 'Index', 'LuminaApp', 'MyApp'];
       
-      // Check for common component names
+      // Combine: exported names FIRST (highest priority), then common names
+      const componentNames = [...exportedComponentNames, ...commonComponentNames];
+      
+      // Check for component names in priority order
       for (const name of componentNames) {
         if (typeof window[name] !== 'undefined') {
           const candidate = window[name];
@@ -638,6 +644,9 @@ const App = () => {
       // Combine all JS/JSX files
       let combinedJs = '';
       
+      // Track ALL exported component names across all files
+      const allExportedNames: string[] = [];
+      
       // Sort to ensure proper load order
       const componentFiles = jsFiles.filter(f => 
         f.name.includes('component') || 
@@ -728,6 +737,9 @@ const App = () => {
             `if (typeof ${name} !== 'undefined') window.${name} = ${name};`
           ).join('\n');
           content += `\n\n// Expose exported components for preview\n${exposureCode}\n`;
+          
+          // Add to global list
+          allExportedNames.push(...exportedNames);
         }
         
         // Handle module.exports (CommonJS)
@@ -737,8 +749,8 @@ const App = () => {
         combinedJs += `\n// ${jsFile.name}\n${content}\n`;
       });
       
-      // Generate React-compatible HTML
-      const reactHtml = generateReactHTML(combinedJs, combinedCss);
+      // Generate React-compatible HTML with dynamic component names
+      const reactHtml = generateReactHTML(combinedJs, combinedCss, allExportedNames);
       
       // Store successful React render for future guard
       lastReactSnapshotRef.current = {
