@@ -493,6 +493,17 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     // Inject the user's code
     ${jsCode}
     
+    // Expose tracked exported components to window for auto-detection
+    // This ensures const/arrow components are findable
+    ${exportedNames.map(name => `
+    try {
+      if (typeof ${name} !== 'undefined') {
+        window.${name} = ${name};
+        console.log('[React Preview] Exposed component:', '${name}');
+      }
+    } catch (e) { /* Component not defined */ }
+    `).join('')}
+    
     // Auto-detect and render the main component
     (function() {
       console.log('[React Preview] Starting component auto-detection...');
