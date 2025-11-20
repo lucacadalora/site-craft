@@ -1,0 +1,639 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { 
+  Activity, 
+  Moon, 
+  Sun, 
+  Wind, 
+  Droplets, 
+  Music, 
+  Clock, 
+  Brain, 
+  Zap, 
+  Eye, 
+  Fingerprint, 
+  Maximize2, 
+  Settings, 
+  Share2, 
+  ChevronRight,
+  Play,
+  Pause,
+  RotateCcw
+} from 'lucide-react';
+
+/**
+ * SOMNIUM ARCHITECTURE
+ * A high-fidelity, interactive sleep simulation and tracking dashboard.
+ * * Design Philosophy:
+ * - Ethereal Glassmorphism (Frosted heavy blur, white transparency)
+ * - "Graphic Designer" Grid Layout (Bento box style)
+ * - Physics-based interactions
+ * - Procedural Generation for visualizations
+ */
+
+// --- GLOBAL UTILS & HOOKS ---
+
+const useMousePosition = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const updateMousePosition = (ev) => {
+      setMousePosition({ x: ev.clientX, y: ev.clientY });
+    };
+    window.addEventListener("mousemove", updateMousePosition);
+    return () => window.removeEventListener("mousemove", updateMousePosition);
+  }, []);
+
+  return mousePosition;
+};
+
+const useAnimationFrame = (callback) => {
+  const requestRef = useRef();
+  const previousTimeRef = useRef();
+
+  const animate = time => {
+    if (previousTimeRef.current !== undefined) {
+      const deltaTime = time - previousTimeRef.current;
+      callback(deltaTime);
+    }
+    previousTimeRef.current = time;
+    requestRef.current = requestAnimationFrame(animate);
+  };
+
+  useEffect(() => {
+    requestRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [callback]);
+};
+
+// --- CUSTOM ASSETS (Unique SVGs) ---
+
+const AbstractSleepIcon = ({ type, className }) => {
+  // Generative-style unique icons based on sleep types
+  if (type === 'rem') {
+    return (
+      <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M50 10 C 20 10, 20 40, 50 50 C 80 60, 80 90, 50 90" className="animate-pulse" strokeDasharray="4 4"/>
+        <circle cx="50" cy="50" r="30" strokeOpacity="0.3" />
+        <circle cx="50" cy="50" r="15" className="fill-indigo-500/20" />
+      </svg>
+    );
+  }
+  if (type === 'deep') {
+    return (
+      <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="25" y="25" width="50" height="50" rx="10" className="animate-spin-slow" strokeOpacity="0.5" />
+        <rect x="35" y="35" width="30" height="30" rx="5" className="fill-blue-500/20" />
+        <line x1="50" y1="10" x2="50" y2="90" strokeOpacity="0.2" />
+        <line x1="10" y1="50" x2="90" y2="50" strokeOpacity="0.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 100 100" className={className} fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="50" cy="50" r="40" strokeOpacity="0.2" />
+      <path d="M30 50 Q 50 20 70 50 T 110 50" strokeLinecap="round" />
+    </svg>
+  );
+};
+
+// --- COMPONENTS ---
+
+/**
+ * BrainwaveCanvas
+ * Simulates EEG readings based on current sleep stage state.
+ * Uses HTML5 Canvas for high-performance rendering.
+ */
+const BrainwaveCanvas = ({ stage, isPlaying }) => {
+  const canvasRef = useRef(null);
+  const offsetRef = useRef(0);
+
+  // Stage Configuration: Frequency (Hz), Amplitude (Px), Noise
+  const stageConfig = useMemo(() => ({
+    awake: { freq: 0.15, amp: 20, noise: 5, color: '#64748b' }, // Beta
+    light: { freq: 0.08, amp: 40, noise: 2, color: '#6366f1' }, // Theta
+    deep: { freq: 0.02, amp: 80, noise: 1, color: '#3b82f6' },  // Delta
+    rem: { freq: 0.12, amp: 15, noise: 10, color: '#a855f7' },  // Mix
+  }), []);
+
+  const draw = useCallback((ctx, width, height, deltaTime) => {
+    ctx.clearRect(0, 0, width, height);
+    
+    const config = stageConfig[stage] || stageConfig.awake;
+    const centerY = height / 2;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = config.color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+
+    // Move wave
+    if (isPlaying) {
+      offsetRef.current += deltaTime * 0.1;
+    }
+
+    for (let x = 0; x < width; x++) {
+      // Complex wave synthesis
+      const baseWave = Math.sin(x * config.freq + offsetRef.current);
+      const secondaryWave = Math.sin(x * (config.freq * 2) + offsetRef.current * 1.5) * 0.5;
+      const noise = (Math.random() - 0.5) * config.noise;
+      
+      const y = centerY + (baseWave + secondaryWave) * config.amp + noise;
+      
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    
+    ctx.stroke();
+
+    // Gradient fill under the wave
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, `${config.color}00`);
+    gradient.addColorStop(1, `${config.color}20`);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+  }, [stage, isPlaying, stageConfig]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+
+    const render = (time) => {
+      // Mock delta time for smoother dev experience
+      draw(ctx, canvas.width, canvas.height, 1.5);
+      animationFrameId = requestAnimationFrame(render);
+    };
+    
+    render();
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [draw]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width={600} 
+      height={200} 
+      className="w-full h-full object-cover rounded-2xl"
+    />
+  );
+};
+
+/**
+ * SleepArchitectBuilder
+ * An interactive drag-and-sort visualization of a night's sleep.
+ */
+const SleepArchitectBuilder = () => {
+  const [blocks, setBlocks] = useState([
+    { id: 1, type: 'awake', duration: 30 },
+    { id: 2, type: 'light', duration: 90 },
+    { id: 3, type: 'deep', duration: 60 },
+    { id: 4, type: 'rem', duration: 20 },
+    { id: 5, type: 'light', duration: 60 },
+    { id: 6, type: 'deep', duration: 45 },
+    { id: 7, type: 'rem', duration: 40 },
+  ]);
+
+  const getTypeColor = (type) => {
+    switch(type) {
+      case 'awake': return 'bg-slate-200 text-slate-600 border-slate-300';
+      case 'light': return 'bg-indigo-100 text-indigo-600 border-indigo-200';
+      case 'deep': return 'bg-blue-200 text-blue-700 border-blue-300';
+      case 'rem': return 'bg-purple-200 text-purple-700 border-purple-300';
+      default: return 'bg-gray-100';
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="text-lg font-semibold font-display text-slate-700">Hypnogram Architect</h3>
+        <button className="text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors bg-white/50 px-3 py-1 rounded-full border border-white/60 shadow-sm">
+          Reset Pattern
+        </button>
+      </div>
+      
+      <div className="flex-1 flex items-end gap-2 h-48 p-4 bg-white/30 rounded-xl border border-white/60 shadow-inner overflow-x-auto custom-scrollbar">
+        {blocks.map((block) => (
+          <div 
+            key={block.id}
+            className={`relative group flex-shrink-0 w-12 transition-all duration-300 hover:w-16 rounded-t-lg border-t border-x ${getTypeColor(block.type)}`}
+            style={{ 
+              height: `${block.type === 'awake' ? 90 : block.type === 'rem' ? 70 : block.type === 'light' ? 50 : 30}%`,
+            }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[10px] font-bold rotate-[-90deg] whitespace-nowrap tracking-wider">
+                {block.type.toUpperCase()}
+              </span>
+            </div>
+            
+            {/* Tooltip */}
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
+              <div className="bg-slate-800 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                {block.duration} min
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid grid-cols-4 gap-2">
+        {['Awake', 'Light', 'Deep', 'REM'].map(type => (
+          <button key={type} className="glass-button text-xs py-2 rounded-lg hover:scale-105 transition-transform">
+            + {type}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * InteractiveSlider
+ * Custom circular aesthetic slider using SVG geometry
+ */
+const InteractiveSlider = ({ value, onChange, icon: Icon, label, min = 0, max = 100 }) => {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / max) * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-3 group cursor-pointer">
+      <div className="relative w-24 h-24 flex items-center justify-center">
+        {/* Background Circle */}
+        <svg className="w-full h-full rotate-[-90deg]">
+          <circle
+            cx="50%"
+            cy="50%"
+            r={radius}
+            fill="none"
+            className="stroke-slate-200"
+            strokeWidth="6"
+          />
+          {/* Progress Circle */}
+          <circle
+            cx="50%"
+            cy="50%"
+            r={radius}
+            fill="none"
+            className="stroke-indigo-500 transition-all duration-500 ease-out"
+            strokeWidth="6"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
+        </svg>
+        
+        {/* Center Content */}
+        <div className="absolute inset-0 flex items-center justify-center flex-col text-slate-600 group-hover:scale-110 transition-transform duration-300">
+          <Icon size={20} className="mb-1 opacity-70" />
+          <span className="text-sm font-bold">{value}%</span>
+        </div>
+      </div>
+      <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</span>
+    </div>
+  );
+};
+
+
+// --- MAIN LAYOUT ---
+
+export default function SleepArchitect() {
+  const mouse = useMousePosition();
+  const [simulationState, setSimulationState] = useState('awake'); // awake, light, deep, rem
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [time, setTime] = useState(new Date());
+  
+  // Mock Environment Stats
+  const [envStats, setEnvStats] = useState({
+    temp: 19.5,
+    humidity: 45,
+    co2: 420,
+    light: 0
+  });
+
+  // Update clock
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Parallax Calculation
+  const calculateParallax = (depth = 20) => {
+    const x = (mouse.x - window.innerWidth / 2) / depth;
+    const y = (mouse.y - window.innerHeight / 2) / depth;
+    return { transform: `translate(${x}px, ${y}px)` };
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-[#f4f6f8] text-slate-800 font-sans overflow-hidden relative selection:bg-indigo-200">
+      
+      {/* --- CSS INJECTION --- */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+        
+        .font-sans { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+        
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.65);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.02), 
+            0 10px 15px -3px rgba(0, 0, 0, 0.05),
+            inset 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .glass-card {
+          background: rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+          background: rgba(255, 255, 255, 0.7);
+          transform: translateY(-2px);
+          box-shadow: 0 20px 40px -12px rgba(0,0,0,0.05);
+          border-color: #fff;
+        }
+
+        .glass-button {
+          background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%);
+          border: 1px solid rgba(255,255,255,0.8);
+          backdrop-filter: blur(4px);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        }
+        
+        .glass-button:active {
+          transform: scale(0.98);
+        }
+
+        .text-gradient {
+          background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .mesh-gradient-bg {
+          position: absolute;
+          width: 150%;
+          height: 150%;
+          top: -25%;
+          left: -25%;
+          background: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+          background: 
+            radial-gradient(at 10% 10%, #e0e7ff 0px, transparent 50%),
+            radial-gradient(at 90% 10%, #f3e8ff 0px, transparent 50%),
+            radial-gradient(at 50% 50%, #f0f9ff 0px, transparent 50%),
+            radial-gradient(at 10% 90%, #e0f2fe 0px, transparent 50%),
+            radial-gradient(at 90% 90%, #fae8ff 0px, transparent 50%);
+          filter: blur(60px);
+          z-index: 0;
+          animation: meshMove 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes meshMove {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          100% { transform: translate(-2%, -2%) rotate(1deg); }
+        }
+
+        .animate-spin-slow { animation: spin 12s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+        /* Utility for layout */
+        .grid-bento {
+          display: grid;
+          grid-template-columns: repeat(12, 1fr);
+          grid-template-rows: repeat(12, 1fr);
+          gap: 1.5rem;
+          height: calc(100vh - 4rem);
+        }
+      `}} />
+
+      {/* Background Mesh */}
+      <div className="mesh-gradient-bg" />
+
+      {/* --- APPLICATION CONTAINER --- */}
+      <div className="relative z-10 p-8 h-screen flex flex-col">
+        
+        {/* HEADER */}
+        <header className="flex justify-between items-center mb-6 px-2">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-white shadow-lg flex items-center justify-center">
+              <Brain className="text-indigo-600" size={20} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold font-display text-slate-800 tracking-tight">
+                Somnium <span className="font-light text-slate-500">OS</span>
+              </h1>
+              <p className="text-xs text-slate-500 font-medium tracking-widest uppercase">
+                Biometric Architecture Suite v2.0
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 glass-panel px-6 py-2 rounded-full">
+            <div className="flex items-center gap-2 text-slate-600">
+              <Clock size={14} />
+              <span className="font-mono text-sm font-medium">
+                {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            <div className="h-4 w-[1px] bg-slate-300"></div>
+            <div className="flex items-center gap-2 text-slate-600">
+              <Activity size={14} />
+              <span className="font-mono text-sm font-medium text-emerald-600">HRV 65ms</span>
+            </div>
+             <div className="h-4 w-[1px] bg-slate-300"></div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+              <span className="text-xs font-bold text-indigo-600">RECORDING</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button className="w-10 h-10 rounded-full glass-button flex items-center justify-center text-slate-600 hover:text-indigo-600 transition-colors">
+              <Settings size={18} />
+            </button>
+            <button className="w-10 h-10 rounded-full glass-button flex items-center justify-center text-slate-600 hover:text-indigo-600 transition-colors">
+              <Fingerprint size={18} />
+            </button>
+             <div className="w-10 h-10 rounded-full bg-slate-800 text-white flex items-center justify-center shadow-lg">
+              <span className="font-bold text-xs">JD</span>
+            </div>
+          </div>
+        </header>
+
+        {/* MAIN DASHBOARD GRID */}
+        <main className="grid-bento pb-4">
+
+          {/* 1. PRIMARY VISUALIZER (Simulated EEG) */}
+          <section className="col-span-8 row-span-6 glass-panel rounded-3xl p-1 relative overflow-hidden group">
+            <div className="absolute top-6 left-8 z-20">
+               <h2 className="text-xl font-semibold font-display text-slate-800 mb-1">Neural Topology</h2>
+               <div className="flex gap-2">
+                 <span className="text-xs bg-white/60 backdrop-blur px-2 py-1 rounded-md text-slate-600 border border-white/50">
+                   Live Feed
+                 </span>
+                 <span className="text-xs bg-indigo-100/60 backdrop-blur px-2 py-1 rounded-md text-indigo-600 border border-indigo-100/50 uppercase font-bold">
+                   {simulationState}
+                 </span>
+               </div>
+            </div>
+            
+            {/* Controls for Simulation */}
+            <div className="absolute bottom-6 right-8 z-20 flex gap-3">
+              <button 
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="h-10 w-10 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-indigo-600 transition-colors shadow-lg"
+              >
+                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
+              </button>
+              
+              <div className="flex bg-white/40 backdrop-blur-md rounded-full p-1 border border-white/60">
+                {['awake', 'light', 'deep', 'rem'].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSimulationState(s)}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      simulationState === s 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full h-full bg-gradient-to-br from-slate-50/50 to-indigo-50/30 rounded-[20px] border border-white/40 relative">
+               <BrainwaveCanvas stage={simulationState} isPlaying={isPlaying} />
+            </div>
+            
+            {/* Decorative grid overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-30 bg-[size:40px_40px] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] rounded-[20px]"></div>
+          </section>
+
+          {/* 2. CURRENT SLEEP SCORE */}
+          <section 
+            className="col-span-4 row-span-4 glass-panel rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden"
+            style={calculateParallax(40)}
+          >
+            <div className="flex justify-between items-start z-10">
+              <div>
+                <h2 className="text-3xl font-bold font-display text-slate-800">88</h2>
+                <p className="text-sm text-slate-500 font-medium">Quality Score</p>
+              </div>
+              <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                <Maximize2 size={18} />
+              </div>
+            </div>
+
+            {/* Abstract Art Representation of Score */}
+            <div className="absolute inset-0 flex items-center justify-center z-0 opacity-50">
+               <AbstractSleepIcon type={simulationState} className="w-48 h-48 text-indigo-300" />
+            </div>
+
+            <div className="z-10 mt-auto">
+              <p className="text-sm text-slate-600 mb-3 leading-relaxed">
+                Your REM cycles are perfectly aligned with your circadian rhythm. Deep sleep duration is <span className="font-bold text-emerald-600">+12%</span> above average.
+              </p>
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 w-[88%] rounded-full"></div>
+              </div>
+            </div>
+          </section>
+
+          {/* 3. ENVIRONMENT CONTROLS (Sliders) */}
+          <section className="col-span-4 row-span-5 glass-panel rounded-3xl p-6">
+             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+               <Wind size={14} /> Ambience
+             </h3>
+             <div className="flex justify-between px-2">
+                <InteractiveSlider 
+                  value={72} 
+                  label="Humidity" 
+                  icon={Droplets} 
+                  onChange={() => {}} 
+                />
+                <InteractiveSlider 
+                  value={24} 
+                  label="Audio" 
+                  icon={Music} 
+                  onChange={() => {}} 
+                />
+                <InteractiveSlider 
+                  value={85} 
+                  label="Dimmer" 
+                  icon={Sun} 
+                  onChange={() => {}} 
+                />
+             </div>
+             
+             <div className="mt-8 p-4 bg-white/40 rounded-xl border border-white/60 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                   <Zap size={20} />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 uppercase font-bold">Smart Wake</div>
+                  <div className="text-sm font-medium text-slate-700">Active (06:30 AM - 07:00 AM)</div>
+                </div>
+                <div className="ml-auto">
+                  <div className="w-10 h-5 bg-indigo-500 rounded-full relative cursor-pointer">
+                    <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div>
+                  </div>
+                </div>
+             </div>
+          </section>
+
+          {/* 4. HYPNOGRAM ARCHITECT (Bottom Wide) */}
+          <section className="col-span-8 row-span-6 glass-panel rounded-3xl p-6">
+             <SleepArchitectBuilder />
+          </section>
+
+          {/* 5. RECOVERY METRICS (Bottom Right) */}
+          <section className="col-span-4 row-span-3 glass-panel rounded-3xl p-6 flex items-center justify-between group cursor-pointer hover:bg-white/80 transition-colors">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform">
+                   <Activity size={24} />
+                </div>
+                <div>
+                   <div className="text-2xl font-bold text-slate-800">48<span className="text-sm text-slate-400 ml-1">bpm</span></div>
+                   <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Resting Heart Rate</div>
+                </div>
+             </div>
+             <div className="h-12 w-[1px] bg-slate-200"></div>
+             <div className="flex flex-col items-end">
+                <span className="text-emerald-500 text-sm font-bold flex items-center">
+                   -2 bpm <ChevronRight size={14} />
+                </span>
+                <span className="text-xs text-slate-400">vs 7d avg</span>
+             </div>
+          </section>
+
+        </main>
+      </div>
+      
+      {/* OVERLAY VIGNETTE FOR CINEMATIC FEEL */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_50%,rgba(255,255,255,0.4)_100%)] z-20"></div>
+    </div>
+  );
+}

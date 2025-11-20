@@ -495,70 +495,72 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     // Auto-detect and render the main component
     (function() {
-      // Look for default export or main component
+      console.log('[React Preview] Starting component auto-detection...');
+      
       let MainComponent = null;
       
-      // DYNAMIC: Prioritize exported component names from code analysis
-      const exportedComponentNames = ${JSON.stringify(exportedNames)};
+      // UNIVERSAL APPROACH: Scan the entire window object for React components
+      // This works with ANY export pattern or component name
+      const allWindowKeys = Object.keys(window);
+      console.log('[React Preview] Total window keys:', allWindowKeys.length);
       
-      // Fallback: Common component names to check (App is most common)
-      const commonComponentNames = ['App', 'Main', 'Component', 'Application', 'Root', 
-                              'Dashboard', 'Home', 'Index', 'LuminaApp', 'MyApp'];
-      
-      // Combine: exported names FIRST (highest priority), then common names
-      const componentNames = [...exportedComponentNames, ...commonComponentNames];
-      
-      // Check for component names in priority order
-      for (const name of componentNames) {
-        if (typeof window[name] !== 'undefined') {
-          const candidate = window[name];
-          // Check if it's a valid React component (function or class)
-          if (typeof candidate === 'function' || 
-              (typeof candidate === 'object' && candidate && candidate.$$typeof)) {
-            MainComponent = candidate;
-            console.log('Found component:', name);
-            break;
-          }
+      // Filter to potential component candidates (uppercase first letter)
+      const potentialComponents = allWindowKeys.filter(key => {
+        try {
+          return typeof window[key] === 'function' && 
+                 key[0] === key[0].toUpperCase() &&
+                 key !== 'React' && 
+                 key !== 'ReactDOM' &&
+                 key !== 'Babel' &&
+                 key !== 'Fragment' &&
+                 !key.startsWith('Lucide') &&
+                 !key.includes('Icon') &&
+                 !key.startsWith('use') &&
+                 !key.startsWith('HTML') &&
+                 !key.startsWith('SVG') &&
+                 !key.startsWith('Audio') &&
+                 !key.startsWith('Video');
+        } catch (e) {
+          return false;
         }
-      }
+      });
       
-      // If not found, try to find any defined React component
-      if (!MainComponent) {
-        // Get all global variables defined in our script
-        const globalKeys = Object.keys(window).filter(key => {
+      console.log('[React Preview] Found potential components:', potentialComponents);
+      
+      // Priority order: Try exported names first, then common names, then everything else
+      const exportedNames = ${JSON.stringify(exportedNames)};
+      const commonNames = ['App', 'Main', 'Root', 'Component'];
+      
+      // Build priority list
+      const priorityList = [
+        ...exportedNames,
+        ...commonNames,
+        ...potentialComponents.filter(name => !exportedNames.includes(name) && !commonNames.includes(name))
+      ];
+      
+      console.log('[React Preview] Priority search order:', priorityList);
+      
+      // Try each candidate in order
+      for (const name of priorityList) {
+        if (typeof window[name] === 'function') {
+          const candidate = window[name];
+          
           try {
-            // Check if it's a function with uppercase first letter (React convention)
-            return typeof window[key] === 'function' && 
-                   key[0] === key[0].toUpperCase() &&
-                   key !== 'React' && 
-                   key !== 'ReactDOM' &&
-                   !key.startsWith('Lucide') &&
-                   !key.includes('Icon') &&
-                   !key.startsWith('use');  // Exclude hooks
-          } catch (e) {
-            return false;
-          }
-        });
-        
-        // Try each candidate
-        for (const key of globalKeys) {
-          try {
-            const candidate = window[key];
+            // Quick validation: check if function looks like it returns JSX
             const fnString = candidate.toString();
+            const looksLikeComponent = 
+              fnString.includes('return') && 
+              (fnString.includes('React.createElement') || 
+               fnString.includes('jsx') ||
+               fnString.includes('<') && fnString.includes('>'));
             
-            // Check if it looks like a React component
-            if (fnString.includes('return') && 
-                (fnString.includes('React.createElement') || 
-                 fnString.includes('jsx') ||
-                 fnString.includes('<') ||
-                 fnString.includes('div') ||
-                 fnString.includes('span'))) {
+            if (looksLikeComponent) {
               MainComponent = candidate;
-              console.log('Found component by scanning:', key);
+              console.log('[React Preview] ✓ Selected component:', name);
               break;
             }
           } catch (e) {
-            // Continue searching
+            console.log('[React Preview] ✗ Skipped', name, '- not a valid component');
           }
         }
       }
@@ -685,10 +687,12 @@ const App = () => {
         // Remove ES6 module imports (they'll be replaced with globals)
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
         
-        // Track exported component names for window exposure
+        // Track exported component names for auto-detection priority
         const exportedNames: string[] = [];
         
-        // Handle various export patterns
+        // Handle various export patterns - SIMPLIFIED APPROACH
+        // Just strip exports and track names, auto-detection will find components
+        
         // export default function ComponentName() {...}
         content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, (match, name) => {
           exportedNames.push(name);
@@ -708,37 +712,29 @@ const App = () => {
         });
         
         // const Component = () => {}; export default Component;
-        // CRITICAL: Expose the component globally so auto-detection can find it
         content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, (match, name) => {
           exportedNames.push(name);
-          return `window.${name} = ${name}; // Exposed for preview`;
+          return `// ${name} is exported`;
         });
         
         // export default () => {} or export default {...}
         content = content.replace(/^export\s+default\s+(\(|{)/gm, (match, bracket) => {
           exportedNames.push('App');
-          return `window.App = ${bracket}`;
+          return `const App = ${bracket}`;
         });
         
-        // Handle remaining export default
+        // Handle remaining export default  
         content = content.replace(/^export\s+default\s+/gm, () => {
           exportedNames.push('App');
-          return 'window.App = ';
+          return 'const App = ';
         });
         
         // Handle named exports
         content = content.replace(/^export\s+{[^}]+}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, '');
         content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
         
-        // Add window exposure for any exported component names at the end
+        // Add to global tracking for auto-detection priority
         if (exportedNames.length > 0) {
-          const uniqueNames = Array.from(new Set(exportedNames));
-          const exposureCode = uniqueNames.map(name => 
-            `if (typeof ${name} !== 'undefined') window.${name} = ${name};`
-          ).join('\n');
-          content += `\n\n// Expose exported components for preview\n${exposureCode}\n`;
-          
-          // Add to global list
           allExportedNames.push(...exportedNames);
         }
         
