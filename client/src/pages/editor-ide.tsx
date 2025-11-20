@@ -740,9 +740,27 @@ const App = () => {
           return 'const App = ';
         });
         
-        // Handle named exports
-        content = content.replace(/^export\s+{[^}]+}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, '');
-        content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
+        // Handle named exports - CAPTURE NAMES FIRST
+        // export const ComponentName = ... or export function ComponentName() ...
+        content = content.replace(/^export\s+(const|let|var|function|class)\s+(\w+)/gm, (match, keyword, name) => {
+          // Only track capitalized names (likely components)
+          if (name[0] === name[0].toUpperCase()) {
+            exportedNames.push(name);
+          }
+          return `${keyword} ${name}`;
+        });
+        
+        // export { ComponentName, AnotherComponent }
+        content = content.replace(/^export\s+{([^}]+)}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, (match, names) => {
+          // Extract individual names
+          const nameList = names.split(',').map(n => n.trim().split(/\s+as\s+/)[0]);
+          nameList.forEach(name => {
+            if (name[0] === name[0].toUpperCase()) {
+              exportedNames.push(name);
+            }
+          });
+          return ''; // Remove the export statement
+        });
         
         // Add to global tracking for auto-detection priority
         if (exportedNames.length > 0) {
