@@ -741,22 +741,27 @@ const App = () => {
         });
         
         // Handle named exports - CAPTURE NAMES FIRST
-        // export const ComponentName = ... or export function ComponentName() ...
-        content = content.replace(/^export\s+(const|let|var|function|class)\s+(\w+)/gm, (match, keyword, name) => {
+        // export const/let/var ComponentName = ... or export [async] function ComponentName() ...
+        content = content.replace(/^export\s+(?:async\s+)?(const|let|var|function|class)\s+(\w+)/gm, (match, keyword, name) => {
           // Only track capitalized names (likely components)
           if (name[0] === name[0].toUpperCase()) {
             exportedNames.push(name);
           }
-          return `${keyword} ${name}`;
+          // Preserve async keyword if it was present
+          const hasAsync = match.includes('async');
+          return hasAsync ? `async ${keyword} ${name}` : `${keyword} ${name}`;
         });
         
-        // export { ComponentName, AnotherComponent }
+        // export { ComponentName, AnotherComponent, default as App }
         content = content.replace(/^export\s+{([^}]+)}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, (match, names) => {
-          // Extract individual names
-          const nameList = names.split(',').map(n => n.trim().split(/\s+as\s+/)[0]);
-          nameList.forEach(name => {
-            if (name[0] === name[0].toUpperCase()) {
-              exportedNames.push(name);
+          // Extract individual names, handling aliases
+          const nameList = names.split(',').map(n => n.trim());
+          nameList.forEach(item => {
+            // Handle "Foo as Bar" or "default as App" - we want the alias (Bar/App)
+            const parts = item.split(/\s+as\s+/);
+            const exportedName = parts.length > 1 ? parts[1].trim() : parts[0].trim();
+            if (exportedName && exportedName[0] === exportedName[0].toUpperCase()) {
+              exportedNames.push(exportedName);
             }
           });
           return ''; // Remove the export statement
