@@ -137,6 +137,13 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Edit process no longer freezes or makes pages unresponsive
   - Improved error messages show search pattern and file content for debugging
   - AI-generated edits are now much more reliable even with imperfect whitespace matching
+- November 20, 2025. Fixed false positive React detection in HTML/CSS/JS projects:
+  - Replaced overly broad React detection patterns that flagged Web Components as React
+  - Removed className= and onClick= from detection (these are valid in regular HTML/Web Components)
+  - Now requires actual React imports (from 'react') OR explicit React API calls (ReactDOM, React.createElement)
+  - Web Components using custom elements, className, onClick no longer trigger "React code detected" warnings
+  - Strict detection ensures only genuine React/JSX code is processed as React
+  - Applied consistent detection logic across process-ai-response.ts, bundle-for-deployment.ts, and editor-ide.tsx
 
 ## User Preferences
 
