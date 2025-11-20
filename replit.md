@@ -130,6 +130,13 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Automatically hides stuck loading screens by adding hidden class, opacity 0, and display none
   - Prevents AI-generated websites with loading animations from getting stuck in preview
   - Loading screens work normally but have a failsafe to ensure they don't block the preview permanently
+- November 20, 2025. Fixed edit/SEARCH-REPLACE failures that caused broken websites:
+  - Implemented 3-tier matching strategy for SEARCH/REPLACE blocks: exact match → whitespace normalization → flexible regex
+  - Whitespace normalization intelligently finds matching code sections even with different indentation
+  - Failed edits now skip gracefully with warnings instead of breaking the website
+  - Edit process no longer freezes or makes pages unresponsive
+  - Improved error messages show search pattern and file content for debugging
+  - AI-generated edits are now much more reliable even with imperfect whitespace matching
 
 ## User Preferences
 

@@ -1921,30 +1921,78 @@ const App = () => {
                     // Empty search means insert at beginning
                     updatedContent = replaceBlock + '\n' + updatedContent;
                   } else {
-                    // Create flexible regex for matching
-                    // First try exact match
+                    let matchFound = false;
+                    
+                    // Strategy 1: Try exact match first
                     if (updatedContent.includes(searchBlock)) {
                       updatedContent = updatedContent.replace(searchBlock, replaceBlock);
-                    } else {
-                      // If exact match fails, try flexible whitespace matching
-                      const flexibleSearch = searchBlock
-                        .split(/\r?\n/) // Split by lines
-                        .map(line => line
-                          .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special regex chars
-                          .replace(/\s+/g, '\\s+') // Flexible whitespace within lines
-                        )
-                        .join('\\s*\\n\\s*'); // Flexible line breaks with optional indentation
+                      matchFound = true;
+                      console.log(`✅ Applied exact SEARCH/REPLACE for ${fileName}`);
+                    } 
+                    
+                    // Strategy 2: Try normalizing all whitespace (most forgiving)
+                    if (!matchFound) {
+                      const normalizeWhitespace = (str: string) => str.replace(/\s+/g, ' ').trim();
+                      const normalizedSearch = normalizeWhitespace(searchBlock);
+                      const normalizedContent = normalizeWhitespace(updatedContent);
                       
-                      const searchRegex = new RegExp(flexibleSearch, 'g');
-                      const matches = updatedContent.match(searchRegex);
-                      
-                      if (matches && matches.length > 0) {
-                        updatedContent = updatedContent.replace(searchRegex, replaceBlock);
-                        console.log(`✅ Applied flexible SEARCH/REPLACE for ${fileName}`);
-                      } else {
-                        console.warn(`⚠️ Could not find match for SEARCH block in ${fileName}`);
-                        console.log('Search block:', searchBlock);
+                      if (normalizedContent.includes(normalizedSearch)) {
+                        // Find the original text by matching normalized version
+                        const lines = updatedContent.split('\n');
+                        let bestMatch = '';
+                        let bestMatchIndex = -1;
+                        
+                        // Try to find the section that matches when normalized
+                        for (let i = 0; i < lines.length; i++) {
+                          for (let j = i + 1; j <= lines.length && j <= i + 50; j++) {
+                            const section = lines.slice(i, j).join('\n');
+                            if (normalizeWhitespace(section) === normalizedSearch) {
+                              if (section.length > bestMatch.length) {
+                                bestMatch = section;
+                                bestMatchIndex = i;
+                              }
+                            }
+                          }
+                        }
+                        
+                        if (bestMatch) {
+                          updatedContent = updatedContent.replace(bestMatch, replaceBlock);
+                          matchFound = true;
+                          console.log(`✅ Applied whitespace-normalized SEARCH/REPLACE for ${fileName}`);
+                        }
                       }
+                    }
+                    
+                    // Strategy 3: Try flexible regex matching
+                    if (!matchFound) {
+                      try {
+                        const flexibleSearch = searchBlock
+                          .split(/\r?\n/)
+                          .map(line => line
+                            .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                            .replace(/\s+/g, '\\s+')
+                          )
+                          .join('\\s*\\n\\s*');
+                        
+                        const searchRegex = new RegExp(flexibleSearch, 'g');
+                        const matches = updatedContent.match(searchRegex);
+                        
+                        if (matches && matches.length > 0) {
+                          updatedContent = updatedContent.replace(searchRegex, replaceBlock);
+                          matchFound = true;
+                          console.log(`✅ Applied regex SEARCH/REPLACE for ${fileName}`);
+                        }
+                      } catch (e) {
+                        console.warn('Regex matching failed:', e);
+                      }
+                    }
+                    
+                    // If all strategies failed, warn but don't break the page
+                    if (!matchFound) {
+                      console.warn(`⚠️ Could not find match for SEARCH block in ${fileName} - skipping this edit`);
+                      console.warn('Search block (first 200 chars):', searchBlock.substring(0, 200));
+                      console.warn('File content (first 500 chars):', updatedContent.substring(0, 500));
+                      console.warn('💡 Tip: The AI may be generating slightly different code. Try regenerating or being more specific.');
                     }
                   }
                 }
