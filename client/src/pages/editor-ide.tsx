@@ -676,29 +676,59 @@ const App = () => {
         // Remove ES6 module imports (they'll be replaced with globals)
         content = content.replace(/^import\s+.*?from\s+['"].*?['"];?\s*$/gm, '');
         
+        // Track exported component names for window exposure
+        const exportedNames: string[] = [];
+        
         // Handle various export patterns
         // export default function ComponentName() {...}
-        content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, 'function $1');
+        content = content.replace(/^export\s+default\s+function\s+(\w+)/gm, (match, name) => {
+          exportedNames.push(name);
+          return `function ${name}`;
+        });
         
         // export default class ComponentName {...}
-        content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, 'class $1');
+        content = content.replace(/^export\s+default\s+class\s+(\w+)/gm, (match, name) => {
+          exportedNames.push(name);
+          return `class ${name}`;
+        });
         
         // export default const ComponentName = 
-        content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
+        content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, (match, name) => {
+          exportedNames.push(name);
+          return `const ${name}`;
+        });
         
         // const Component = () => {}; export default Component;
         // CRITICAL: Expose the component globally so auto-detection can find it
-        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, 'window.$1 = $1; // Exposed for preview');
+        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, (match, name) => {
+          exportedNames.push(name);
+          return `window.${name} = ${name}; // Exposed for preview`;
+        });
         
         // export default () => {} or export default {...}
-        content = content.replace(/^export\s+default\s+(\(|{)/gm, 'window.App = $1');
+        content = content.replace(/^export\s+default\s+(\(|{)/gm, (match, bracket) => {
+          exportedNames.push('App');
+          return `window.App = ${bracket}`;
+        });
         
         // Handle remaining export default
-        content = content.replace(/^export\s+default\s+/gm, 'window.App = ');
+        content = content.replace(/^export\s+default\s+/gm, () => {
+          exportedNames.push('App');
+          return 'window.App = ';
+        });
         
         // Handle named exports
         content = content.replace(/^export\s+{[^}]+}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, '');
         content = content.replace(/^export\s+(const|let|var|function|class)\s+/gm, '$1 ');
+        
+        // Add window exposure for any exported component names at the end
+        if (exportedNames.length > 0) {
+          const uniqueNames = Array.from(new Set(exportedNames));
+          const exposureCode = uniqueNames.map(name => 
+            `if (typeof ${name} !== 'undefined') window.${name} = ${name};`
+          ).join('\n');
+          content += `\n\n// Expose exported components for preview\n${exposureCode}\n`;
+        }
         
         // Handle module.exports (CommonJS)
         content = content.replace(/^module\.exports\s*=\s*/gm, 'const App = ');
