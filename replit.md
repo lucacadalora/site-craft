@@ -150,16 +150,17 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Changed export handling from commenting out to `window.ComponentName = ComponentName`
   - React code pasted into .jsx files now renders correctly in preview
   - Fixed standalone exports like `export default App;` to expose component for rendering
-- November 20, 2025. **FINAL FIX: Universal React Preview Compatibility**:
+- November 20, 2025. **FINAL FIX: Universal React Preview Compatibility** (Architect-Approved):
   - Completely rewrote React component auto-detection to work with ANY React code
-  - Removed fragile window exposure tracking - now uses universal window scanning
-  - Export handling simplified: strip exports cleanly without complex injection code
-  - Auto-detection scans entire window object for ALL capitalized functions
-  - Priority-based search: exported names first, then common names (App/Main/Root), then all candidates
+  - Comprehensive export tracking captures ALL patterns: default exports, named exports, async exports, barrel re-exports
+  - Supported patterns: `export default function/class/const`, `export const/function/class`, `export async function`, `export { default as App }`
+  - Window exposure mechanism: after user code runs, tracked components exposed with try/catch blocks
+  - Handles both function declarations (globally scoped) and const/arrow components (block-scoped)
+  - Auto-detection scans entire window object with priority-based search (exported names → common names → all candidates)
   - Component validation: checks if function returns JSX before selecting
-  - Added comprehensive console logging for debugging [React Preview] messages
-  - **Result**: Preview now works universally with SleepArchitect, LuminaWellness, ANY component name
-  - No whitelisting required - truly universal React code support
+  - Added comprehensive console logging with [React Preview] prefix for debugging
+  - **Result**: Preview works universally with SleepArchitect, LuminaWellness, ANY component name from CRA/Next.js/Vite
+  - No whitelisting required - truly universal React code support for all real-world projects
 
 ## User Preferences
 
