@@ -144,6 +144,12 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Web Components using custom elements, className, onClick no longer trigger "React code detected" warnings
   - Strict detection ensures only genuine React/JSX code is processed as React
   - Applied consistent detection logic across process-ai-response.ts, bundle-for-deployment.ts, and editor-ide.tsx
+- November 20, 2025. Fixed React preview not rendering pasted code with export default:
+  - Fixed critical bug where `export default App` wasn't exposing components globally
+  - Preview auto-detection now properly finds components with ES6 module exports
+  - Changed export handling from commenting out to `window.ComponentName = ComponentName`
+  - React code pasted into .jsx files now renders correctly in preview
+  - Fixed standalone exports like `export default App;` to expose component for rendering
 
 ## User Preferences
 

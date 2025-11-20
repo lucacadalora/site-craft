@@ -687,13 +687,14 @@ const App = () => {
         content = content.replace(/^export\s+default\s+const\s+(\w+)/gm, 'const $1');
         
         // const Component = () => {}; export default Component;
-        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, '// Default export: $1');
+        // CRITICAL: Expose the component globally so auto-detection can find it
+        content = content.replace(/^export\s+default\s+(\w+);?\s*$/gm, 'window.$1 = $1; // Exposed for preview');
         
         // export default () => {} or export default {...}
-        content = content.replace(/^export\s+default\s+(\(|{)/gm, 'const App = $1');
+        content = content.replace(/^export\s+default\s+(\(|{)/gm, 'window.App = $1');
         
         // Handle remaining export default
-        content = content.replace(/^export\s+default\s+/gm, 'const App = ');
+        content = content.replace(/^export\s+default\s+/gm, 'window.App = ');
         
         // Handle named exports
         content = content.replace(/^export\s+{[^}]+}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, '');
