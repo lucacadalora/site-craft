@@ -8,24 +8,22 @@ interface ProjectFile {
   content: string;
 }
 
-// Detect if code contains React patterns
+// Detect if code contains React patterns - STRICT detection to avoid false positives
+// Only detect React if there are actual React imports or explicit React API usage
 const detectReact = (code: string): boolean => {
-  const reactPatterns = [
-    /import\s+(?:React|{[^}]*})\s+from\s+['"]react['"]/,
-    /from\s+['"]react['"]/,
-    /React\.createElement/,
-    /React\.Component/,
-    /ReactDOM\.render/,
-    /ReactDOM\.createRoot/,
-    /<[A-Z][a-zA-Z]*(?:\s|>|\/>)/,  // JSX components (uppercase)
-    /className=/,  // React uses className instead of class
-    /onClick=/,    // React event handlers
-    /useState\(/,
-    /useEffect\(/,
-    /export\s+default\s+(?:function|class|const)/
-  ];
+  // Primary indicators: Must have React imports or explicit React API calls
+  const hasReactImport = /from\s+['"]react['"]/.test(code);
+  const hasReactDOM = /ReactDOM\.(render|createRoot)/.test(code);
+  const hasReactAPI = /React\.(createElement|Component|Fragment)/.test(code);
   
-  return reactPatterns.some(pattern => pattern.test(code));
+  // Secondary indicators: React hooks (but only if found with other context)
+  const hasReactHooks = /(useState|useEffect|useRef|useMemo|useCallback)\s*\(/.test(code);
+  
+  // Must have primary indicator OR (hooks + JSX syntax together)
+  const hasJSXWithHooks = hasReactHooks && /<[A-Z][a-zA-Z]*[\s>\/]/.test(code);
+  
+  // Require strong evidence of React
+  return hasReactImport || hasReactDOM || hasReactAPI || hasJSXWithHooks;
 };
 
 // Detect libraries from imports
