@@ -150,6 +150,16 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Changed export handling from commenting out to `window.ComponentName = ComponentName`
   - React code pasted into .jsx files now renders correctly in preview
   - Fixed standalone exports like `export default App;` to expose component for rendering
+- November 20, 2025. **FINAL FIX: Universal React Preview Compatibility**:
+  - Completely rewrote React component auto-detection to work with ANY React code
+  - Removed fragile window exposure tracking - now uses universal window scanning
+  - Export handling simplified: strip exports cleanly without complex injection code
+  - Auto-detection scans entire window object for ALL capitalized functions
+  - Priority-based search: exported names first, then common names (App/Main/Root), then all candidates
+  - Component validation: checks if function returns JSX before selecting
+  - Added comprehensive console logging for debugging [React Preview] messages
+  - **Result**: Preview now works universally with SleepArchitect, LuminaWellness, ANY component name
+  - No whitelisting required - truly universal React code support
 
 ## User Preferences
 
