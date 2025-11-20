@@ -1031,7 +1031,7 @@ const App = () => {
     });
     
     // Ensure any loader/splash screen click handlers work
-    const loaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [id*="splash"], [class*="splash"], [id*="loading"], [class*="loading"]');
+    const loaders = document.querySelectorAll('[id*="loader"], [class*="loader"], [id*="splash"], [class*="splash"], [id*="loading"], [class*="loading"], .loading-screen');
     loaders.forEach(loader => {
       // If there's an onclick attribute, ensure it's properly bound
       if (loader.getAttribute('onclick')) {
@@ -1048,6 +1048,38 @@ const App = () => {
         });
       }
     });
+    
+    // CRITICAL FIX: Auto-hide loading screens that get stuck
+    // This ensures loading screens always disappear even if JavaScript has errors
+    setTimeout(() => {
+      const allLoadingElements = document.querySelectorAll(
+        '.loading-screen, .loader-container, .splash-screen, .preloader, ' +
+        '[id*="loading"], [id*="loader"], [id*="splash"], [id*="preloader"], ' +
+        '[class*="loading-"], [class*="loader-"], [class*="splash-"], [class*="preloader-"]'
+      );
+      
+      allLoadingElements.forEach(element => {
+        // Check if it's actually blocking the page (covers significant area)
+        const rect = element.getBoundingClientRect();
+        const isFullScreen = (rect.width > window.innerWidth * 0.8 && rect.height > window.innerHeight * 0.8);
+        const hasFixedOrAbsolutePosition = ['fixed', 'absolute'].includes(window.getComputedStyle(element).position);
+        const hasHighZIndex = parseInt(window.getComputedStyle(element).zIndex || '0') > 100;
+        
+        // If it looks like a full-screen loading overlay, hide it
+        if ((isFullScreen && hasFixedOrAbsolutePosition) || (hasHighZIndex && hasFixedOrAbsolutePosition)) {
+          console.log('Auto-hiding stuck loading screen:', element);
+          element.classList.add('hidden');
+          element.style.opacity = '0';
+          element.style.visibility = 'hidden';
+          element.style.pointerEvents = 'none';
+          
+          // Also completely remove it after fade out
+          setTimeout(() => {
+            element.style.display = 'none';
+          }, 500);
+        }
+      });
+    }, 2000); // Give the original code 2 seconds to hide it normally, then force hide
     
     // Fix any buttons or clickable elements that might not be working
     document.querySelectorAll('[onclick]').forEach(element => {

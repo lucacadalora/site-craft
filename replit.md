@@ -124,6 +124,12 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Deployment now generates React-compatible HTML with all necessary CDN links
   - React preview works universally for ANY React code pasted (Create React App, Next.js, Vite, etc.)
   - Both IDE preview and deployment now handle React projects correctly
+- November 20, 2025. Fixed stuck loading screens in preview:
+  - Added automatic loading screen detection and removal after 2-second timeout
+  - Preview now detects full-screen loading overlays (fixed/absolute position, high z-index)
+  - Automatically hides stuck loading screens by adding hidden class, opacity 0, and display none
+  - Prevents AI-generated websites with loading animations from getting stuck in preview
+  - Loading screens work normally but have a failsafe to ensure they don't block the preview permanently
 
 ## User Preferences
 
