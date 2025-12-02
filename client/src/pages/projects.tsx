@@ -25,7 +25,9 @@ import {
   Copy,
   Globe,
   ExternalLink,
-  Rocket
+  Rocket,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import {
   Dialog,
@@ -57,6 +59,7 @@ interface DeploymentInfo {
   slug: string;
   projectId: number | null;
   customDomains?: Array<{
+    id: number;
     domain: string;
     verified: boolean;
   }>;
@@ -109,6 +112,36 @@ export default function Projects() {
       toast({
         title: 'Error',
         description: 'Failed to delete the project. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Verify domain mutation
+  const verifyDomainMutation = useMutation({
+    mutationFn: async (domainId: number) => {
+      return apiRequest('POST', `/api/domains/${domainId}/verify`);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/deployments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/domains'] });
+      if (data.verified) {
+        toast({
+          title: 'Domain Verified',
+          description: 'Your custom domain is now active and serving your site.'
+        });
+      } else {
+        toast({
+          title: 'Verification Pending',
+          description: 'DNS records not found yet. Please ensure your DNS settings are correct and try again in a few minutes.',
+          variant: 'destructive'
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Verification Failed',
+        description: 'Could not verify domain. Please check your DNS settings.',
         variant: 'destructive'
       });
     }
@@ -326,27 +359,33 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                     
                     {/* Deployed Badge */}
                     {deployment && (
-                      <div className="absolute top-2 right-2 flex items-center gap-1">
+                      <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
                         <div 
-                          className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                            hasCustomDomain 
-                              ? 'bg-purple-500/90 text-white' 
-                              : 'bg-green-500/90 text-white'
-                          }`}
-                          title={hasCustomDomain ? `Custom domain: ${deployment.customDomains![0].domain}` : `Deployed at /sites/${deployment.slug}`}
+                          className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-green-500/90 text-white"
+                          title={`Deployed at /sites/${deployment.slug}`}
                         >
-                          {hasCustomDomain ? (
-                            <>
-                              <Globe className="w-3 h-3" />
-                              {verifiedDomain ? 'Live' : 'Pending'}
-                            </>
-                          ) : (
-                            <>
-                              <Rocket className="w-3 h-3" />
-                              Live
-                            </>
-                          )}
+                          <Rocket className="w-3 h-3" />
+                          Live
                         </div>
+                        {hasCustomDomain && !verifiedDomain && (
+                          <div 
+                            className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-amber-500/90 text-white"
+                            title={`Domain pending verification: ${deployment.customDomains![0].domain}`}
+                          >
+                            <Globe className="w-3 h-3" />
+                            <span className="truncate max-w-[120px]">{deployment.customDomains![0].domain}</span>
+                            <span className="text-amber-200">• Pending</span>
+                          </div>
+                        )}
+                        {hasCustomDomain && verifiedDomain && (
+                          <div 
+                            className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-500/90 text-white"
+                            title={`Custom domain active: ${verifiedDomain.domain}`}
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span className="truncate max-w-[120px]">{verifiedDomain.domain}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -385,18 +424,32 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-gray-800">
                           {deployment && (
-                            <DropdownMenuItem 
-                              onClick={() => {
-                                const url = hasCustomDomain && verifiedDomain 
-                                  ? `https://${verifiedDomain.domain}` 
-                                  : `/sites/${deployment.slug}`;
-                                window.open(url, '_blank');
-                              }}
-                              className="text-green-400 hover:text-green-300"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              View Live Site
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  const url = hasCustomDomain && verifiedDomain 
+                                    ? `https://${verifiedDomain.domain}` 
+                                    : `/sites/${deployment.slug}`;
+                                  window.open(url, '_blank');
+                                }}
+                                className="text-green-400 hover:text-green-300"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View Live Site
+                              </DropdownMenuItem>
+                              {hasCustomDomain && !verifiedDomain && deployment.customDomains![0].id && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    verifyDomainMutation.mutate(deployment.customDomains![0].id);
+                                  }}
+                                  className="text-amber-400 hover:text-amber-300"
+                                  disabled={verifyDomainMutation.isPending}
+                                >
+                                  <RefreshCw className={`w-4 h-4 mr-2 ${verifyDomainMutation.isPending ? 'animate-spin' : ''}`} />
+                                  {verifyDomainMutation.isPending ? 'Verifying...' : 'Verify Domain'}
+                                </DropdownMenuItem>
+                              )}
+                            </>
                           )}
                           <DropdownMenuItem 
                             onClick={() => handleOpenProject(project)}
