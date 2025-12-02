@@ -22,7 +22,10 @@ import {
   Code2,
   Share2,
   Settings,
-  Copy
+  Copy,
+  Globe,
+  ExternalLink,
+  Rocket
 } from 'lucide-react';
 import {
   Dialog,
@@ -35,15 +38,29 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import type { Project } from '@shared/schema';
 
-interface ProjectDisplay extends Project {
+interface ProjectDisplay {
   id: number;
   sessionId: string | null;
+  slug?: string | null;
   name: string;
   thumbnail: string | null;
+  html?: string | null;
+  css?: string | null;
   files?: any[];
   prompts?: string[];
   createdAt: Date | string;
   updatedAt: Date | string | null;
+}
+
+interface DeploymentInfo {
+  id: number;
+  slug: string;
+  projectId: number | null;
+  customDomains?: Array<{
+    domain: string;
+    verified: boolean;
+  }>;
+  createdAt: Date | string;
 }
 
 export default function Projects() {
@@ -52,8 +69,8 @@ export default function Projects() {
   const { toast } = useToast();
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; projectId?: number }>({ open: false });
   
-  // Get username from user email or display name
-  const username = user?.displayName || user?.email?.split('@')[0] || 'user';
+  // Get username from user email
+  const username = user?.email?.split('@')[0] || 'user';
   
   // Fetch projects
   const { data: projects = [], isLoading } = useQuery({
@@ -61,12 +78,24 @@ export default function Projects() {
     enabled: !!user
   });
 
+  // Fetch user's deployments
+  const { data: deployments = [] } = useQuery<DeploymentInfo[]>({
+    queryKey: ['/api/deployments'],
+    enabled: !!user
+  });
+
+  // Create a map of projectId -> deployment for quick lookup
+  const deploymentsByProjectId = (deployments as DeploymentInfo[]).reduce((acc, deployment) => {
+    if (deployment.projectId) {
+      acc[deployment.projectId] = deployment;
+    }
+    return acc;
+  }, {} as Record<number, DeploymentInfo>);
+
   // Delete project mutation
   const deleteProjectMutation = useMutation({
     mutationFn: async (projectId: number) => {
-      return apiRequest(`/api/projects/${projectId}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/projects/${projectId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
@@ -269,83 +298,138 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
             </Card>
 
             {/* Existing Projects */}
-            {(projects as ProjectDisplay[]).map((project) => (
-              <Card 
-                key={project.id}
-                className="bg-gray-900 border-gray-800 hover:border-gray-700 group transition-all duration-200"
-              >
-                <div 
-                  className="aspect-video rounded-t-lg relative overflow-hidden cursor-pointer"
-                  onClick={() => handleOpenProject(project)}
-                  style={{
-                    background: project.thumbnail ? `url(${project.thumbnail}) center/cover` : getProjectThumbnail(project),
-                  }}
+            {(projects as ProjectDisplay[]).map((project) => {
+              const deployment = deploymentsByProjectId[project.id];
+              const hasCustomDomain = deployment?.customDomains && deployment.customDomains.length > 0;
+              const verifiedDomain = deployment?.customDomains?.find(d => d.verified);
+              
+              return (
+                <Card 
+                  key={project.id}
+                  className="bg-gray-900 border-gray-800 hover:border-gray-700 group transition-all duration-200"
                 >
-                  {!project.thumbnail && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Code2 className="w-8 h-8 text-white/30" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </div>
-                
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-100 line-clamp-1">
-                        {project.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                        <Clock className="w-3 h-3" />
-                        <span>Updated {formatDistanceToNow(new Date(project.updatedAt || project.createdAt), { addSuffix: true })}</span>
+                  <div 
+                    className="aspect-video rounded-t-lg relative overflow-hidden cursor-pointer"
+                    onClick={() => handleOpenProject(project)}
+                    style={{
+                      background: project.thumbnail ? `url(${project.thumbnail}) center/cover` : getProjectThumbnail(project),
+                    }}
+                  >
+                    {!project.thumbnail && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Code2 className="w-8 h-8 text-white/30" />
                       </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => e.stopPropagation()}
+                    {/* Deployed Badge */}
+                    {deployment && (
+                      <div className="absolute top-2 right-2 flex items-center gap-1">
+                        <div 
+                          className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                            hasCustomDomain 
+                              ? 'bg-purple-500/90 text-white' 
+                              : 'bg-green-500/90 text-white'
+                          }`}
+                          title={hasCustomDomain ? `Custom domain: ${deployment.customDomains![0].domain}` : `Deployed at /sites/${deployment.slug}`}
                         >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-gray-800">
-                        <DropdownMenuItem 
-                          onClick={() => handleOpenProject(project)}
-                          className="text-gray-300 hover:text-gray-100"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Project Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleExportProject(project)}
-                          className="text-gray-300 hover:text-gray-100"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download as ZIP
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-gray-300 hover:text-gray-100" disabled>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => setDeleteDialog({ open: true, projectId: project.id })}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Project
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          {hasCustomDomain ? (
+                            <>
+                              <Globe className="w-3 h-3" />
+                              {verifiedDomain ? 'Live' : 'Pending'}
+                            </>
+                          ) : (
+                            <>
+                              <Rocket className="w-3 h-3" />
+                              Live
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-100 line-clamp-1">
+                          {project.name}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>Updated {formatDistanceToNow(new Date(project.updatedAt || project.createdAt), { addSuffix: true })}</span>
+                        </div>
+                        {/* Show deployment URL if deployed */}
+                        {deployment && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-blue-400">
+                            <ExternalLink className="w-3 h-3" />
+                            <span className="truncate">
+                              {hasCustomDomain ? deployment.customDomains![0].domain : `/sites/${deployment.slug}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-gray-800">
+                          {deployment && (
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                const url = hasCustomDomain && verifiedDomain 
+                                  ? `https://${verifiedDomain.domain}` 
+                                  : `/sites/${deployment.slug}`;
+                                window.open(url, '_blank');
+                              }}
+                              className="text-green-400 hover:text-green-300"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Live Site
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenProject(project)}
+                            className="text-gray-300 hover:text-gray-100"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Project Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleExportProject(project)}
+                            className="text-gray-300 hover:text-gray-100"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download as ZIP
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-gray-300 hover:text-gray-100" disabled>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => setDeleteDialog({ open: true, projectId: project.id })}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Project
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>

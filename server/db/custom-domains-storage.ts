@@ -133,6 +133,18 @@ export class CustomDomainsStorage {
     
     return domains;
   }
+
+  async getCustomDomainsByDeploymentSlugs(slugs: string[]): Promise<CustomDomain[]> {
+    if (slugs.length === 0) return [];
+    
+    const domains = await db
+      .select()
+      .from(customDomains)
+      .where(sql`${customDomains.deploymentSlug} = ANY(${slugs})`)
+      .orderBy(sql`${customDomains.createdAt} DESC`);
+    
+    return domains;
+  }
 }
 
 export const customDomainsStorage = new CustomDomainsStorage();

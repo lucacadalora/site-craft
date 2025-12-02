@@ -314,6 +314,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's deployments with custom domains
+  app.get('/api/deployments', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get all deployments for this user
+      const userDeployments = await deploymentsStorage.getUserDeployments(userId);
+      
+      // Get custom domains for these deployments
+      const deploymentSlugs = userDeployments.map(d => d.slug);
+      const customDomains = await customDomainsStorage.getCustomDomainsByDeploymentSlugs(deploymentSlugs);
+      
+      // Create a map of slug -> custom domains
+      const domainsBySlug: Record<string, any[]> = {};
+      customDomains.forEach(domain => {
+        if (!domainsBySlug[domain.deploymentSlug]) {
+          domainsBySlug[domain.deploymentSlug] = [];
+        }
+        domainsBySlug[domain.deploymentSlug].push(domain);
+      });
+      
+      // Combine deployments with their custom domains
+      const deploymentsWithDomains = userDeployments.map(deployment => ({
+        ...deployment,
+        customDomains: domainsBySlug[deployment.slug] || []
+      }));
+      
+      return res.json(deploymentsWithDomains);
+    } catch (error) {
+      console.error('Error fetching user deployments:', error);
+      return res.status(500).json({ error: 'Failed to fetch deployments' });
+    }
+  });
+
   // Direct deploy endpoint that doesn't require authentication
   app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
     console.log('Deploy endpoint called');

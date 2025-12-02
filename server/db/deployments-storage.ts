@@ -142,6 +142,21 @@ export class DeploymentsStorage {
   }
 
   /**
+   * Get deployments by project IDs
+   */
+  async getDeploymentsByProjectIds(projectIds: number[]): Promise<Deployment[]> {
+    if (projectIds.length === 0) return [];
+    
+    const projectDeployments = await db
+      .select()
+      .from(deployments)
+      .where(sql`${deployments.projectId} = ANY(${projectIds})`)
+      .orderBy(sql`${deployments.createdAt} DESC`);
+    
+    return projectDeployments;
+  }
+
+  /**
    * Check if a slug is available
    */
   async isSlugAvailable(slug: string): Promise<boolean> {
