@@ -44,11 +44,20 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (deployment.userId !== userId) {
+    // Allow connecting if:
+    // 1. User owns the deployment (deployment.userId === userId)
+    // 2. Deployment has no owner (deployment.userId === null) - claim it
+    if (deployment.userId !== null && deployment.userId !== userId) {
       return res.status(403).json({ 
         error: 'Unauthorized',
         message: 'You can only connect domains to your own deployments'
       });
+    }
+
+    // If deployment has no owner, claim it for this user
+    if (deployment.userId === null) {
+      console.log(`Claiming unowned deployment '${deploymentSlug}' for user ${userId}`);
+      await deploymentsStorage.updateDeployment(deployment.id, { userId });
     }
 
     const customDomain = await customDomainsStorage.createCustomDomain({

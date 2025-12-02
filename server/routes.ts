@@ -111,6 +111,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Deploy a landing page
   app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
     try {
+      // Debug: Log authentication status
+      console.log('Deploy endpoint - Auth header:', req.headers.authorization ? 'Present' : 'Missing');
+      console.log('Deploy endpoint - User:', req.user ? `ID=${req.user.id}` : 'Not authenticated');
+      
       const { slug, html, css, projectId } = req.body;
       
       if (!slug || !html) {
