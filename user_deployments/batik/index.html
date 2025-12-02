@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifaiyah - Batik Heritage Batang</title>
+    <style>
+:root {
+    /* Sophisticated color palette */
+    --white-alt: #FAF9F7;
+    --black-alt: #0A0A0A;
+    --gray-alt: #6B6B6B;
+    --accent-brown: #8B4513;
+    --accent-gold: #D2691E;
+    --accent-light: #F4E4C1;
+    
+    /* Typography */
+    --font-serif: 'Playfair Display', serif;
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--white-alt);
+    color: var(--black-alt);
+    overflow-x: hidden;
+    cursor: none;
+}
+
+/* Custom Cursor */
+.custom-cursor {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-gold);
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s ease;
+    mix-blend-mode: difference;
+}
+
+.cursor-follower {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--accent-brown);
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+}
+
+/* Scroll Progress */
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-brown), var(--accent-gold));
+    z-index: 1000;
+    transition: width 0.1s ease;
+}
+
+/* Navigation */
+.nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 2rem 4rem;
+    mix-blend-mode: difference;
+}
+
+.nav-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-text {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--white-alt);
+}
+
+.nav-menu {
+    display: flex;
+    gap: 3rem;
+}
+
+.nav-link {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--white-alt);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent-gold);
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.nav-link:hover {
+    transform: translateX(5px);
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.hero-image {
+    position: absolute;
+    inset: 0;
+    width: 120%;
+    height: 120%;
+    object-fit: cover;
+    filter: contrast(1.3) saturate(0.8) grayscale(0.2);
+    transform: scale(1.1);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 50;
+    padding-left: 8rem;
+    max-width: 70%;
+}
+
+.hero-title {
+    font-family: var(--font-display);
+    font-size: clamp(6rem, 15vw, 12rem);
+    line-height: 0.8;
+    letter-spacing: -0.07em;
+    font-weight: 900;
+    color: var(--white-alt);
+    margin-bottom: 2rem;
+}
+
+.hero-line {
+    display: block;
+    opacity: 0;
+    transform: translateY(100px);
+}
+
+.hero-subtitle {
+    font-family: var(--font-serif);
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 300;
+    color: var(--accent-light);
+    margin-bottom: 2rem;
+    letter-spacing: 0.05em;
+}
+
+.subtitle-char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(50px);
+}
+
+.hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.meta-text {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--white-alt);
+    opacity: 0.7;
+}
+
+.divider {
+    color: var(--accent-gold);
+    opacity: 0.5;
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 3rem;
+    left: 8rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+}
+
+.scroll-line {
+    width: 40px;
+    height: 1px;
+    background: var(--white-alt);
+    opacity: 0.5;
+}
+
+.scroll-text {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--white-alt);
+    opacity: 0.7;
+}
+
+/* About Section */
+.about-section {
+    padding: 8rem 0;
+    position: relative;
+    background: linear-gradient(135deg, var(--white-alt) 0%, var(--accent-light) 100%);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 4rem;
+}
+
+.about-image-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    transform: rotate(-2deg);
+}
+
+.about-image {
+    width: 100%;
+    height: 600px;
+    object-fit: cover;
+    filter: contrast(1.2) saturate(1.1);
+    transition: transform 0.7s ease;
+}
+
+.about-image:hover {
+    transform: scale(1.05);
+}
+
+.about-content {
+    padding: 4rem;
+    background: var(--white-alt);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.section-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-brown);
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 8vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+    color: var(--black-alt);
+    margin-bottom: 2rem;
+}
+
+.title-line {
+    display: block;
+}
+
+.about-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--gray-alt);
+    margin-bottom: 3rem;
+}
+
+.about-features {
+    display: flex;
+    gap: 3rem;
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-number {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+}
+
+.feature-label {
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray-alt);
+}
+
+/* Collection Section */
+.collection-section {
+    padding: 8rem 0;
+    background: var(--black-alt);
+    color: var(--white-alt);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 6rem;
+}
+
+.section-header .section-label {
+    color: var(--accent-gold);
+}
+
+.section-header .section-title {
+    color: var(--white-alt);
+}
+
+.collection-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.collection-card {
+    position: relative;
+    aspect-ratio: 4/5;
+    overflow: hidden;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) contrast(1.2);
+    transition: all 0.7s ease;
+}
+
+.collection-card:hover .card-image {
+    filter: grayscale(0) scale(1.1);
+}
+
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2rem;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.collection-card:hover .card-overlay {
+    opacity: 1;
+}
+
+.card-category {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin-bottom: 0.5rem;
+}
+
+.card-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white-alt);
+    margin-bottom: 0.5rem;
+}
+
+.card-description {
+    font-size: 0.875rem;
+    color: var(--white-alt);
+    opacity: 0.8;
+}
+
+/* Heritage Section */
+.heritage-section {
+    position: relative;
+    padding: 12rem 0;
+    overflow: hidden;
+}
+
+.heritage-bg {
+    position: absolute;
+    inset: 0;
+}
+
+.heritage-bg-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.3) contrast(1.2);
+}
+
+.heritage-content {
+    position: relative;
+    z-index: 10;
+    background: rgba(10, 10, 10, 0.8);
+    padding: 8rem 0;
+}
+
+.heritage-text {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.heritage-text .section-label {
+    color: var(--accent-gold);
+}
+
+.heritage-title {
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 8vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+    color: var(--white-alt);
+    margin-bottom: 2rem;
+}
+
+.heritage-description {
+    font-size: 1.25rem;
+    line-height: 1.8;
+    color: var(--white-alt);
+    opacity: 0.9;
+    margin-bottom: 4rem;
+}
+
+.heritage-stats {
+    display: flex;
+    justify-content: center;
+    gap: 6rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--white-alt);
+    opacity: 0.7;
+}
+
+/* Contact Section */
+.contact-section {
+    padding: 8rem 0;
+    background: linear-gradient(135deg, var(--accent-light) 0%, var(--white-alt) 100%);
+}
+
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+.contact-details {
+    margin-top: 3rem;
+}
+
+.contact-item {
+    margin-bottom: 2rem;
+}
+
+.contact-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-brown);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.contact-value {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--black-alt);
+}
+
+.map-placeholder {
+    height: 400px;
+    background: var(--accent-brown);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.map-content {
+    text-align: center;
+    color: var(--white-alt);
+}
+
+.map-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.map-text {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    letter-spacing: 0.1em;
+}
+
+/* Footer */
+.footer {
+    background: var(--black-alt);
+    padding: 4rem 0 2rem;
+    color: var(--white-alt);
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--accent-gold);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.footer-tagline {
+    font-size: 0.875rem;
+    opacity: 0.7;
+}
+
+.footer-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.footer-link {
+    color: var(--white-alt);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.3s ease;
+}
+
+.footer-link:hover {
+    color: var(--accent-gold);
+}
+
+.footer-bottom {
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.copyright {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+/* Animations */
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nav-container {
+        padding: 1.5rem 2rem;
+    }
+    
+    .nav-menu {
+        display: none;
+    }
+    
+    .hero-content {
+        padding-left: 2rem;
+        max-width: 90%;
+    }
+    
+    .container {
+        padding: 0 2rem;
+    }
+    
+    .collection-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .heritage-stats {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 2rem;
+        text-align: center;
+    }
+}
+</style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+    <div class="cursor-follower"></div>
+    
+    <!-- Scroll Progress -->
+    <div class="scroll-progress"></div>
+    
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-content">
+            <div class="logo">
+                <span class="logo-text">RIFAIYAH</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#beranda" class="nav-link">Beranda</a>
+                <a href="#tentang" class="nav-link">Tentang</a>
+                <a href="#koleksi" class="nav-link">Koleksi</a>
+                <a href="#warisan" class="nav-link">Warisan</a>
+                <a href="#kontak" class="nav-link">Kontak</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header id="beranda" class="hero-section">
+        <!-- Layer 1: Base gradient -->
+        <div class="absolute inset-0 bg-gradient-to-br from-[#8B4513] to-[#D2691E] opacity-30"></div>
+        
+        <!-- Layer 2: Pattern overlay -->
+        <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="%23000000" fill-opacity="0.4"><path d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/></g></g></svg>')"></div>
+        
+        <!-- Layer 3: Main image -->
+        <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" class="hero-image" alt="Batik Pattern">
+        
+        <!-- Layer 4: Gradient overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/70 via-transparent to-transparent"></div>
+        
+        <!-- Layer 5: Blur spots -->
+        <div class="absolute top-20 right-20 w-96 h-96 bg-[#D2691E]/20 blur-3xl"></div>
+        <div class="absolute bottom-20 left-20 w-96 h-96 bg-[#8B4513]/20 blur-3xl"></div>
+        
+        <!-- Layer 6: Geometric shapes -->
+        <div class="absolute top-0 right-0 w-[600px] h-[600px] border-2 border-[#D2691E]/20 rotate-45 translate-x-1/2"></div>
+        
+        <!-- Content Layer -->
+        <div class="hero-content">
+            <div class="hero-text-container">
+                <h1 class="hero-title">
+                    <span class="hero-line">Seni</span>
+                    <span class="hero-line italic font-[100]">Batik</span>
+                    <span class="hero-line">Indonesia</span>
+                </h1>
+                <p class="hero-subtitle">
+                    <span class="subtitle-char">W</span><span class="subtitle-char">a</span><span class="subtitle-char">r</span><span class="subtitle-char">i</span><span class="subtitle-char">s</span><span class="subtitle-char">a</span><span class="subtitle-char">n</span>
+                    <span class="subtitle-char">&nbsp;</span>
+                    <span class="subtitle-char">B</span><span class="subtitle-char">u</span><span class="subtitle-char">d</span><span class="subtitle-char">a</span><span class="subtitle-char">y</span><span class="subtitle-char">a</span>
+                </p>
+                <div class="hero-meta">
+                    <span class="meta-text">EST. 1975</span>
+                    <span class="divider">•</span>
+                    <span class="meta-text">BATANG, JAWA TENGAH</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll indicator -->
+        <div class="scroll-indicator">
+            <div class="scroll-line"></div>
+            <span class="scroll-text">JELAJAHI</span>
+        </div>
+    </header>
+
+    <!-- About Section -->
+    <section id="tentang" class="about-section">
+        <div class="container">
+            <div class="grid grid-cols-12 gap-0">
+                <div class="col-span-7 relative">
+                    <div class="about-image-container">
+                        <img src="https://images.unsplash.com/photo-1561214115-f2f134cc4912?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="about-image" alt="Batik Art">
+                        <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-[#D2691E] opacity-20 blur-2xl"></div>
+                    </div>
+                </div>
+                <div class="col-span-6 -ml-20 mt-20 relative z-20">
+                    <div class="about-content">
+                        <span class="section-label">TENTANG KAMI</span>
+                        <h2 class="section-title">
+                            <span class="title-line">Rifaiyah</span>
+                            <span class="title-line">Batik Heritage</span>
+                        </h2>
+                        <p class="about-text">
+                            Sejak tahun 1975, Rifaiyah telah menjadi penjaga warisan batik tradisional Batang. Setiap helai kain menceritakan kisah kekayaan budaya Indonesia yang diwariskan dari generasi ke generasi dengan teknik <span class="italic">canting</span> tangan yang autentik.
+                        </p>
+                        <div class="about-features">
+                            <div class="feature-item">
+                                <span class="feature-number">48+</span>
+                                <span class="feature-label">Motif Tradisional</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-number">100%</span>
+                                <span class="feature-label">Handmade</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Collection Section -->
+    <section id="koleksi" class="collection-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">KOLEKSI</span>
+                <h2 class="section-title">
+                    <span class="title-line">Motif</span>
+                    <span class="title-line">Pilihan</span>
+                </h2>
+            </div>
+            
+            <div class="collection-grid">
+                <div class="collection-item group">
+                    <div class="collection-card">
+                        <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-image" alt="Batik Motif">
+                        <div class="card-overlay">
+                            <span class="card-category">TRADISIONAL</span>
+                            <h3 class="card-title">Parang Rusak</h3>
+                            <p class="card-description">Simbol kekuatan dan keteguhan hati</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="collection-item group">
+                    <div class="collection-card">
+                        <img src="https://images.unsplash.com/photo-1536924940846-227afb31e2a5?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-image" alt="Batik Motif">
+                        <div class="card-overlay">
+                            <span class="card-category">KLASIK</span>
+                            <h3 class="card-title">Kawung</h3>
+                            <p class="card-description">Motif geometris tertua di Indonesia</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="collection-item group">
+                    <div class="collection-card">
+                        <img src="https://images.unsplash.com/photo-1558655146-d09347e92766?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="card-image" alt="Batik Motif">
+                        <div class="card-overlay">
+                            <span class="card-category">MODERN</span>
+                            <h3 class="card-title">Batik Kontemporer</h3>
+                            <p class="card-description">Fusi tradisi dan desain modern</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Heritage Section -->
+    <section id="warisan" class="heritage-section">
+        <div class="heritage-bg">
+            <img src="https://images.unsplash.com/photo-1545989253-02cc26577f88?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" class="heritage-bg-image" alt="Heritage">
+        </div>
+        <div class="heritage-content">
+            <div class="container">
+                <div class="heritage-text">
+                    <span class="section-label">WARISAN BUDAYA</span>
+                    <h2 class="heritage-title">
+                        <span class="title-line">Melestarikan</span>
+                        <span class="title-line italic font-[100]">Seni</span>
+                        <span class="title-line">Batik</span>
+                    </h2>
+                    <p class="heritage-description">
+                        Batik bukan sekadar kain, melainkan kanvas yang menyimpan filosofi, sejarah, dan identitas bangsa. Di Rifaiyah, kami menjaga setiap goresan <span class="italic">malam</span> dan warna alami sebagai bentuk penghormatan kepada para leluhur.
+                    </p>
+                    <div class="heritage-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">1975</span>
+                            <span class="stat-label">Tahun Berdiri</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">3</span>
+                            <span class="stat-label">Generasi</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">∞</span>
+                            <span class="stat-label">Kreativitas</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="kontak" class="contact-section">
+        <div class="container">
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <span class="section-label">KUNJUNGI KAMI</span>
+                    <h2 class="section-title">
+                        <span class="title-line">Toko</span>
+                        <span class="title-line">Rifaiyah</span>
+                    </h2>
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <span class="contact-label">ALAMAT</span>
+                            <p class="contact-value">Jl. Veteran No. 10<br>Kota Batang, Jawa Tengah</p>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">JAM BUKA</span>
+                            <p class="contact-value">Senin - Sabtu: 08.00 - 20.00<br>Minggu: 09.00 - 18.00</p>
+                        </div>
+                        <div class="contact-item">
+                            <span class="contact-label">KONTAK</span>
+                            <p class="contact-value">+62 812-3456-7890<br>info@rifaiyah-batik.com</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-visual">
+                    <div class="map-placeholder">
+                        <div class="map-content">
+                            <div class="map-icon">📍</div>
+                            <span class="map-text">Temukan Lokasi Kami</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="footer-logo">RIFAIYAH</span>
+                    <p class="footer-tagline">Warisan Batik Sejak 1975</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Instagram</a>
+                    <a href="#" class="footer-link">Facebook</a>
+                    <a href="#" class="footer-link">WhatsApp</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span class="copyright">© 2024 Rifaiyah Batik. Dibuat dengan ❤️ di Batang</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+// Custom Cursor
+const cursor = document.querySelector('.custom-cursor');
+const follower = document.querySelector('.cursor-follower');
+
+document.addEventListener('mousemove', (e) => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    
+    setTimeout(() => {
+        follower.style.left = e.clientX - 20 + 'px';
+        follower.style.top = e.clientY - 20 + 'px';
+    }, 100);
+});
+
+// Cursor hover effects
+const hoverElements = document.querySelectorAll('a, button, .collection-card, .nav-link');
+hoverElements.forEach(elem => {
+    elem.addEventListener('mouseenter', () => {
+        cursor.style.transform = 'scale(2)';
+        follower.style.transform = 'scale(1.5)';
+    });
+    elem.addEventListener('mouseleave', () => {
+        cursor.style.transform = 'scale(1)';
+        follower.style.transform = 'scale(1)';
+    });
+});
+
+// Scroll Progress
+const scrollProgress = document.querySelector('.scroll-progress');
+window.addEventListener('scroll', () => {
+    const scrollPercent = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+    scrollProgress.style.width = scrollPercent + '%';
+});
+
+// Hero Animation on Load
+window.addEventListener('load', () => {
+    // Animate hero title lines
+    const heroLines = document.querySelectorAll('.hero-line');
+    heroLines.forEach((line, i) => {
+        setTimeout(() => {
+            line.style.animation = 'slideUpFade 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        }, i * 300);
+    });
+    
+    // Animate subtitle characters
+    const subtitleChars = document.querySelectorAll('.subtitle-char');
+    subtitleChars.forEach((char, i) => {
+        setTimeout(() => {
+            char.style.animation = 'slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        }, 1500 + (i * 50));
+    });
+    
+    // Animate meta text
+    setTimeout(() => {
+        document.querySelector('.hero-meta').style.animation = 'fadeIn 1s ease forwards';
+    }, 2500);
+});
+
+// Intersection Observer for scroll animations
+const observerOptions = {
+    threshold: 0.2,
+    rootMargin: '0px 0px -100px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in');
+        }
+    });
+}, observerOptions);
+
+// Observe elements
+document.querySelectorAll('.section-title, .about-content, .collection-item, .heritage-text, .contact-info').forEach(elem => {
+    observer.observe(elem);
+});
+
+// Smooth scroll for navigation links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Parallax effect for hero image
+window.addEventListener('scroll', () => {
+    const scrolled = window.pageYOffset;
+    const heroImage = document.querySelector('.hero-image');
+    if (heroImage) {
+        heroImage.style.transform = `translateY(${scrolled * 0.5}px) scale(1.1)`;
+    }
+});
+
+// Dynamic navbar background on scroll
+window.addEventListener('scroll', () => {
+    const nav = document.querySelector('.nav-container');
+    if (window.scrollY > 100) {
+        nav.style.background = 'rgba(10, 10, 10, 0.9)';
+        nav.style.backdropFilter = 'blur(10px)';
+        nav.style.mixBlendMode = 'normal';
+    } else {
+        nav.style.background = 'transparent';
+        nav.style.backdropFilter = 'none';
+        nav.style.mixBlendMode = 'difference';
+    }
+});
+
+// Collection card tilt effect
+document.querySelectorAll('.collection-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = (y - centerY) / 10;
+        const rotateY = (centerX - x) / 10;
+        
+        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    });
+    
+    card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)';
+    });
+});
+
+// Add animate-in class styles
+const style = document.createElement('style');
+style.textContent = `
+    .animate-in {
+        animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+`;
+document.head.appendChild(style);
+
+// Scroll indicator click
+document.querySelector('.scroll-indicator').addEventListener('click', () => {
+    document.querySelector('#tentang').scrollIntoView({
+        behavior: 'smooth'
+    });
+});
+
+// Map placeholder interaction
+document.querySelector('.map-placeholder').addEventListener('click', function() {
+    this.style.background = 'linear-gradient(135deg, #8B4513 0%, #D2691E 100%)';
+    setTimeout(() => {
+        this.innerHTML = `
+            <div class="map-content">
+                <div class="map-icon">🗺️</div>
+                <span class="map-text">Buka di Google Maps</span>
+            </div>
+        `;
+    }, 300);
+});
+</script>
+</body>
+</html>

@@ -175,12 +175,16 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
     setIsDeploying(true);
 
     try {
+      // Get auth token for the request
+      const token = localStorage.getItem('token');
+      
       // Use the new deployment API
       const deployResponse = await fetch('/api/deploy', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           html: deployHtml,
@@ -247,11 +251,13 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       // Try the old deployment endpoint as fallback
       try {
         console.log('Attempting legacy deployment method');
+        const legacyToken = localStorage.getItem('token');
         const legacyResponse = await fetch('/api/deploy', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            ...(legacyToken ? { 'Authorization': `Bearer ${legacyToken}` } : {}),
           },
           body: JSON.stringify({
             html,
