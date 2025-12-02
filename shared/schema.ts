@@ -234,3 +234,39 @@ export const insertProjectVersionSchema = createInsertSchema(projectVersions).om
 
 export type InsertProjectVersion = z.infer<typeof insertProjectVersionSchema>;
 export type ProjectVersion = typeof projectVersions.$inferSelect;
+
+// Custom domains schema - Maps user-owned domains to deployments
+export const customDomains = pgTable("custom_domains", {
+  id: serial("id").primaryKey(),
+  domain: text("domain").notNull().unique(), // e.g., "batik.com" or "www.mybusiness.com"
+  deploymentSlug: text("deployment_slug").notNull(), // Links to deployments.slug
+  userId: integer("user_id").references(() => users.id),
+  verificationToken: text("verification_token").notNull(), // TXT record value for DNS verification
+  verified: boolean("verified").default(false), // Whether DNS verification passed
+  sslStatus: text("ssl_status").default("pending"), // pending, provisioning, active, failed
+  isPremium: boolean("is_premium").default(false), // Whether this is a paid custom domain
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCustomDomainSchema = createInsertSchema(customDomains).omit({
+  id: true,
+  verified: true,
+  sslStatus: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCustomDomain = z.infer<typeof insertCustomDomainSchema>;
+export type CustomDomain = typeof customDomains.$inferSelect;
+
+// Schema for requesting a new custom domain
+export const requestDomainSchema = z.object({
+  domain: z.string()
+    .min(4, "Domain must be at least 4 characters")
+    .regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i, 
+      "Please enter a valid domain (e.g., example.com or www.example.com)"),
+  deploymentSlug: z.string().min(1, "Deployment slug is required"),
+});
+
+export type RequestDomainInput = z.infer<typeof requestDomainSchema>;

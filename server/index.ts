@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { customDomainRouter } from "./middleware/custom-domain-router";
 
 const app = express();
 // Increase body size limit to 10MB for large projects with multiple files
@@ -21,6 +22,10 @@ app.use((req, res, next) => {
   
   next();
 });
+
+// Custom domain routing - check if request is for a custom domain
+// This must be early in the middleware chain to intercept custom domain requests
+app.use(customDomainRouter);
 
 // Enhanced logging middleware
 app.use((req, res, next) => {

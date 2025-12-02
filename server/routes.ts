@@ -8,10 +8,12 @@ import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import projectManagementRoutes from './routes/project-management';
 import sitesRoutes from './routes/sites';
+import customDomainsRoutes from './routes/custom-domains';
 import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
 import { MemStorage, storage } from './storage';
 import { deploymentsStorage } from './db/deployments-storage';
+import { customDomainsStorage } from './db/custom-domains-storage';
 import { db } from './db';
 import { processAiResponse, ProjectFile } from './format-ai-response';
 import { 
@@ -101,6 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register sites routes for published sites
   console.log('Registering published sites routes at /sites');
   app.use('/sites', sitesRoutes);
+  
+  // Register custom domains API routes
+  console.log('Registering custom domains API routes at /api/domains');
+  app.use('/api/domains', customDomainsRoutes);
   
   // Deploy a landing page
   app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
