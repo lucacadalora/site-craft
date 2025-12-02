@@ -753,10 +753,10 @@ const App = () => {
         });
         
         // export { ComponentName, AnotherComponent, default as App }
-        content = content.replace(/^export\s+{([^}]+)}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, (match, names) => {
+        content = content.replace(/^export\s+{([^}]+)}(?:\s+from\s+['"][^'"]+['"])?[^;]*;?\s*$/gm, (match: string, names: string) => {
           // Extract individual names, handling aliases
-          const nameList = names.split(',').map(n => n.trim());
-          nameList.forEach(item => {
+          const nameList = names.split(',').map((n: string) => n.trim());
+          nameList.forEach((item: string) => {
             // Handle "Foo as Bar" or "default as App" - we want the alias (Bar/App)
             const parts = item.split(/\s+as\s+/);
             const exportedName = parts.length > 1 ? parts[1].trim() : parts[0].trim();
@@ -2444,10 +2444,24 @@ const App = () => {
           </div>
 
           {/* Preview - 80% width */}
-          <div className="flex-1 bg-white relative">
+          <div 
+            className="flex-1 bg-white relative overflow-hidden"
+            onKeyDown={(e) => {
+              // Prevent page scroll when arrow keys or game controls are pressed in preview
+              const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
+              if (gameKeys.includes(e.key)) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            onWheel={(e) => {
+              // Prevent scroll from propagating to parent when preview is focused
+              e.stopPropagation();
+            }}
+          >
             {/* Loading overlay for preview */}
             {isGenerating && (
-              <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-10 flex items-center justify-center">
+              <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-10 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
                     <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
@@ -2464,7 +2478,7 @@ const App = () => {
             
             <iframe
               ref={previewRef}
-              className="w-full h-full"
+              className="w-full h-full border-0 outline-none"
               sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox"
               title="Preview"
               data-testid="iframe-preview"

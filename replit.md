@@ -161,6 +161,14 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Added comprehensive console logging with [React Preview] prefix for debugging
   - **Result**: Preview works universally with SleepArchitect, LuminaWellness, ANY component name from CRA/Next.js/Vite
   - No whitelisting required - truly universal React code support for all real-world projects
+- December 02, 2025. Fixed interactive preview for games and apps:
+  - Enhanced iframe sandbox with `allow-pointer-lock`, `allow-popups`, `allow-popups-to-escape-sandbox` for full interactivity
+  - Added `tabIndex={0}` and `onClick` focus handler to enable keyboard events for games
+  - Added scroll prevention: arrow keys, WASD, and space bar no longer scroll the page when preview is focused
+  - Added `onWheel` handler to prevent scroll wheel propagation from preview
+  - Added `pointer-events-none` to loading overlay so it doesn't block interactions after generation
+  - Games like Snake now respond to keyboard controls properly
+  - **Result**: Generated interactive apps/games are now fully clickable and controllable
 
 ## User Preferences
 
