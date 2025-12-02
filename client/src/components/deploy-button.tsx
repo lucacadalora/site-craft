@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, Loader2, Globe } from 'lucide-react';
+import { Check, Loader2, Globe, Settings } from 'lucide-react';
 import { bundleFilesForDeployment } from '@/lib/bundle-for-deployment';
+import { CustomDomainManager } from './custom-domain-manager';
 
 interface ProjectFile {
   name: string;
@@ -321,7 +322,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       </Button>
 
       <Dialog open={isOpen} onOpenChange={handleOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Deploy Landing Page</DialogTitle>
             <DialogDescription>
@@ -350,6 +351,15 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                   </a>
                 </div>
               </div>
+
+              {slug && (
+                <div className="border-t pt-4">
+                  <CustomDomainManager 
+                    deploymentSlug={slug} 
+                    onDomainConnected={() => {}}
+                  />
+                </div>
+              )}
               
               <DialogFooter className="mt-4">
                 <Button variant="outline" onClick={() => handleOpen(false)}>
