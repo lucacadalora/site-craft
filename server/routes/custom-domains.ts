@@ -10,6 +10,12 @@ const router = Router();
 
 const resolveTxt = promisify(dns.resolveTxt);
 const resolveCname = promisify(dns.resolveCname);
+const resolve4 = promisify(dns.resolve4);
+
+function isApexDomain(domain: string): boolean {
+  const parts = domain.split('.');
+  return parts.length === 2 || (parts.length === 3 && parts[0] === 'www');
+}
 
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -176,9 +182,10 @@ router.post('/:id/verify', authenticate, async (req: AuthRequest, res: Response)
     }
 
     let txtVerified = false;
-    let cnameVerified = false;
+    let routingVerified = false;
     const errors: string[] = [];
     const targetHost = process.env.SITE_HOST || 'sites.jatevo.ai';
+    const isApex = isApexDomain(domain.domain);
 
     try {
       const txtRecords = await resolveTxt(`_jatevo-verify.${domain.domain}`);
@@ -196,43 +203,64 @@ router.post('/:id/verify', authenticate, async (req: AuthRequest, res: Response)
       }
     }
 
-    try {
-      const cnameRecords = await resolveCname(domain.domain);
-      cnameVerified = cnameRecords.some(r => 
-        r.toLowerCase() === targetHost.toLowerCase() ||
-        r.toLowerCase().endsWith(`.${targetHost.toLowerCase()}`)
-      );
-      
-      if (!cnameVerified) {
-        errors.push(`CNAME record found but doesn't point to ${targetHost}`);
+    if (isApex) {
+      try {
+        const domainIPs = await resolve4(domain.domain);
+        const targetIPs = await resolve4(targetHost);
+        
+        routingVerified = domainIPs.some(ip => targetIPs.includes(ip));
+        
+        if (!routingVerified && domainIPs.length > 0 && targetIPs.length > 0) {
+          errors.push(`Domain resolves to ${domainIPs.join(', ')} but ${targetHost} is at ${targetIPs.join(', ')}`);
+        }
+      } catch (dnsError: any) {
+        if (dnsError.code === 'ENODATA' || dnsError.code === 'ENOTFOUND') {
+          errors.push(`A record not found. Please add an ALIAS/A record pointing to ${targetHost}`);
+        } else {
+          errors.push(`A record lookup failed: ${dnsError.message}`);
+        }
       }
-    } catch (dnsError: any) {
-      if (dnsError.code === 'ENODATA' || dnsError.code === 'ENOTFOUND') {
-        errors.push(`CNAME record not found. Please point your domain to ${targetHost}`);
-      } else {
-        errors.push(`CNAME lookup failed: ${dnsError.message}`);
+    } else {
+      try {
+        const cnameRecords = await resolveCname(domain.domain);
+        routingVerified = cnameRecords.some(r => 
+          r.toLowerCase() === targetHost.toLowerCase() ||
+          r.toLowerCase().endsWith(`.${targetHost.toLowerCase()}`)
+        );
+        
+        if (!routingVerified) {
+          errors.push(`CNAME record found but doesn't point to ${targetHost}`);
+        }
+      } catch (dnsError: any) {
+        if (dnsError.code === 'ENODATA' || dnsError.code === 'ENOTFOUND') {
+          errors.push(`CNAME record not found. Please point your domain to ${targetHost}`);
+        } else {
+          errors.push(`CNAME lookup failed: ${dnsError.message}`);
+        }
       }
     }
 
-    if (txtVerified && cnameVerified) {
+    if (txtVerified && routingVerified) {
       const verifiedDomain = await customDomainsStorage.verifyDomain(domainId);
       
       return res.json({
         success: true,
+        verified: true,
         message: 'Domain verified successfully! SSL certificate is being provisioned.',
         domain: verifiedDomain,
         verification: {
           txtVerified: true,
-          cnameVerified: true
+          routingVerified: true
         }
       });
     } else {
       return res.json({
         success: false,
+        verified: false,
         message: 'Domain verification incomplete',
         verification: {
           txtVerified,
-          cnameVerified
+          routingVerified
         },
         errors,
         instructions: {
@@ -241,10 +269,11 @@ router.post('/:id/verify', authenticate, async (req: AuthRequest, res: Response)
             value: domain.verificationToken,
             status: txtVerified ? 'verified' : 'pending'
           },
-          cname: {
-            host: '@',
+          routing: {
+            host: isApex ? '@' : domain.domain,
+            type: isApex ? 'ALIAS/A' : 'CNAME',
             value: targetHost,
-            status: cnameVerified ? 'verified' : 'pending'
+            status: routingVerified ? 'verified' : 'pending'
           }
         }
       });
