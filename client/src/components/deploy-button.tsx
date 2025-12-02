@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, Loader2, Globe, Settings } from 'lucide-react';
+import { Check, Loader2, Globe, Settings, ExternalLink, RefreshCw } from 'lucide-react';
 import { bundleFilesForDeployment } from '@/lib/bundle-for-deployment';
 import { CustomDomainManager } from './custom-domain-manager';
 
 interface ProjectFile {
   name: string;
   content: string;
+}
+
+interface ExistingDeployment {
+  id: number;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DeployButtonProps {
@@ -29,6 +36,42 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
   const [slugAvailable, setSlugAvailable] = useState(false);
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [existingDeployment, setExistingDeployment] = useState<ExistingDeployment | null>(null);
+  const [isLoadingDeployment, setIsLoadingDeployment] = useState(false);
+  
+  // Fetch existing deployment when dialog opens
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchExistingDeployment();
+    }
+  }, [isOpen, projectId]);
+  
+  const fetchExistingDeployment = async () => {
+    if (!projectId) return;
+    
+    setIsLoadingDeployment(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/projects/${projectId}/deployment`, {
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.deployment) {
+          setExistingDeployment(data.deployment);
+          setPublishedUrl(`${window.location.origin}/sites/${data.deployment.slug}`);
+          setSlug(data.deployment.slug);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching existing deployment:', error);
+    } finally {
+      setIsLoadingDeployment(false);
+    }
+  };
   
   // When the dialog opens, reset states
   const handleOpen = (open: boolean) => {
@@ -39,6 +82,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       setSlugChecked(false);
       setSlugAvailable(false);
       setPublishedUrl(null);
+      setExistingDeployment(null);
     }
   };
 
@@ -332,47 +376,66 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
           <DialogHeader>
             <DialogTitle>Deploy Landing Page</DialogTitle>
             <DialogDescription>
-              Deploy your generated landing page to a public URL.
+              {existingDeployment 
+                ? 'Manage your deployment settings and custom domain.'
+                : 'Deploy your generated landing page to a public URL.'
+              }
             </DialogDescription>
           </DialogHeader>
 
-          {publishedUrl ? (
+          {isLoadingDeployment ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <span className="ml-2 text-muted-foreground">Loading deployment info...</span>
+            </div>
+          ) : publishedUrl || existingDeployment ? (
             <div className="space-y-4 py-4">
               <div className="flex flex-col items-center justify-center space-y-3 text-center">
                 <div className="rounded-full bg-green-100 p-3">
                   <Check className="h-6 w-6 text-green-600" />
                 </div>
-                <h3 className="text-lg font-medium">Successfully Deployed!</h3>
+                <h3 className="text-lg font-medium">
+                  {existingDeployment && !publishedUrl ? 'Already Deployed' : 'Successfully Deployed!'}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Your page is now live at:
+                  Your page is live at:
                 </p>
                 <div className="flex items-center justify-center">
                   <a 
-                    href={publishedUrl} 
+                    href={publishedUrl || `${window.location.origin}/sites/${existingDeployment?.slug}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-blue-500 underline break-all"
                   >
-                    {publishedUrl}
+                    {publishedUrl || `${window.location.origin}/sites/${existingDeployment?.slug}`}
                   </a>
                 </div>
               </div>
 
-              {slug && (
+              {(slug || existingDeployment?.slug) && (
                 <div className="border-t pt-4">
                   <CustomDomainManager 
-                    deploymentSlug={slug} 
+                    deploymentSlug={slug || existingDeployment?.slug || ''} 
                     onDomainConnected={() => {}}
                   />
                 </div>
               )}
               
-              <DialogFooter className="mt-4">
+              <DialogFooter className="mt-4 flex-wrap gap-2">
                 <Button variant="outline" onClick={() => handleOpen(false)}>
                   Close
                 </Button>
+                <Button variant="outline" onClick={() => {
+                  setExistingDeployment(null);
+                  setPublishedUrl(null);
+                  setSlug('');
+                  setSlugChecked(false);
+                }}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Redeploy with New URL
+                </Button>
                 <Button onClick={openDeployedPage}>
-                  <Globe className="mr-2 h-4 w-4" />
+                  <ExternalLink className="mr-2 h-4 w-4" />
                   Open Page
                 </Button>
               </DialogFooter>

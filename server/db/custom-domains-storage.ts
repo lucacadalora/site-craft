@@ -140,7 +140,7 @@ export class CustomDomainsStorage {
     const domains = await db
       .select()
       .from(customDomains)
-      .where(sql`${customDomains.deploymentSlug} = ANY(${slugs})`)
+      .where(sql`${customDomains.deploymentSlug} IN (${sql.join(slugs.map(s => sql`${s}`), sql`, `)})`)
       .orderBy(sql`${customDomains.createdAt} DESC`);
     
     return domains;

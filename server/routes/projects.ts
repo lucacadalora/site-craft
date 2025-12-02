@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
 import { AuthRequest, authenticate } from '../middleware/auth';
+import { deploymentsStorage } from '../db/deployments-storage';
+import { customDomainsStorage } from '../db/custom-domains-storage';
 import { z } from 'zod';
 
 const router = Router();
@@ -17,6 +19,63 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Error getting projects:', error);
     res.status(500).json({ error: 'Failed to get projects' });
+  }
+});
+
+// GET deployment for a project (must be before /:id to match correctly)
+router.get('/:id/deployment', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    let project;
+    let projectId: number;
+    
+    // Check if it's a numeric ID or slug
+    const parsedId = parseInt(idParam);
+    if (!isNaN(parsedId)) {
+      projectId = parsedId;
+      project = await storage.getProject(projectId);
+    } else {
+      // Otherwise, treat as slug
+      project = await storage.getProjectBySlug(idParam);
+      projectId = project?.id || 0;
+    }
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found', deployment: null });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to access this project' });
+    }
+
+    // Get deployments for this project
+    const deployments = await deploymentsStorage.getDeploymentsByProjectIds([projectId]);
+    
+    if (deployments.length === 0) {
+      return res.json({ deployment: null });
+    }
+
+    // Get the most recent deployment
+    const deployment = deployments[0];
+    
+    // Get custom domains for this deployment
+    let customDomains: any[] = [];
+    try {
+      customDomains = await customDomainsStorage.getCustomDomainsByDeploymentSlugs([deployment.slug]);
+    } catch (e) {
+      console.error('Error fetching custom domains:', e);
+    }
+
+    return res.json({ 
+      deployment: {
+        ...deployment,
+        customDomains
+      }
+    });
+  } catch (error) {
+    console.error('Error getting project deployment:', error);
+    res.status(500).json({ error: 'Failed to get project deployment' });
   }
 });
 
