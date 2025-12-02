@@ -2465,9 +2465,10 @@ const App = () => {
             <iframe
               ref={previewRef}
               className="w-full h-full"
-              sandbox="allow-scripts allow-forms allow-same-origin allow-modals"
+              sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox"
               title="Preview"
               data-testid="iframe-preview"
+              tabIndex={0}
               onLoad={() => {
                 // Remove any lingering loading indicators when iframe loads
                 if (previewRef.current?.contentDocument) {
@@ -2477,6 +2478,10 @@ const App = () => {
                     console.log('Preview loaded successfully');
                   }
                 }
+              }}
+              onClick={() => {
+                // Focus the iframe when clicked to enable keyboard events for games
+                previewRef.current?.focus();
               }}
             />
           </div>
