@@ -169,6 +169,16 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
   - Added `pointer-events-none` to loading overlay so it doesn't block interactions after generation
   - Games like Snake now respond to keyboard controls properly
   - **Result**: Generated interactive apps/games are now fully clickable and controllable
+- December 02, 2025. Added Custom Domain Support (Premium Feature):
+  - Created `custom_domains` database table with fields: domain, deploymentSlug, userId, verificationToken, verified, sslStatus
+  - Built complete custom domain infrastructure with storage layer (`custom-domains-storage.ts`)
+  - Added API endpoints: POST /api/domains, GET /api/domains, POST /api/domains/:id/verify, DELETE /api/domains/:id
+  - Implemented DNS verification system with TXT record pattern `jatevo-verify=<token>` + CNAME to `sites.jatevo.ai`
+  - Added host-based routing middleware to detect and serve custom domains
+  - Created `CustomDomainManager` UI component with domain request form, verification status, and DNS instructions
+  - Integrated custom domain manager into deploy dialog after successful deployment
+  - SSL status tracking placeholder for future Cloudflare/Let's Encrypt integration
+  - **Result**: Users can now connect their own domains (e.g., batik.com) to deployed projects
 
 ## User Preferences
 
