@@ -26,6 +26,10 @@ externalPort = 3001
 localPort = 45595
 externalPort = 3002
 
+[[ports]]
+localPort = 46865
+externalPort = 3003
+
 [workflows]
 runButton = "Project"
 
@@ -52,3 +56,9 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+SITE_HOST = "janeway.replit.dev"
+VITE_SITE_HOST = "janeway.replit.dev"

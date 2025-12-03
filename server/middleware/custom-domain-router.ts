@@ -9,12 +9,11 @@ const DEPLOYMENTS_DIR = path.join(process.cwd(), 'user_deployments');
 const INTERNAL_HOSTS = [
   'localhost',
   '127.0.0.1',
-  'site.jatevo.ai',
-  'sites.jatevo.ai',
   'jatevo.ai',
   'www.jatevo.ai',
   'replit.dev',
-  'repl.co'
+  'repl.co',
+  'janeway.replit.dev'
 ];
 
 function isInternalHost(host: string): boolean {

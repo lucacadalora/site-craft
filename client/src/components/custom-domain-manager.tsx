@@ -35,6 +35,8 @@ interface CustomDomainManagerProps {
   onDomainConnected?: () => void;
 }
 
+const SITE_HOST = import.meta.env.VITE_SITE_HOST || 'janeway.replit.dev';
+
 export function CustomDomainManager({ deploymentSlug, onDomainConnected }: CustomDomainManagerProps) {
   const [newDomain, setNewDomain] = useState('');
   const [showDnsInstructions, setShowDnsInstructions] = useState<DNSInstructions | null>(null);
@@ -229,13 +231,13 @@ export function CustomDomainManager({ deploymentSlug, onDomainConnected }: Custo
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => copyToClipboard('sites.jatevo.ai')}
+                          onClick={() => copyToClipboard(SITE_HOST)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
                       <p><strong>Host:</strong> @ (or your subdomain)</p>
-                      <p><strong>Value:</strong> sites.jatevo.ai</p>
+                      <p><strong>Value:</strong> {SITE_HOST}</p>
                     </div>
                     
                     <div className="p-3 bg-muted rounded-md">
