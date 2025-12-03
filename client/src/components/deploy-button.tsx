@@ -51,7 +51,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
     
     setIsLoadingDeployment(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/projects/${projectId}/deployment`, {
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -220,7 +220,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
 
     try {
       // Get auth token for the request
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       // Use the new deployment API
       const deployResponse = await fetch('/api/deploy', {
@@ -295,7 +295,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       // Try the old deployment endpoint as fallback
       try {
         console.log('Attempting legacy deployment method');
-        const legacyToken = localStorage.getItem('token');
+        const legacyToken = localStorage.getItem('auth_token');
         const legacyResponse = await fetch('/api/deploy', {
           method: 'POST',
           headers: {
@@ -395,7 +395,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
     setIsDeploying(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       
       // Use the redeploy endpoint to update existing deployment
       const response = await fetch(`/api/deployments/${existingDeployment.slug}/redeploy`, {

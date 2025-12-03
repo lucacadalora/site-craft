@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { 
   deployments, 
   users, 
@@ -150,7 +150,7 @@ export class DeploymentsStorage {
     const projectDeployments = await db
       .select()
       .from(deployments)
-      .where(sql`${deployments.projectId} = ANY(${projectIds})`)
+      .where(inArray(deployments.projectId, projectIds))
       .orderBy(sql`${deployments.createdAt} DESC`);
     
     return projectDeployments;
