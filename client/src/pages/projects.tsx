@@ -58,6 +58,7 @@ interface DeploymentInfo {
   id: number;
   slug: string;
   projectId: number | null;
+  html?: string;
   customDomains?: Array<{
     id: number;
     domain: string;
@@ -94,6 +95,9 @@ export default function Projects() {
     }
     return acc;
   }, {} as Record<number, DeploymentInfo>);
+
+  // Get orphan deployments (deployments without linked projects)
+  const orphanDeployments = (deployments as DeploymentInfo[]).filter(d => !d.projectId);
 
   // Delete project mutation
   const deleteProjectMutation = useMutation({
@@ -340,6 +344,7 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                 <Card 
                   key={project.id}
                   className="bg-gray-900 border-gray-800 hover:border-gray-700 group transition-all duration-200"
+                  data-testid={`card-project-${project.id}`}
                 >
                   <div 
                     className="aspect-video rounded-t-lg relative overflow-hidden cursor-pointer"
@@ -483,6 +488,168 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {/* Orphan Deployments Section - Deployments without linked projects */}
+        {orphanDeployments.length > 0 && (
+          <div className="mt-12">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-100 flex items-center gap-2">
+                <Rocket className="w-5 h-5 text-amber-400" />
+                Standalone Deployments
+              </h2>
+              <p className="text-gray-400 text-sm mt-1">
+                These are deployed sites that aren't linked to any project. You can still manage them here.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {orphanDeployments.map((deployment) => {
+                const hasCustomDomain = deployment.customDomains && deployment.customDomains.length > 0;
+                const verifiedDomain = deployment.customDomains?.find(d => d.verified);
+                
+                // Generate a gradient for the thumbnail
+                const gradients = [
+                  'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                  'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                  'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                ];
+                const gradientIndex = deployment.id % gradients.length;
+                
+                return (
+                  <Card 
+                    key={`orphan-${deployment.id}`}
+                    className="bg-gray-900 border-amber-800/30 hover:border-amber-700/50 group transition-all duration-200"
+                    data-testid={`card-orphan-deployment-${deployment.id}`}
+                  >
+                    <div 
+                      className="aspect-video rounded-t-lg relative overflow-hidden cursor-pointer"
+                      onClick={() => window.open(`/sites/${deployment.slug}`, '_blank')}
+                      style={{ background: gradients[gradientIndex] }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Rocket className="w-8 h-8 text-white/30" />
+                      </div>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      
+                      {/* Deployed Badge */}
+                      <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                        <div 
+                          className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-green-500/90 text-white"
+                          title={`Deployed at /sites/${deployment.slug}`}
+                        >
+                          <Rocket className="w-3 h-3" />
+                          Live
+                        </div>
+                        {hasCustomDomain && !verifiedDomain && (
+                          <div 
+                            className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-amber-500/90 text-white"
+                            title={`Domain pending verification: ${deployment.customDomains![0].domain}`}
+                          >
+                            <Globe className="w-3 h-3" />
+                            <span className="truncate max-w-[120px]">{deployment.customDomains![0].domain}</span>
+                            <span className="text-amber-200">• Pending</span>
+                          </div>
+                        )}
+                        {hasCustomDomain && verifiedDomain && (
+                          <div 
+                            className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-purple-500/90 text-white"
+                            title={`Custom domain active: ${verifiedDomain.domain}`}
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span className="truncate max-w-[120px]">{verifiedDomain.domain}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Orphan indicator */}
+                      <div className="absolute top-2 left-2">
+                        <div className="px-2 py-1 rounded-full text-xs font-medium bg-amber-600/90 text-white">
+                          Standalone
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-100 line-clamp-1">
+                            /{deployment.slug}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            <span>Deployed {formatDistanceToNow(new Date(deployment.createdAt), { addSuffix: true })}</span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1 text-xs text-blue-400">
+                            <ExternalLink className="w-3 h-3" />
+                            <span className="truncate">
+                              {hasCustomDomain ? deployment.customDomains![0].domain : `/sites/${deployment.slug}`}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-gray-800">
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                const url = hasCustomDomain && verifiedDomain 
+                                  ? `https://${verifiedDomain.domain}` 
+                                  : `/sites/${deployment.slug}`;
+                                window.open(url, '_blank');
+                              }}
+                              className="text-green-400 hover:text-green-300"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              View Live Site
+                            </DropdownMenuItem>
+                            {hasCustomDomain && !verifiedDomain && deployment.customDomains![0].id && (
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  verifyDomainMutation.mutate(deployment.customDomains![0].id);
+                                }}
+                                className="text-amber-400 hover:text-amber-300"
+                                disabled={verifyDomainMutation.isPending}
+                              >
+                                <RefreshCw className={`w-4 h-4 mr-2 ${verifyDomainMutation.isPending ? 'animate-spin' : ''}`} />
+                                {verifyDomainMutation.isPending ? 'Verifying...' : 'Verify Domain'}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem 
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/sites/${deployment.slug}`);
+                                toast({
+                                  title: 'Copied',
+                                  description: 'URL copied to clipboard'
+                                });
+                              }}
+                              className="text-gray-300 hover:text-gray-100"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy URL
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>
