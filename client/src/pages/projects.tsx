@@ -151,6 +151,37 @@ export default function Projects() {
     }
   });
 
+  // Convert orphan deployment to project mutation
+  const convertToProjectMutation = useMutation({
+    mutationFn: async (slug: string) => {
+      return apiRequest('POST', `/api/deployments/${slug}/convert-to-project`);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/deployments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      
+      if (data.projectId) {
+        toast({
+          title: 'Project Created',
+          description: 'Opening your project in the editor...'
+        });
+        navigate(`/ide/${data.projectId}`);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to convert deployment to project.',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Handle opening orphan deployment (converts to project first)
+  const handleOpenOrphanDeployment = async (slug: string) => {
+    convertToProjectMutation.mutate(slug);
+  };
+
   const handleCreateProject = () => {
     // Simply navigate to /ide/new - no need to create project yet
     navigate('/ide/new');
@@ -527,14 +558,18 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                   >
                     <div 
                       className="aspect-video rounded-t-lg relative overflow-hidden cursor-pointer"
-                      onClick={() => window.open(`/sites/${deployment.slug}`, '_blank')}
+                      onClick={() => handleOpenOrphanDeployment(deployment.slug)}
                       style={{ background: gradients[gradientIndex] }}
                     >
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Rocket className="w-8 h-8 text-white/30" />
                       </div>
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {convertToProjectMutation.isPending ? (
+                          <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                        ) : (
+                          <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
                       </div>
                       
                       {/* Deployed Badge */}
@@ -605,6 +640,14 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-gray-800">
+                            <DropdownMenuItem 
+                              onClick={() => handleOpenOrphanDeployment(deployment.slug)}
+                              className="text-blue-400 hover:text-blue-300"
+                              disabled={convertToProjectMutation.isPending}
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              {convertToProjectMutation.isPending ? 'Opening...' : 'Edit in IDE'}
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => {
                                 const url = hasCustomDomain && verifiedDomain 

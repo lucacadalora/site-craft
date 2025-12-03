@@ -348,6 +348,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Convert an orphan deployment to a project (creates a project from deployment HTML)
+  app.post('/api/deployments/:slug/convert-to-project', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { slug } = req.params;
+      
+      console.log(`Converting deployment '${slug}' to project for user ${userId}`);
+      
+      // Get the deployment
+      const deployment = await deploymentsStorage.getDeploymentBySlug(slug);
+      
+      if (!deployment) {
+        return res.status(404).json({ error: 'Deployment not found' });
+      }
+      
+      // Check if user owns this deployment
+      if (deployment.userId !== userId) {
+        return res.status(403).json({ error: 'You do not own this deployment' });
+      }
+      
+      // Check if already linked to a project
+      if (deployment.projectId) {
+        return res.json({ 
+          message: 'Deployment is already linked to a project',
+          projectId: deployment.projectId
+        });
+      }
+      
+      // Create a new project from the deployment
+      const projectName = `Deployed Site: ${slug}`;
+      
+      // Create files array from deployment HTML
+      const files = [
+        {
+          name: 'index.html',
+          content: deployment.html,
+          language: 'html'
+        }
+      ];
+      
+      if (deployment.css) {
+        files.push({
+          name: 'style.css',
+          content: deployment.css,
+          language: 'css'
+        });
+      }
+      
+      // Create the project
+      const newProject = await storage.createProject({
+        name: projectName,
+        prompt: `Imported from deployment: ${slug}`,
+        templateId: 'default',
+        category: 'imported',
+        settings: {},
+        userId: userId
+      });
+      
+      // Update the project with files and HTML
+      const updatedProject = await storage.updateProject(newProject.id, {
+        files: JSON.stringify(files),
+        html: deployment.html,
+        css: deployment.css || '',
+        published: true,
+        publishPath: slug
+      });
+      
+      // Link the deployment to the project
+      await deploymentsStorage.updateDeployment(deployment.id, {
+        projectId: newProject.id
+      });
+      
+      console.log(`Successfully converted deployment '${slug}' to project ${newProject.id}`);
+      
+      return res.json({
+        success: true,
+        message: 'Deployment converted to project successfully',
+        projectId: newProject.id,
+        project: updatedProject
+      });
+    } catch (error) {
+      console.error('Error converting deployment to project:', error);
+      return res.status(500).json({ 
+        error: 'Failed to convert deployment to project',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Direct deploy endpoint that doesn't require authentication
   app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
     console.log('Deploy endpoint called');
