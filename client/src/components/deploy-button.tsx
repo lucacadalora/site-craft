@@ -355,6 +355,89 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
   const openDeployedPage = () => {
     if (publishedUrl) {
       window.open(publishedUrl, '_blank');
+    } else if (existingDeployment) {
+      window.open(`${window.location.origin}/sites/${existingDeployment.slug}`, '_blank');
+    }
+  };
+
+  // Redeploy to existing slug (update existing deployment)
+  const redeployPage = async () => {
+    if (!existingDeployment) return;
+    
+    // Determine what content to deploy
+    let deployHtml = '';
+    let deployCss = '';
+    
+    if (files && files.length > 0) {
+      try {
+        deployHtml = bundleFilesForDeployment(files);
+        deployCss = '';
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error instanceof Error ? error.message : 'Failed to bundle files for deployment',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (html) {
+      deployHtml = html;
+      deployCss = css;
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No content to deploy',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsDeploying(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Use the redeploy endpoint to update existing deployment
+      const response = await fetch(`/api/deployments/${existingDeployment.slug}/redeploy`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          html: deployHtml,
+          css: deployCss,
+          projectId,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to redeploy';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {}
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: 'Redeployed Successfully!',
+        description: 'Your changes are now live.',
+      });
+      
+      setPublishedUrl(`${window.location.origin}/sites/${existingDeployment.slug}`);
+    } catch (error) {
+      console.error('Error redeploying:', error);
+      toast({
+        title: 'Redeploy Failed',
+        description: error instanceof Error ? error.message : 'Failed to redeploy',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -395,7 +478,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                   <Check className="h-6 w-6 text-green-600" />
                 </div>
                 <h3 className="text-lg font-medium">
-                  {existingDeployment && !publishedUrl ? 'Already Deployed' : 'Successfully Deployed!'}
+                  {publishedUrl ? 'Successfully Deployed!' : 'Deployment Active'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Your page is live at:
@@ -410,6 +493,12 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                     {publishedUrl || `${window.location.origin}/sites/${existingDeployment?.slug}`}
                   </a>
                 </div>
+                
+                {existingDeployment && !publishedUrl && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Made changes? Use "Redeploy" to update your live site.
+                  </p>
+                )}
               </div>
 
               {(slug || existingDeployment?.slug) && (
@@ -425,15 +514,26 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                 <Button variant="outline" onClick={() => handleOpen(false)}>
                   Close
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setExistingDeployment(null);
-                  setPublishedUrl(null);
-                  setSlug('');
-                  setSlugChecked(false);
-                }}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Redeploy with New URL
-                </Button>
+                {existingDeployment && (
+                  <Button 
+                    variant="default" 
+                    onClick={redeployPage}
+                    disabled={isDeploying}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    {isDeploying ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Redeploying...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Redeploy
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button onClick={openDeployedPage}>
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Open Page

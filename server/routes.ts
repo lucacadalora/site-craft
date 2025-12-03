@@ -348,6 +348,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Redeploy an existing deployment (update with new HTML/CSS)
+  app.put('/api/deployments/:slug/redeploy', authenticate, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.id;
+      const { slug } = req.params;
+      const { html, css, projectId } = req.body;
+      
+      console.log(`Redeploying '${slug}' for user ${userId}`);
+      
+      if (!html) {
+        return res.status(400).json({ error: 'HTML content is required' });
+      }
+      
+      // Get the existing deployment
+      const deployment = await deploymentsStorage.getDeploymentBySlug(slug);
+      
+      if (!deployment) {
+        return res.status(404).json({ error: 'Deployment not found' });
+      }
+      
+      // Check if user owns this deployment
+      if (deployment.userId !== userId) {
+        return res.status(403).json({ error: 'You do not own this deployment' });
+      }
+      
+      // Update the deployment with new content
+      const updatedDeployment = await deploymentsStorage.updateDeployment(deployment.id, {
+        html,
+        css: css || null,
+        projectId: projectId || deployment.projectId,
+      });
+      
+      // Also update the files on disk
+      const DEPLOYMENTS_DIR = path.join(process.cwd(), 'user_deployments');
+      const slugDir = path.join(DEPLOYMENTS_DIR, slug);
+      
+      if (!fs.existsSync(slugDir)) {
+        fs.mkdirSync(slugDir, { recursive: true });
+      }
+      
+      // Write updated HTML file
+      const htmlPath = path.join(slugDir, 'index.html');
+      fs.writeFileSync(htmlPath, html);
+      
+      // Write CSS file if provided
+      if (css) {
+        const cssPath = path.join(slugDir, 'styles.css');
+        fs.writeFileSync(cssPath, css);
+      }
+      
+      console.log(`Successfully redeployed '${slug}'`);
+      
+      return res.json({
+        success: true,
+        message: 'Deployment updated successfully',
+        deployment: updatedDeployment
+      });
+    } catch (error) {
+      console.error('Error redeploying:', error);
+      return res.status(500).json({ 
+        error: 'Failed to redeploy',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Convert an orphan deployment to a project (creates a project from deployment HTML)
   app.post('/api/deployments/:slug/convert-to-project', authenticate, async (req: AuthRequest, res) => {
     try {
