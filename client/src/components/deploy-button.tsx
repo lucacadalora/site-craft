@@ -607,25 +607,14 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                 </div>
               )}
               
-              <DialogFooter className="mt-4 flex-wrap gap-2">
-                <Button variant="outline" onClick={() => handleOpen(false)}>
-                  Close
-                </Button>
+              <div className="mt-4 space-y-3">
                 {existingDeployment && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={startChangingSlug}
-                      disabled={isDeploying}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Change URL
-                    </Button>
+                  <div className="flex gap-2">
                     <Button 
                       variant="default" 
                       onClick={redeployPage}
                       disabled={isDeploying}
-                      className="bg-amber-600 hover:bg-amber-700"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700"
                     >
                       {isDeploying ? (
                         <>
@@ -639,13 +628,29 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                         </>
                       )}
                     </Button>
-                  </>
+                    <Button onClick={openDeployedPage} className="flex-1">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Open Page
+                    </Button>
+                  </div>
                 )}
-                <Button onClick={openDeployedPage}>
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Open Page
-                </Button>
-              </DialogFooter>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => handleOpen(false)} className="flex-1">
+                    Close
+                  </Button>
+                  {existingDeployment && (
+                    <Button 
+                      variant="outline" 
+                      onClick={startChangingSlug}
+                      disabled={isDeploying}
+                      className="flex-1"
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Change URL
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <>
