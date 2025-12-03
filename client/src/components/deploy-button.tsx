@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, Loader2, Globe, Settings, ExternalLink, RefreshCw } from 'lucide-react';
+import { Check, Loader2, Globe, Settings, ExternalLink, RefreshCw, Edit } from 'lucide-react';
 import { bundleFilesForDeployment } from '@/lib/bundle-for-deployment';
 import { CustomDomainManager } from './custom-domain-manager';
 
@@ -38,6 +38,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [existingDeployment, setExistingDeployment] = useState<ExistingDeployment | null>(null);
   const [isLoadingDeployment, setIsLoadingDeployment] = useState(false);
+  const [isChangingSlug, setIsChangingSlug] = useState(false);
   
   // Fetch existing deployment when dialog opens
   useEffect(() => {
@@ -83,7 +84,24 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       setSlugAvailable(false);
       setPublishedUrl(null);
       setExistingDeployment(null);
+      setIsChangingSlug(false);
     }
+  };
+  
+  // Start the process of changing the slug
+  const startChangingSlug = () => {
+    setIsChangingSlug(true);
+    setSlug(''); // Clear to allow entering a new slug
+    setSlugChecked(false);
+    setSlugAvailable(false);
+  };
+  
+  // Cancel changing slug and go back to deployment info view
+  const cancelChangingSlug = () => {
+    setIsChangingSlug(false);
+    setSlug(existingDeployment?.slug || '');
+    setSlugChecked(false);
+    setSlugAvailable(false);
   };
 
   // Handle slug input changes
@@ -471,7 +489,86 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               <span className="ml-2 text-muted-foreground">Loading deployment info...</span>
             </div>
-          ) : publishedUrl || existingDeployment ? (
+          ) : isChangingSlug ? (
+            // Changing slug view - allows user to enter a new slug
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-slug">New URL Slug</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Current: <span className="font-mono text-xs">/sites/{existingDeployment?.slug}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="new-slug"
+                    placeholder="new-landing-page"
+                    value={slug}
+                    onChange={handleSlugChange}
+                    disabled={isDeploying}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={checkSlugAvailability}
+                    disabled={!slug || isCheckingSlug || isDeploying}
+                  >
+                    {isCheckingSlug ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking
+                      </>
+                    ) : (
+                      'Check'
+                    )}
+                  </Button>
+                </div>
+                
+                {slugChecked && slugAvailable && (
+                  <div className="text-sm text-green-600 flex items-center">
+                    <Check className="mr-1 h-4 w-4" /> 
+                    Slug is available
+                  </div>
+                )}
+                
+                {slugChecked && !slugAvailable && (
+                  <div className="text-sm text-red-600">
+                    This slug is already in use. Please choose another one.
+                  </div>
+                )}
+                
+                <p className="text-sm text-gray-500">
+                  Your landing page will be deployed at: 
+                  <br />
+                  <span className="font-medium">
+                    {slug ? `${window.location.origin}/sites/${slug}` : `${window.location.origin}/sites/your-new-slug`}
+                  </span>
+                </p>
+              </div>
+              
+              <DialogFooter className="mt-4 flex-wrap gap-2">
+                <Button variant="outline" onClick={cancelChangingSlug}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={deployPage}
+                  disabled={!slug || !slugChecked || !slugAvailable || isDeploying}
+                >
+                  {isDeploying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deploying...
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="mr-2 h-4 w-4" />
+                      Deploy to New URL
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (publishedUrl || existingDeployment) ? (
             <div className="space-y-4 py-4">
               <div className="flex flex-col items-center justify-center space-y-3 text-center">
                 <div className="rounded-full bg-green-100 p-3">
@@ -515,24 +612,34 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
                   Close
                 </Button>
                 {existingDeployment && (
-                  <Button 
-                    variant="default" 
-                    onClick={redeployPage}
-                    disabled={isDeploying}
-                    className="bg-amber-600 hover:bg-amber-700"
-                  >
-                    {isDeploying ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Redeploying...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Redeploy
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={startChangingSlug}
+                      disabled={isDeploying}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Change URL
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      onClick={redeployPage}
+                      disabled={isDeploying}
+                      className="bg-amber-600 hover:bg-amber-700"
+                    >
+                      {isDeploying ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Redeploying...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Redeploy
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
                 <Button onClick={openDeployedPage}>
                   <ExternalLink className="mr-2 h-4 w-4" />
