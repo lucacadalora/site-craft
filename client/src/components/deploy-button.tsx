@@ -473,7 +473,7 @@ export function DeployButton({ files, html, css = '', projectId }: DeployButtonP
       </Button>
 
       <Dialog open={isOpen} onOpenChange={handleOpen}>
-        <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Deploy Landing Page</DialogTitle>
             <DialogDescription>

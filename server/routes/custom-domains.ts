@@ -150,7 +150,14 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const domains = await customDomainsStorage.getUserCustomDomains(userId);
-    res.json({ domains });
+    
+    // Include jatevoHost so frontend can generate correct worker scripts for existing domains
+    const jatevoHost = process.env.JATEVO_PUBLIC_URL || process.env.SITE_HOST || 'https://jatevo.ai';
+    
+    res.json({ 
+      domains,
+      jatevoHost
+    });
   } catch (error) {
     console.error('Error fetching custom domains:', error);
     res.status(500).json({ 

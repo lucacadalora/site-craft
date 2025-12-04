@@ -82,13 +82,16 @@ export function CustomDomainManager({ deploymentSlug, onDomainConnected }: Custo
   const [serverJatevoHost, setServerJatevoHost] = useState<string>(DEFAULT_JATEVO_HOST);
   const { toast } = useToast();
 
-  const { data: domainsData, isLoading } = useQuery<{ domains: CustomDomain[] }>({
+  const { data: domainsData, isLoading } = useQuery<{ domains: CustomDomain[]; jatevoHost?: string }>({
     queryKey: ['/api/domains'],
     enabled: !!deploymentSlug,
   });
 
   const domains: CustomDomain[] = domainsData?.domains || [];
   const connectedDomain = domains.find(d => d.deploymentSlug === deploymentSlug);
+  
+  // Use jatevoHost from API response (for existing domains) or state (for newly created)
+  const effectiveJatevoHost = domainsData?.jatevoHost || serverJatevoHost;
 
   const requestDomainMutation = useMutation({
     mutationFn: async (domain: string): Promise<{ success: boolean; customDomain: CustomDomain; cloudflareInstructions: CloudflareInstructions }> => {
@@ -164,8 +167,8 @@ export function CustomDomainManager({ deploymentSlug, onDomainConnected }: Custo
     },
   });
 
-  // Use server-provided script if available, otherwise generate fallback
-  const workerScript = serverWorkerScript || generateFallbackWorkerScript(deploymentSlug, serverJatevoHost);
+  // Use server-provided script if available, otherwise generate fallback with correct host
+  const workerScript = serverWorkerScript || generateFallbackWorkerScript(deploymentSlug, effectiveJatevoHost);
 
   const copyToClipboard = (text: string, isScript = false) => {
     navigator.clipboard.writeText(text);
