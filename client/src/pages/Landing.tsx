@@ -243,23 +243,17 @@ export default function Landing() {
         setRedesignOpen(false);
         setRedesignUrl('');
         
-        const redesignPrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
-
-Original website URL: ${normalizedUrl}
-
-Website content:
-${data.markdown}
-
-Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.`;
+        sessionStorage.setItem('redesignData', JSON.stringify({
+          markdown: data.markdown,
+          url: normalizedUrl
+        }));
         
         toast({
-          title: "Redesigning",
-          description: "Jatevo Web Builder is redesigning your site! Let it cook...",
+          title: "Ready to redesign",
+          description: "Press Enter or click Generate in the IDE to redesign your site!",
         });
         
-        // Redirect to IDE with the redesign prompt
-        const encodedPrompt = encodeURIComponent(redesignPrompt);
-        setLocation(`/ide/new?prompt=${encodedPrompt}&model=${selectedModel}&enhance=false&style=${stylePreference}`);
+        setLocation(`/ide/new?redesign=true&model=${selectedModel}&style=${stylePreference}`);
       } else {
         toast({
           title: "Error",

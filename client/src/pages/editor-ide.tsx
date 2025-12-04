@@ -93,7 +93,16 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   });
   
   // UI State
-  const [prompt, setPrompt] = useState(urlParams.prompt ? decodeURIComponent(urlParams.prompt) : '');
+  const [prompt, setPrompt] = useState(() => {
+    if (urlParams.prompt) {
+      try {
+        return decodeURIComponent(urlParams.prompt);
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [showFileExplorer, setShowFileExplorer] = useState(false);
@@ -103,6 +112,20 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   const [redesignUrl, setRedesignUrl] = useState('');
   const [redesignLoading, setRedesignLoading] = useState(false);
   const [redesignOpen, setRedesignOpen] = useState(false);
+  const [redesignData, setRedesignData] = useState<{ markdown: string; url: string } | null>(() => {
+    const storedRedesignData = sessionStorage.getItem('redesignData');
+    if (storedRedesignData) {
+      try {
+        const parsed = JSON.parse(storedRedesignData);
+        sessionStorage.removeItem('redesignData');
+        return parsed;
+      } catch {
+        sessionStorage.removeItem('redesignData');
+        return null;
+      }
+    }
+    return null;
+  });
   const [selectedModel, setSelectedModel] = useState(
     urlParams.model === 'sambanova' ? 'sambanova-deepseek-v3' :
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
@@ -1434,25 +1457,12 @@ const App = () => {
         setRedesignOpen(false);
         setRedesignUrl('');
         
-        const redesignPrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
-
-Original website URL: ${normalizedUrl}
-
-Website content:
-${data.markdown}
-
-Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.`;
-        
-        setPrompt(redesignPrompt);
+        setRedesignData({ markdown: data.markdown, url: normalizedUrl });
         setRedesignLoading(false);
         
         toast({
-          title: "Redesigning",
-          description: "Jatevo Web Builder is redesigning your site! Let it cook...",
-        });
-        
-        requestAnimationFrame(() => {
-          handleGenerate();
+          title: "Ready to redesign",
+          description: "Press Enter or click Generate to redesign your site!",
         });
       } else {
         toast({
@@ -1473,7 +1483,7 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
+    if (!prompt.trim() && !redesignData) {
       toast({
         title: "Error",
         description: "Please enter a prompt",
@@ -1484,11 +1494,32 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
 
     setIsGenerating(true);
     
+    // Build the prompt based on redesign context
+    let basePrompt = prompt.trim();
+    if (redesignData) {
+      const userInstructions = basePrompt ? `\n\nAdditional instructions: ${basePrompt}` : '';
+      basePrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
+
+Original website URL: ${redesignData.url}
+
+Website content:
+${redesignData.markdown}
+
+Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.${userInstructions}`;
+      
+      setRedesignData(null);
+      
+      toast({
+        title: "Redesigning",
+        description: "Jatevo Web Builder is redesigning your site! Let it cook...",
+      });
+    }
+    
     // Enhance prompt ONLY for new projects when enhancement is enabled
-    // Never enhance when editing existing projects
+    // Never enhance when editing existing projects or redesigning
     const isNewProject = routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1;
-    let finalPrompt = prompt;
-    if (enhancedSettings.isActive && isNewProject) {
+    let finalPrompt = basePrompt;
+    if (enhancedSettings.isActive && isNewProject && !redesignData) {
       try {
         toast({
           title: "Enhancing prompt...",
@@ -2627,12 +2658,39 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
           {/* Prompt Bar - Bottom Left Corner (v3 Design) */}
           <div className="absolute bottom-4 left-4 w-[calc(30%_-_2rem)] min-w-[400px] z-30">
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
+              {/* Redesign URL Badge */}
+              {redesignData && (
+                <div className="px-4 pt-3">
+                  <div
+                    className={cn(
+                      "border border-emerald-500/50 bg-emerald-500/10 rounded-xl p-1.5 pr-3 max-w-max hover:brightness-110 transition-all duration-200 ease-in-out",
+                      isGenerating ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    )}
+                    onClick={() => {
+                      if (!isGenerating) {
+                        setRedesignData(null);
+                      }
+                    }}
+                    data-testid="badge-redesign-url"
+                  >
+                    <div className="flex items-center justify-start gap-2">
+                      <div className="rounded-lg bg-emerald-500/20 w-6 h-6 flex items-center justify-center">
+                        <Paintbrush className="text-emerald-300 w-3.5 h-3.5" />
+                      </div>
+                      <p className="text-sm font-semibold text-emerald-200">{redesignData.url}</p>
+                      <X className="text-emerald-300 w-4 h-4 hover:text-emerald-200 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Prompt Input with Dice Button */}
               <div className="relative">
                 <Textarea
                   placeholder={
                     isGenerating
                       ? "Jatevo Web Builder is working..."
+                      : redesignData
+                      ? "Ask Jatevo Web Builder anything about the redesign of your site..."
                       : (project?.files?.length ?? 0) > 1
                       ? "Ask Jatevo Web Builder for edits"
                       : "Describe the website you want to generate..."
@@ -2640,14 +2698,17 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   value={isGenerating ? "" : prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && prompt.trim()) {
+                    if (e.key === 'Enter' && !e.shiftKey && (prompt.trim() || redesignData)) {
                       e.preventDefault();
                       if (!isGenerating) {
                         handleGenerate();
                       }
                     }
                   }}
-                  className="min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pt-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className={cn(
+                    "min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0",
+                    redesignData ? "pt-2" : "pt-4"
+                  )}
                   disabled={isGenerating}
                   data-testid="input-prompt"
                 />
