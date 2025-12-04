@@ -33,6 +33,10 @@ export interface IStorage {
   getProjectBySlug(slug: string): Promise<Project | undefined>;
   getAllProjects(): Promise<Project[]>;
   getUserProjects(userId: number): Promise<Project[]>;
+  getUserProjectsSummary(userId: number, limit?: number, offset?: number): Promise<{
+    projects: Pick<Project, 'id' | 'sessionId' | 'slug' | 'name' | 'thumbnail' | 'published' | 'publishPath' | 'createdAt' | 'updatedAt'>[];
+    total: number;
+  }>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<Project>): Promise<Project>;
   deleteProject(id: number): Promise<void>;
@@ -208,6 +212,36 @@ export class MemStorage implements IStorage {
     return Array.from(this.projects.values()).filter(
       (project) => project.userId === userId
     );
+  }
+
+  async getUserProjectsSummary(userId: number, limit: number = 50, offset: number = 0): Promise<{
+    projects: Pick<Project, 'id' | 'sessionId' | 'slug' | 'name' | 'thumbnail' | 'published' | 'publishPath' | 'createdAt' | 'updatedAt'>[];
+    total: number;
+  }> {
+    const allProjects = Array.from(this.projects.values())
+      .filter((project) => project.userId === userId)
+      .sort((a, b) => {
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+    
+    const paginatedProjects = allProjects.slice(offset, offset + limit).map(p => ({
+      id: p.id,
+      sessionId: p.sessionId,
+      slug: p.slug,
+      name: p.name,
+      thumbnail: p.thumbnail,
+      published: p.published,
+      publishPath: p.publishPath,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    }));
+    
+    return {
+      projects: paginatedProjects,
+      total: allProjects.length
+    };
   }
 
   async createProject(project: InsertProject): Promise<Project> {

@@ -7,6 +7,24 @@ import { z } from 'zod';
 
 const router = Router();
 
+// GET project summaries (lightweight, paginated) for the authenticated user
+router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const result = await storage.getUserProjectsSummary(req.user.id, limit, offset);
+    res.json(result);
+  } catch (error) {
+    console.error('Error getting project summaries:', error);
+    res.status(500).json({ error: 'Failed to get projects' });
+  }
+});
+
 // GET all projects for the authenticated user
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {

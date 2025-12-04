@@ -192,6 +192,38 @@ export class PgStorage implements IStorage {
     return await db.select().from(projects).where(eq(projects.userId, userId));
   }
 
+  async getUserProjectsSummary(userId: number, limit: number = 50, offset: number = 0): Promise<{
+    projects: Pick<Project, 'id' | 'sessionId' | 'slug' | 'name' | 'thumbnail' | 'published' | 'publishPath' | 'createdAt' | 'updatedAt'>[];
+    total: number;
+  }> {
+    const [summaryProjects, countResult] = await Promise.all([
+      db.select({
+        id: projects.id,
+        sessionId: projects.sessionId,
+        slug: projects.slug,
+        name: projects.name,
+        thumbnail: projects.thumbnail,
+        published: projects.published,
+        publishPath: projects.publishPath,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+        .from(projects)
+        .where(eq(projects.userId, userId))
+        .orderBy(desc(projects.updatedAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ count: sql<number>`count(*)` })
+        .from(projects)
+        .where(eq(projects.userId, userId))
+    ]);
+    
+    return {
+      projects: summaryProjects,
+      total: Number(countResult[0]?.count || 0)
+    };
+  }
+
   async createProject(project: InsertProject): Promise<Project> {
     // Note: createdAt and updatedAt are handled by defaultNow() in the schema
     const result = await db.insert(projects).values({
