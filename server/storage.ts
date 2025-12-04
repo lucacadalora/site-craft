@@ -252,10 +252,17 @@ export class MemStorage implements IStorage {
       html: null,
       css: null,
       description: project.description || null,
+      sessionId: project.sessionId || null,
+      slug: project.slug || null,
+      thumbnail: project.thumbnail || null,
+      files: project.files || null,
+      prompts: project.prompts || null,
+      currentCommit: project.currentCommit || null,
       settings: project.settings || {},
       published: false,
       publishPath: null,
       createdAt: new Date(),
+      updatedAt: new Date(),
       userId: project.userId || null
     };
     this.projects.set(id, newProject);

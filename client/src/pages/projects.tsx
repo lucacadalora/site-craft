@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -40,18 +40,21 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import type { Project } from '@shared/schema';
 
-interface ProjectDisplay {
+interface ProjectSummary {
   id: number;
   sessionId: string | null;
   slug?: string | null;
   name: string;
   thumbnail: string | null;
-  html?: string | null;
-  css?: string | null;
-  files?: any[];
-  prompts?: string[];
-  createdAt: Date | string;
+  published: boolean | null;
+  publishPath: string | null;
+  createdAt: Date | string | null;
   updatedAt: Date | string | null;
+}
+
+interface ProjectSummaryResponse {
+  projects: ProjectSummary[];
+  total: number;
 }
 
 interface DeploymentInfo {
@@ -76,11 +79,26 @@ export default function Projects() {
   // Get username from user email
   const username = user?.email?.split('@')[0] || 'user';
   
-  // Fetch projects
-  const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['/api/projects'],
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 12;
+
+  // Fetch projects (summary - lightweight)
+  const { data: projectsData, isLoading, isFetching } = useQuery<ProjectSummaryResponse>({
+    queryKey: ['/api/projects/summary', page],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/summary?limit=${ITEMS_PER_PAGE}&offset=${page * ITEMS_PER_PAGE}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch projects');
+      return response.json();
+    },
     enabled: !!user
   });
+
+  const projects = projectsData?.projects || [];
+  const totalProjects = projectsData?.total || 0;
+  const hasMore = (page + 1) * ITEMS_PER_PAGE < totalProjects;
 
   // Fetch user's deployments
   const { data: deployments = [] } = useQuery<DeploymentInfo[]>({
@@ -105,7 +123,7 @@ export default function Projects() {
       return apiRequest('DELETE', `/api/projects/${projectId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects/summary'] });
       toast({
         title: 'Project deleted',
         description: 'Your project has been deleted successfully.'
@@ -187,7 +205,7 @@ export default function Projects() {
     navigate('/ide/new');
   };
 
-  const handleOpenProject = (project: ProjectDisplay) => {
+  const handleOpenProject = (project: ProjectSummary) => {
     // Use slug if available, otherwise use sessionId or ID
     const identifier = project.slug || project.sessionId || project.id.toString();
     navigate(`/ide/${identifier}`);
@@ -197,8 +215,20 @@ export default function Projects() {
     await deleteProjectMutation.mutateAsync(projectId);
   };
 
-  const handleExportProject = async (project: ProjectDisplay) => {
+  const handleExportProject = async (projectSummary: ProjectSummary) => {
     try {
+      toast({
+        title: 'Preparing export...',
+        description: 'Fetching project files'
+      });
+
+      // Fetch full project data for export
+      const response = await fetch(`/api/projects/${projectSummary.id}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch project');
+      const project = await response.json();
+
       const zip = await import('jszip').then(m => new m.default());
       
       if (project.files && Array.isArray(project.files) && project.files.length > 0) {
@@ -216,7 +246,7 @@ export default function Projects() {
       // Add a README with project info
       const readme = `# ${project.name}
 
-Created: ${new Date(project.createdAt).toLocaleDateString()}
+Created: ${project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'Unknown'}
 ${project.updatedAt ? `Last Modified: ${new Date(project.updatedAt).toLocaleDateString()}` : ''}
 
 ## Prompts History
@@ -248,7 +278,7 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
     }
   };
 
-  const getProjectThumbnail = (project: ProjectDisplay) => {
+  const getProjectThumbnail = (project: ProjectSummary) => {
     // If project has a thumbnail, use it
     if (project.thumbnail) {
       return project.thumbnail;
@@ -366,7 +396,7 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
             </Card>
 
             {/* Existing Projects */}
-            {(projects as ProjectDisplay[]).map((project) => {
+            {(projects as ProjectSummary[]).map((project) => {
               const deployment = deploymentsByProjectId[project.id];
               const hasCustomDomain = deployment?.customDomains && deployment.customDomains.length > 0;
               const verifiedDomain = deployment?.customDomains?.find(d => d.verified);
@@ -434,7 +464,9 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                         </h3>
                         <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
                           <Clock className="w-3 h-3" />
-                          <span>Updated {formatDistanceToNow(new Date(project.updatedAt || project.createdAt), { addSuffix: true })}</span>
+                          <span>Updated {project.updatedAt || project.createdAt 
+                            ? formatDistanceToNow(new Date(project.updatedAt || project.createdAt!), { addSuffix: true })
+                            : 'recently'}</span>
                         </div>
                         {/* Show deployment URL if deployed */}
                         {deployment && (
@@ -519,6 +551,33 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!isLoading && totalProjects > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0 || isFetching}
+              className="border-gray-700 hover:bg-gray-800"
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-400">
+              Page {page + 1} of {Math.ceil(totalProjects / ITEMS_PER_PAGE)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={!hasMore || isFetching}
+              className="border-gray-700 hover:bg-gray-800"
+            >
+              {isFetching ? 'Loading...' : 'Next'}
+            </Button>
           </div>
         )}
 
