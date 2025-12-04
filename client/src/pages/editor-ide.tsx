@@ -1507,12 +1507,13 @@ const App = () => {
     // Store redesign data before clearing it (for passing to API)
     const currentRedesignData = redesignData;
     
-    // Build the prompt - for redesign, use simple prompt and pass markdown separately
+    // Build the prompt - for redesign, use simple prompt like v3
+    // The markdown context is passed separately and added as assistant message on backend
     let basePrompt = prompt.trim();
     if (currentRedesignData) {
-      // Use a simple redesign prompt - the markdown context is passed separately (v3 approach)
-      const userInstructions = basePrompt ? basePrompt : 'Redesign this website with a modern, beautiful look';
-      basePrompt = `Redesign the website from ${currentRedesignData.url}. ${userInstructions}`;
+      // V3 approach: just use what user typed, or empty string
+      // The assistant message with markdown provides all the context needed
+      // Don't add URL or extra instructions to the user prompt
       
       setRedesignData(null);
       
