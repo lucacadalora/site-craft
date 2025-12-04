@@ -1100,6 +1100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let prompt: string;
     let existingFilesParam: string | undefined;
     let previousPromptsParam: string | undefined;
+    let redesignMarkdown: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
@@ -1108,6 +1109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       existingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
+      redesignMarkdown = data.redesignMarkdown; // Extract redesign markdown for website redesign
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1240,6 +1242,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: userContent
       };
 
+      // Build messages array - add redesign context as assistant message if present (like v3)
+      const messages: Array<{role: string, content: string}> = [systemMessage];
+      
+      // If redesigning, add assistant message with context (v3 approach)
+      if (redesignMarkdown) {
+        messages.push({
+          role: "assistant",
+          content: `User will ask you to redesign the site based on this markdown. Use the same images as the site, but you can improve the content and the design. Here is the markdown: ${redesignMarkdown}`
+        });
+      }
+      
+      messages.push(userMessage);
+
       const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -1249,7 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages: [systemMessage, userMessage],
+          messages,
           max_tokens: 64000
         })
       });
