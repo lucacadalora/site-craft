@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, json, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, json, timestamp, date, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -86,7 +86,9 @@ export const projects = pgTable("projects", {
   userId: integer("user_id").references(() => users.id), // Nullable to allow anonymous projects
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  userIdIdx: index("projects_user_id_idx").on(table.userId),
+}));
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
@@ -202,7 +204,10 @@ export const deployments = pgTable("deployments", {
   lastVisitedAt: timestamp("last_visited_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  userIdIdx: index("deployments_user_id_idx").on(table.userId),
+  projectIdIdx: index("deployments_project_id_idx").on(table.projectId),
+}));
 
 export const insertDeploymentSchema = createInsertSchema(deployments).omit({
   id: true,
