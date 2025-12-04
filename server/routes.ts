@@ -1987,6 +1987,85 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
     }
   });
 
+  // Redesign endpoint - fetches website content using Jina AI Reader API
+  app.put("/api/re-design", async (req, res) => {
+    const FETCH_TIMEOUT = 30000; // 30 seconds for external fetch
+    
+    try {
+      const { url } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      console.log(`Fetching website content for redesign: ${url}`);
+      
+      // Get the Jina API key from environment
+      const jinaApiKey = process.env.JINA_API_KEY;
+      
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+      
+      try {
+        const response = await fetch(
+          `https://r.jina.ai/${encodeURIComponent(url)}`,
+          {
+            method: "GET",
+            signal: controller.signal,
+            headers: jinaApiKey ? {
+              'Authorization': `Bearer ${jinaApiKey}`,
+              'Accept': 'text/markdown'
+            } : {
+              'Accept': 'text/markdown'
+            }
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.error(`Jina AI API error: ${response.status} ${response.statusText}`);
+          return res.status(500).json({
+            error: "Failed to fetch website content",
+            details: `Jina AI returned status ${response.status}`
+          });
+        }
+        
+        const markdown = await response.text();
+        console.log(`Successfully fetched ${markdown.length} characters of content`);
+        
+        return res.json({
+          ok: true,
+          markdown,
+          url
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.error('Jina AI request timed out');
+          return res.status(504).json({
+            error: "Request timeout: The website took too long to fetch. Please try again."
+          });
+        }
+        throw fetchError;
+      }
+    } catch (error: any) {
+      console.error('Error in redesign endpoint:', error);
+      
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        return res.status(504).json({
+          error: "Request timeout: The website took too long to fetch. Please try again."
+        });
+      }
+      
+      return res.status(500).json({
+        error: error.message || "An error occurred while fetching website content"
+      });
+    }
+  });
+
   // Return the HTTP server
   return createServer(app);
 }

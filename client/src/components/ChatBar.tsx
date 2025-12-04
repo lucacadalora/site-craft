@@ -21,6 +21,7 @@ interface ChatBarProps {
   htmlContent: string;
   enableEnhance: boolean;
   setEnableEnhance: (enable: boolean) => void;
+  onRedesign?: (markdown: string, url: string) => void;
 }
 
 export function ChatBar({
@@ -35,6 +36,7 @@ export function ChatBar({
   htmlContent,
   enableEnhance,
   setEnableEnhance,
+  onRedesign,
 }: ChatBarProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -154,11 +156,10 @@ export function ChatBar({
                 />
                 <RedesignButton
                   disabled={isGenerating}
-                  onRedesign={(url: string) => {
-                    toast({
-                      title: "Redesign",
-                      description: `Redesigning from ${url}`,
-                    });
+                  onRedesign={(markdown: string, url: string) => {
+                    if (onRedesign) {
+                      onRedesign(markdown, url);
+                    }
                   }}
                 />
               </>

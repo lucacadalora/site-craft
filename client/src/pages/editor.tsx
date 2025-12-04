@@ -1153,6 +1153,18 @@ export default function Editor({
             htmlContent={htmlContent}
             enableEnhance={enableEnhance}
             setEnableEnhance={setEnableEnhance}
+            onRedesign={(markdown: string, url: string) => {
+              const redesignPrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
+
+Original website URL: ${url}
+
+Website content:
+${markdown}
+
+Create a complete HTML page with embedded CSS and JavaScript. Use Tailwind CSS for styling. Make it responsive and add smooth hover effects.`;
+              setPrompt(redesignPrompt);
+              setTimeout(() => handleGenerate(), 100);
+            }}
           />
           
           {/* HTML Editor - Always visible */}

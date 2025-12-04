@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface RedesignButtonProps {
   disabled?: boolean;
-  onRedesign: (url: string) => void;
+  onRedesign: (markdown: string, url: string) => void;
 }
 
 export function RedesignButton({ disabled, onRedesign }: RedesignButtonProps) {
@@ -43,23 +43,57 @@ export function RedesignButton({ disabled, onRedesign }: RedesignButtonProps) {
     }
     
     setIsLoading(true);
-    setOpen(false);
-    onRedesign(url.trim());
-    setUrl('');
-    toast({
-      title: "Redesigning",
-      description: "Jatevo Web Builder is redesigning your site! Let it cook... 🔥",
-    });
-    setIsLoading(false);
+    const trimmedUrl = url.trim();
+    
+    try {
+      toast({
+        title: "Fetching website",
+        description: "Reading the website content...",
+      });
+      
+      const response = await fetch('/api/re-design', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: trimmedUrl }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok && data.markdown) {
+        setOpen(false);
+        setUrl('');
+        onRedesign(data.markdown, trimmedUrl);
+        toast({
+          title: "Redesigning",
+          description: "Jatevo Web Builder is redesigning your site! Let it cook...",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch website content.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch website content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          size="xs"
+          size="sm"
           variant={open ? "default" : "outline"}
-          className="!rounded-md"
+          className="!rounded-md h-7 text-xs"
           disabled={disabled}
           data-testid="button-redesign"
         >
