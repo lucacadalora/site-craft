@@ -2003,6 +2003,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
   });
 
   // Redesign endpoint - fetches website content using Jina AI Reader API
+  // Uses POST method like v3 for better compatibility
   app.put("/api/re-design", async (req, res) => {
     const FETCH_TIMEOUT = 30000; // 30 seconds for external fetch
     
@@ -2015,25 +2016,17 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       
       console.log(`Fetching website content for redesign: ${url}`);
       
-      // Get the Jina API key from environment
-      const jinaApiKey = process.env.JINA_API_KEY;
-      
       // Create an AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
       
       try {
+        // Use POST method like v3 - no extra headers needed
         const response = await fetch(
           `https://r.jina.ai/${encodeURIComponent(url)}`,
           {
-            method: "GET",
+            method: "POST",
             signal: controller.signal,
-            headers: jinaApiKey ? {
-              'Authorization': `Bearer ${jinaApiKey}`,
-              'Accept': 'text/markdown'
-            } : {
-              'Accept': 'text/markdown'
-            }
           }
         );
         
