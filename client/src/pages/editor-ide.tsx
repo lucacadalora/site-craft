@@ -432,6 +432,7 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_blank">
   <title>React App</title>
   
   <!-- React and ReactDOM from CDN -->
@@ -949,8 +950,17 @@ const App = () => {
       return acc;
     }, {} as Record<string, string>);
       
-    // Remove the base href hack - it breaks relative URLs
-    // We'll handle links properly instead
+    // Remove any existing base tags and add one that opens links in new tabs
+    fullHtml = fullHtml.replace(/<base[^>]*>/gi, '');
+    const headStart = fullHtml.indexOf('<head');
+    if (headStart > -1) {
+      const headTagEnd = fullHtml.indexOf('>', headStart);
+      if (headTagEnd > -1) {
+        fullHtml = fullHtml.slice(0, headTagEnd + 1) + 
+          '\n  <base target="_blank">\n' + 
+          fullHtml.slice(headTagEnd + 1);
+      }
+    }
     
     // Inject ALL CSS files inline
     if (cssFiles.length > 0) {
