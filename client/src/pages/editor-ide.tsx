@@ -432,7 +432,6 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <base target="_blank">
   <title>React App</title>
   
   <!-- React and ReactDOM from CDN -->
@@ -950,17 +949,8 @@ const App = () => {
       return acc;
     }, {} as Record<string, string>);
       
-    // Remove any existing base tags and add one that opens links in new tabs
-    fullHtml = fullHtml.replace(/<base[^>]*>/gi, '');
-    const headStart = fullHtml.indexOf('<head');
-    if (headStart > -1) {
-      const headTagEnd = fullHtml.indexOf('>', headStart);
-      if (headTagEnd > -1) {
-        fullHtml = fullHtml.slice(0, headTagEnd + 1) + 
-          '\n  <base target="_blank">\n' + 
-          fullHtml.slice(headTagEnd + 1);
-      }
-    }
+    // Remove the base href hack - it breaks relative URLs
+    // We'll handle links properly instead
     
     // Inject ALL CSS files inline
     if (cssFiles.length > 0) {
@@ -1504,16 +1494,18 @@ const App = () => {
 
     setIsGenerating(true);
     
-    // Store redesign data before clearing it (for passing to API)
-    const currentRedesignData = redesignData;
-    
-    // Build the prompt - for redesign, use simple prompt like v3
-    // The markdown context is passed separately and added as assistant message on backend
+    // Build the prompt based on redesign context
     let basePrompt = prompt.trim();
-    if (currentRedesignData) {
-      // V3 approach: just use what user typed, or empty string
-      // The assistant message with markdown provides all the context needed
-      // Don't add URL or extra instructions to the user prompt
+    if (redesignData) {
+      const userInstructions = basePrompt ? `\n\nAdditional instructions: ${basePrompt}` : '';
+      basePrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
+
+Original website URL: ${redesignData.url}
+
+Website content:
+${redesignData.markdown}
+
+Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.${userInstructions}`;
       
       setRedesignData(null);
       
@@ -1527,7 +1519,7 @@ const App = () => {
     // Never enhance when editing existing projects or redesigning
     const isNewProject = routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1;
     let finalPrompt = basePrompt;
-    if (enhancedSettings.isActive && isNewProject && !currentRedesignData) {
+    if (enhancedSettings.isActive && isNewProject && !redesignData) {
       try {
         toast({
           title: "Enhancing prompt...",
@@ -1562,9 +1554,7 @@ const App = () => {
         useFollowUpPrompt: isFollowUp,
         systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined,
         // Only include style preference for initial generation, not for follow-up edits
-        ...(isFollowUp ? {} : { stylePreference: stylePreference }),
-        // Pass redesign markdown separately (v3 approach) - this will be added as assistant message
-        ...(currentRedesignData ? { redesignMarkdown: currentRedesignData.markdown } : {})
+        ...(isFollowUp ? {} : { stylePreference: stylePreference })
       };
       
       if (isFollowUp && project) {

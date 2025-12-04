@@ -1074,12 +1074,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST endpoint to create a session with long prompt data (no URL length limitation)
   app.post("/api/stream/session", (req, res) => {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Debug: Log if redesignMarkdown is present
-    if (req.body.redesignMarkdown) {
-      console.log(`[Redesign] Session ${sessionId} created with redesignMarkdown (${req.body.redesignMarkdown.length} chars)`);
-    }
-    
     sessionData.set(sessionId, {
       ...req.body,
       createdAt: Date.now()
@@ -1106,7 +1100,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let prompt: string;
     let existingFilesParam: string | undefined;
     let previousPromptsParam: string | undefined;
-    let redesignMarkdown: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
@@ -1115,13 +1108,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       existingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
-      redesignMarkdown = data.redesignMarkdown; // Extract redesign markdown for website redesign
-      
-      // Debug: Log if redesignMarkdown is being read
-      if (redesignMarkdown) {
-        console.log(`[Redesign] Session ${sessionId} has redesignMarkdown (${redesignMarkdown.length} chars)`);
-      }
-      
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1254,21 +1240,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: userContent
       };
 
-      // Build messages array - add redesign context as assistant message if present (like v3)
-      const messages: Array<{role: string, content: string}> = [systemMessage];
-      
-      // If redesigning, add assistant message with context (v3 approach)
-      if (redesignMarkdown) {
-        console.log(`[Redesign] Adding assistant message with ${redesignMarkdown.length} chars of markdown context`);
-        messages.push({
-          role: "assistant",
-          content: `User will ask you to redesign the site based on this markdown. Use the same images as the site, but you can improve the content and the design. Here is the markdown: ${redesignMarkdown}`
-        });
-      }
-      
-      messages.push(userMessage);
-      console.log(`[AI Request] Messages count: ${messages.length}, roles: ${messages.map(m => m.role).join(' -> ')}`);
-
       const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -1278,7 +1249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           stream: true,
           model: "DeepSeek-V3-0324",
-          messages,
+          messages: [systemMessage, userMessage],
           max_tokens: 64000
         })
       });
@@ -2017,7 +1988,6 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
   });
 
   // Redesign endpoint - fetches website content using Jina AI Reader API
-  // Uses POST method like v3 for better compatibility
   app.put("/api/re-design", async (req, res) => {
     const FETCH_TIMEOUT = 30000; // 30 seconds for external fetch
     
@@ -2030,17 +2000,25 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       
       console.log(`Fetching website content for redesign: ${url}`);
       
+      // Get the Jina API key from environment
+      const jinaApiKey = process.env.JINA_API_KEY;
+      
       // Create an AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
       
       try {
-        // Use POST method like v3 - no extra headers needed
         const response = await fetch(
           `https://r.jina.ai/${encodeURIComponent(url)}`,
           {
-            method: "POST",
+            method: "GET",
             signal: controller.signal,
+            headers: jinaApiKey ? {
+              'Authorization': `Bearer ${jinaApiKey}`,
+              'Accept': 'text/markdown'
+            } : {
+              'Accept': 'text/markdown'
+            }
           }
         );
         
