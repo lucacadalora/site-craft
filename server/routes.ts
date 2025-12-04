@@ -1074,6 +1074,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST endpoint to create a session with long prompt data (no URL length limitation)
   app.post("/api/stream/session", (req, res) => {
     const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Debug: Log if redesignMarkdown is present
+    if (req.body.redesignMarkdown) {
+      console.log(`[Redesign] Session ${sessionId} created with redesignMarkdown (${req.body.redesignMarkdown.length} chars)`);
+    }
+    
     sessionData.set(sessionId, {
       ...req.body,
       createdAt: Date.now()
@@ -1110,6 +1116,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
       redesignMarkdown = data.redesignMarkdown; // Extract redesign markdown for website redesign
+      
+      // Debug: Log if redesignMarkdown is being read
+      if (redesignMarkdown) {
+        console.log(`[Redesign] Session ${sessionId} has redesignMarkdown (${redesignMarkdown.length} chars)`);
+      }
+      
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1247,6 +1259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If redesigning, add assistant message with context (v3 approach)
       if (redesignMarkdown) {
+        console.log(`[Redesign] Adding assistant message with ${redesignMarkdown.length} chars of markdown context`);
         messages.push({
           role: "assistant",
           content: `User will ask you to redesign the site based on this markdown. Use the same images as the site, but you can improve the content and the design. Here is the markdown: ${redesignMarkdown}`
@@ -1254,6 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       messages.push(userMessage);
+      console.log(`[AI Request] Messages count: ${messages.length}, roles: ${messages.map(m => m.role).join(' -> ')}`);
 
       const apiResponse = await fetch("https://api.sambanova.ai/v1/chat/completions", {
         method: "POST",
