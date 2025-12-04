@@ -123,7 +123,11 @@ export default function Projects() {
       return apiRequest('DELETE', `/api/projects/${projectId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects/summary'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === '/api/projects/summary'
+      });
       toast({
         title: 'Project deleted',
         description: 'Your project has been deleted successfully.'
@@ -176,7 +180,11 @@ export default function Projects() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/deployments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => 
+          Array.isArray(query.queryKey) && 
+          query.queryKey[0] === '/api/projects/summary'
+      });
       
       if (data.projectId) {
         toast({
