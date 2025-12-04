@@ -1504,18 +1504,15 @@ const App = () => {
 
     setIsGenerating(true);
     
-    // Build the prompt based on redesign context
+    // Store redesign data before clearing it (for passing to API)
+    const currentRedesignData = redesignData;
+    
+    // Build the prompt - for redesign, use simple prompt and pass markdown separately
     let basePrompt = prompt.trim();
-    if (redesignData) {
-      const userInstructions = basePrompt ? `\n\nAdditional instructions: ${basePrompt}` : '';
-      basePrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
-
-Original website URL: ${redesignData.url}
-
-Website content:
-${redesignData.markdown}
-
-Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.${userInstructions}`;
+    if (currentRedesignData) {
+      // Use a simple redesign prompt - the markdown context is passed separately (v3 approach)
+      const userInstructions = basePrompt ? basePrompt : 'Redesign this website with a modern, beautiful look';
+      basePrompt = `Redesign the website from ${currentRedesignData.url}. ${userInstructions}`;
       
       setRedesignData(null);
       
@@ -1529,7 +1526,7 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
     // Never enhance when editing existing projects or redesigning
     const isNewProject = routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1;
     let finalPrompt = basePrompt;
-    if (enhancedSettings.isActive && isNewProject && !redesignData) {
+    if (enhancedSettings.isActive && isNewProject && !currentRedesignData) {
       try {
         toast({
           title: "Enhancing prompt...",
@@ -1564,7 +1561,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
         useFollowUpPrompt: isFollowUp,
         systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined,
         // Only include style preference for initial generation, not for follow-up edits
-        ...(isFollowUp ? {} : { stylePreference: stylePreference })
+        ...(isFollowUp ? {} : { stylePreference: stylePreference }),
+        // Pass redesign markdown separately (v3 approach) - this will be added as assistant message
+        ...(currentRedesignData ? { redesignMarkdown: currentRedesignData.markdown } : {})
       };
       
       if (isFollowUp && project) {
