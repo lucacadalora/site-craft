@@ -172,13 +172,15 @@ Jatevo Web Builder is an advanced full-stack AI-powered website generator that l
 - December 02, 2025. Added Custom Domain Support (Premium Feature):
   - Created `custom_domains` database table with fields: domain, deploymentSlug, userId, verificationToken, verified, sslStatus
   - Built complete custom domain infrastructure with storage layer (`custom-domains-storage.ts`)
-  - Added API endpoints: POST /api/domains, GET /api/domains, POST /api/domains/:id/verify, DELETE /api/domains/:id
-  - Implemented DNS verification system with TXT record pattern `jatevo-verify=<token>` + CNAME to `sites.jatevo.ai`
-  - Added host-based routing middleware to detect and serve custom domains
-  - Created `CustomDomainManager` UI component with domain request form, verification status, and DNS instructions
-  - Integrated custom domain manager into deploy dialog after successful deployment
-  - SSL status tracking placeholder for future Cloudflare/Let's Encrypt integration
-  - **Result**: Users can now connect their own domains (e.g., batik.com) to deployed projects
+  - Added API endpoints: POST /api/domains, GET /api/domains, POST /api/domains/:id/mark-active, DELETE /api/domains/:id
+  - **Cloudflare Workers Approach**: Instead of DNS-based verification, users deploy a Cloudflare Worker that proxies requests
+  - Worker script generated server-side using JATEVO_PUBLIC_URL environment variable for correct target URL
+  - Worker proxies requests from custom domain to `/sites/{slug}` path, avoiding proxy loops
+  - Created `CustomDomainManager` UI component with step-by-step Cloudflare Workers deployment instructions
+  - "Mark Active" button for users to confirm Worker deployment (no automatic DNS verification)
+  - GET /api/domains returns `jatevoHost` so existing domains can generate correct Worker scripts
+  - Deploy dialog sized to 700px width to accommodate custom domain setup content
+  - **Result**: Users can connect their own domains via Cloudflare Workers proxy (e.g., batik.com → Worker → Jatevo)
 - December 04, 2025. Added Website Redesign Feature using Jina AI:
   - Created `/api/re-design` endpoint using Jina AI Reader API (`r.jina.ai`) to fetch website content
   - Uses JINA_API_KEY secret for authenticated API access with better rate limits
