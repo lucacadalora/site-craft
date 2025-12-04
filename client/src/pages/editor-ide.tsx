@@ -21,6 +21,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { 
   Send, 
   Zap, 
@@ -94,6 +100,9 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   const [tokenUsage, setTokenUsage] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [randomPromptLoading, setRandomPromptLoading] = useState(false);
+  const [redesignUrl, setRedesignUrl] = useState('');
+  const [redesignLoading, setRedesignLoading] = useState(false);
+  const [redesignOpen, setRedesignOpen] = useState(false);
   const [selectedModel, setSelectedModel] = useState(
     urlParams.model === 'sambanova' ? 'sambanova-deepseek-v3' :
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
@@ -1346,6 +1355,121 @@ const App = () => {
       );
       setRandomPromptLoading(false);
     }, 400);
+  };
+
+  const checkIfUrlIsValid = (url: string) => {
+    const urlPattern = new RegExp(
+      /^https?:\/\/([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/,
+      'i'
+    );
+    return urlPattern.test(url);
+  };
+  
+  const normalizeUrl = (url: string): string => {
+    let normalized = url.trim();
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      normalized = 'https://' + normalized;
+    }
+    return normalized;
+  };
+
+  const handleRedesign = async () => {
+    if (redesignLoading || isGenerating) return;
+    if (!redesignUrl) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const normalizedUrl = normalizeUrl(redesignUrl);
+    
+    if (!checkIfUrlIsValid(normalizedUrl)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid URL (e.g., https://example.com).",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setRedesignLoading(true);
+    
+    try {
+      toast({
+        title: "Fetching website",
+        description: "Reading the website content...",
+      });
+      
+      const response = await fetch('/api/re-design', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: normalizedUrl }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = "Failed to fetch website content.";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status}). Please try again.`;
+        }
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.ok && data.markdown) {
+        setRedesignOpen(false);
+        setRedesignUrl('');
+        
+        const redesignPrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
+
+Original website URL: ${normalizedUrl}
+
+Website content:
+${data.markdown}
+
+Create a complete multi-file project with index.html, style.css, and script.js. Use modern CSS and Tailwind CSS for styling. Make it responsive and add smooth hover effects.`;
+        
+        setPrompt(redesignPrompt);
+        setRedesignLoading(false);
+        
+        toast({
+          title: "Redesigning",
+          description: "Jatevo Web Builder is redesigning your site! Let it cook...",
+        });
+        
+        requestAnimationFrame(() => {
+          handleGenerate();
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to fetch website content.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch website content. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRedesignLoading(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -2610,16 +2734,87 @@ const App = () => {
                         </SelectContent>
                       </Select>
                       
-                      {/* Redesign Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        data-testid="button-redesign"
-                      >
-                        <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
-                        Redesign
-                      </Button>
+                      {/* Redesign Button with Popover */}
+                      <Popover open={redesignOpen} onOpenChange={setRedesignOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50",
+                              redesignOpen && "bg-gray-800/50 text-gray-200"
+                            )}
+                            disabled={isGenerating || redesignLoading}
+                            data-testid="button-redesign"
+                          >
+                            <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
+                            Redesign
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          className="w-80 rounded-2xl p-0 bg-white border-gray-200 text-center overflow-hidden"
+                        >
+                          <header className="bg-gray-50 p-6 border-b border-gray-200">
+                            <div className="flex items-center justify-center -space-x-4 mb-3">
+                              <div className="w-9 h-9 rounded-full bg-pink-200 shadow-sm flex items-center justify-center text-xl opacity-50">
+                                🎨
+                              </div>
+                              <div className="w-11 h-11 rounded-full bg-amber-200 shadow-lg flex items-center justify-center text-2xl z-10">
+                                🥳
+                              </div>
+                              <div className="w-9 h-9 rounded-full bg-sky-200 shadow-sm flex items-center justify-center text-xl opacity-50">
+                                💎
+                              </div>
+                            </div>
+                            <p className="text-xl font-semibold text-gray-900">
+                              Redesign your Site!
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1.5">
+                              Try our new Redesign feature to give your site a fresh look.
+                            </p>
+                          </header>
+                          <main className="space-y-4 p-6">
+                            <div>
+                              <p className="text-sm text-gray-700 mb-2">
+                                Enter your website URL to get started:
+                              </p>
+                              <Input
+                                type="text"
+                                placeholder="https://example.com"
+                                value={redesignUrl}
+                                onChange={(e) => setRedesignUrl(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleRedesign();
+                                  }
+                                }}
+                                className="bg-white border-gray-300 text-gray-800 placeholder:text-gray-400"
+                                data-testid="input-redesign-url"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-700 mb-2">
+                                Then, let's redesign it!
+                              </p>
+                              <Button
+                                onClick={handleRedesign}
+                                disabled={redesignLoading}
+                                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                                data-testid="button-start-redesign"
+                              >
+                                {redesignLoading ? (
+                                  <>Fetching your site...</>
+                                ) : (
+                                  <>
+                                    Redesign <Paintbrush className="w-4 h-4 ml-1" />
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </main>
+                        </PopoverContent>
+                      </Popover>
                     </>
                   ) : (
                     <>
