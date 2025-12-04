@@ -87,8 +87,14 @@ export default function Projects() {
   const { data: projectsData, isLoading, isFetching } = useQuery<ProjectSummaryResponse>({
     queryKey: ['/api/projects/summary', page],
     queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       const response = await fetch(`/api/projects/summary?limit=${ITEMS_PER_PAGE}&offset=${page * ITEMS_PER_PAGE}`, {
-        credentials: 'include'
+        credentials: 'include',
+        headers
       });
       if (!response.ok) throw new Error('Failed to fetch projects');
       return response.json();
