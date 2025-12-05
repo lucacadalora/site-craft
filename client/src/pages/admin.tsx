@@ -14,11 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { 
   Users, 
   FolderOpen, 
@@ -96,7 +91,7 @@ function StatCard({ title, value, icon: Icon, description }: {
 
 function UserRow({ user }: { user: UserWithActivity }) {
   const [isOpen, setIsOpen] = useState(false);
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth_token');
 
   const { data: projectsData, isLoading: projectsLoading } = useQuery<{ projects: UserProject[] }>({
     queryKey: ['/api/admin/users', user.id, 'projects'],
@@ -123,14 +118,16 @@ function UserRow({ user }: { user: UserWithActivity }) {
   });
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <TableRow className="cursor-pointer hover:bg-muted/50" data-testid={`user-row-${user.id}`}>
+    <>
+      <TableRow 
+        className="cursor-pointer hover:bg-muted/50" 
+        data-testid={`user-row-${user.id}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
         <TableCell>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-0 h-auto">
-              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
+          <Button variant="ghost" size="sm" className="p-0 h-auto" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
         </TableCell>
         <TableCell className="font-medium">{user.id}</TableCell>
         <TableCell>{user.email}</TableCell>
@@ -150,7 +147,7 @@ function UserRow({ user }: { user: UserWithActivity }) {
         <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</TableCell>
         <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
       </TableRow>
-      <CollapsibleContent asChild>
+      {isOpen && (
         <TableRow>
           <TableCell colSpan={10} className="bg-muted/30 p-4">
             <div className="grid grid-cols-2 gap-4">
@@ -198,6 +195,7 @@ function UserRow({ user }: { user: UserWithActivity }) {
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="font-medium text-blue-600 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {deployment.slug}
                           </a>
@@ -219,17 +217,19 @@ function UserRow({ user }: { user: UserWithActivity }) {
             </div>
           </TableCell>
         </TableRow>
-      </CollapsibleContent>
-    </Collapsible>
+      )}
+    </>
   );
 }
+
+const TOKEN_KEY = 'auth_token';
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [page, setPage] = useState(0);
   const limit = 20;
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem(TOKEN_KEY);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
