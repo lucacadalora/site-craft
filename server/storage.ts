@@ -257,6 +257,7 @@ export class MemStorage implements IStorage {
       thumbnail: project.thumbnail || null,
       files: project.files || null,
       prompts: project.prompts || null,
+      mediaFiles: project.mediaFiles || null,
       currentCommit: project.currentCommit || null,
       settings: project.settings || {},
       published: false,

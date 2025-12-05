@@ -413,4 +413,155 @@ router.post('/:id/versions/:versionId/restore', authenticate, async (req: AuthRe
   }
 });
 
+// POST upload media files to a project
+// Accepts base64 encoded files and stores them in the project's mediaFiles array
+router.post('/:id/media', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to update this project' });
+    }
+
+    // Validate request body
+    const mediaFilesSchema = z.object({
+      files: z.array(z.object({
+        name: z.string(),
+        type: z.string(), // MIME type
+        data: z.string(), // base64 encoded data URL
+      }))
+    });
+
+    const parsed = mediaFilesSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request body', details: parsed.error.errors });
+    }
+
+    const { files } = parsed.data;
+    
+    // Validate file types (only images, videos, audio)
+    const allowedTypes = ['image/', 'video/', 'audio/'];
+    for (const file of files) {
+      if (!allowedTypes.some(type => file.type.startsWith(type))) {
+        return res.status(400).json({ 
+          error: `File ${file.name} is not a supported media type (image, video, or audio)` 
+        });
+      }
+    }
+
+    // Get existing media files or initialize empty array
+    const existingMediaFiles = (project.mediaFiles as string[] | null) || [];
+    
+    // Add new files (store as data URLs)
+    const newMediaFiles = files.map(file => file.data);
+    const updatedMediaFiles = [...existingMediaFiles, ...newMediaFiles];
+
+    // Update project with new media files
+    const updatedProject = await storage.updateProject(projectId, {
+      mediaFiles: updatedMediaFiles
+    });
+
+    res.json({
+      ok: true,
+      message: `Successfully uploaded ${files.length} media file(s)`,
+      uploadedFiles: newMediaFiles,
+      totalFiles: updatedMediaFiles.length
+    });
+  } catch (error) {
+    console.error('Error uploading media files:', error);
+    res.status(500).json({ error: 'Failed to upload media files' });
+  }
+});
+
+// DELETE remove a media file from a project
+router.delete('/:id/media', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to update this project' });
+    }
+
+    const { fileUrl } = req.body;
+    
+    if (!fileUrl) {
+      return res.status(400).json({ error: 'fileUrl is required' });
+    }
+
+    // Get existing media files
+    const existingMediaFiles = (project.mediaFiles as string[] | null) || [];
+    
+    // Remove the file
+    const updatedMediaFiles = existingMediaFiles.filter(f => f !== fileUrl);
+
+    // Update project
+    const updatedProject = await storage.updateProject(projectId, {
+      mediaFiles: updatedMediaFiles
+    });
+
+    res.json({
+      ok: true,
+      message: 'Media file removed',
+      totalFiles: updatedMediaFiles.length
+    });
+  } catch (error) {
+    console.error('Error removing media file:', error);
+    res.status(500).json({ error: 'Failed to remove media file' });
+  }
+});
+
+// GET media files for a project
+router.get('/:id/media', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    
+    if (isNaN(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID' });
+    }
+
+    const project = await storage.getProject(projectId);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Check if project belongs to user
+    if (project.userId && project.userId !== req.user?.id) {
+      return res.status(403).json({ error: 'Not authorized to access this project' });
+    }
+
+    const mediaFiles = (project.mediaFiles as string[] | null) || [];
+
+    res.json({
+      ok: true,
+      files: mediaFiles
+    });
+  } catch (error) {
+    console.error('Error getting media files:', error);
+    res.status(500).json({ error: 'Failed to get media files' });
+  }
+});
+
 export default router;
