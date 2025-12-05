@@ -84,6 +84,53 @@ export const generateToken = (user: { id: number; email: string; username?: stri
   return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Admin email whitelist
+const ADMIN_EMAILS = ['lucacadalora.sg@gmail.com'];
+
+// Admin-only middleware - requires authentication AND admin email
+export const adminOnly = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // First authenticate the user
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; username?: string; displayName?: string };
+    
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      username: decoded.username,
+      displayName: decoded.displayName
+    };
+    
+    // Check if user is an admin
+    if (!ADMIN_EMAILS.includes(decoded.email.toLowerCase())) {
+      console.log(`Admin access denied for: ${decoded.email}`);
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    
+    console.log(`Admin authenticated: ${decoded.email}`);
+    next();
+  } catch (error) {
+    console.error('Admin authentication error:', error);
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// Check if email is admin (for frontend use)
+export const isAdminEmail = (email: string): boolean => {
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+};
+
 // Optional authentication middleware - doesn't reject if no token, but sets user if token exists
 export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

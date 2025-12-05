@@ -12,6 +12,7 @@ import EditorIDE from "@/pages/editor-ide";
 import Projects from "@/pages/projects";
 import Login from "@/pages/login";
 import TestDeployment from "@/pages/test-deployment";
+import AdminDashboard from "@/pages/admin";
 import { ApiConfig } from "@shared/schema";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ProjectProvider } from "@/contexts/ProjectContext";
@@ -74,6 +75,13 @@ function Router({ apiConfig, updateApiConfig }: { apiConfig: ApiConfig, updateAp
         {() => (
           <ProtectedRoute>
             <TestDeployment />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/admin">
+        {() => (
+          <ProtectedRoute>
+            <AdminDashboard />
           </ProtectedRoute>
         )}
       </Route>

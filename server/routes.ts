@@ -9,6 +9,7 @@ import projectRoutes from './routes/projects';
 import projectManagementRoutes from './routes/project-management';
 import sitesRoutes from './routes/sites';
 import customDomainsRoutes from './routes/custom-domains';
+import adminRoutes from './routes/admin';
 import { authenticate, optionalAuth, AuthRequest } from './middleware/auth';
 import { PgStorage } from './db/pg-storage';
 import { MemStorage, storage } from './storage';
@@ -107,6 +108,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register custom domains API routes
   console.log('Registering custom domains API routes at /api/domains');
   app.use('/api/domains', customDomainsRoutes);
+  
+  // Register admin API routes
+  console.log('Registering admin API routes at /api/admin');
+  app.use('/api/admin', adminRoutes);
   
   // Deploy a landing page
   app.post('/api/deploy', optionalAuth, async (req: AuthRequest, res) => {
