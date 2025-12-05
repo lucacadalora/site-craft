@@ -95,10 +95,14 @@ export const MultiFileEditor = ({
     if (editorContainerRef.current) {
       const scrollHeight = editorContainerRef.current.scrollHeight;
       const clientHeight = editorContainerRef.current.clientHeight;
+      const scrollTop = scrollHeight - clientHeight;
       editorContainerRef.current.scrollTo({
-        top: scrollHeight - clientHeight,
+        top: scrollTop,
         behavior: 'auto'
       });
+      if (lineNumbersRef.current) {
+        lineNumbersRef.current.scrollTop = scrollTop;
+      }
     }
   }, []);
 
@@ -160,7 +164,7 @@ export const MultiFileEditor = ({
       {/* Line Numbers - DeepSite Style */}
       <div 
         ref={lineNumbersRef}
-        className="flex-shrink-0 select-none overflow-hidden"
+        className="flex-shrink-0 select-none overflow-y-auto scrollbar-hide"
         style={{
           width: '50px',
           backgroundColor: '#1e1e1e',
@@ -169,6 +173,8 @@ export const MultiFileEditor = ({
           fontSize: '13px',
           lineHeight: '1.5',
           paddingTop: '10px',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
         }}
       >
         {Array.from({ length: lineCount }, (_, i) => (
