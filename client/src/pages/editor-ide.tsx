@@ -2898,6 +2898,7 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
             <MultiFileEditor 
               className="flex-1 overflow-auto"
               onRunCode={() => setShowPreview(true)}
+              isGenerating={isGenerating}
             />
             
             {/* Prompt Bar - Inside Code Editor Panel */}

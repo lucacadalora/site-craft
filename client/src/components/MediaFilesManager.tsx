@@ -24,7 +24,7 @@ interface MediaFile {
 }
 
 interface MediaFilesManagerProps {
-  projectId: number | null;
+  projectId: string | number | null;
   files: string[];
   selectedFiles: string[];
   onFilesChange: (files: string[]) => void;
