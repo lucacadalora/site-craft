@@ -72,8 +72,8 @@ function UndoButton() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
-  // Fetch versions for the current project
-  const { data: versions = [] } = useQuery<any[]>({
+  // Fetch versions for the current project - sorted descending (newest first)
+  const { data: versions = [], refetch } = useQuery<any[]>({
     queryKey: [`/api/projects/${project?.id}/versions`],
     enabled: !!project?.id,
   });
@@ -91,8 +91,11 @@ function UndoButton() {
     setIsLoading(true);
     
     try {
-      // Get the previous version (second to last)
-      const previousVersion = versions[versions.length - 2];
+      // Versions are sorted descending: [newest, previous, older...]
+      // versions[0] = current version, versions[1] = previous version
+      const previousVersion = versions[1];
+      
+      console.log('[Undo] Restoring to version:', previousVersion.id, 'from', versions.length, 'versions');
       
       // Call the restore API
       const response = await fetch(`/api/projects/${project.id}/versions/${previousVersion.id}/restore`, {
@@ -104,6 +107,8 @@ function UndoButton() {
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Undo] Restore failed:', response.status, errorText);
         throw new Error('Failed to restore version');
       }
       
@@ -112,23 +117,25 @@ function UndoButton() {
         ? JSON.parse(previousVersion.files) 
         : previousVersion.files;
       
+      console.log('[Undo] Restoring files:', versionFiles?.length || 0, 'files');
+      
       // Update the project with the restored version's files
       setProject({
         ...project,
-        files: versionFiles,
-        currentVersionId: previousVersion.id
+        files: versionFiles
       });
       
-      // Invalidate versions query to refresh
+      // Invalidate and refetch versions to refresh the list
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/versions`] });
+      await refetch();
       
       toast({
         title: "Undone",
-        description: "Restored to previous version.",
+        description: `Restored to version ${previousVersion.versionNumber}`,
         className: "bg-green-900 border-green-700 text-white"
       });
     } catch (error) {
-      console.error('Undo failed:', error);
+      console.error('[Undo] Failed:', error);
       toast({
         title: "Undo failed",
         description: "Could not restore previous version.",
