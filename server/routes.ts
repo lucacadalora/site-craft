@@ -1108,6 +1108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let selectedElementHtml: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
+    let mediaFiles: string[] | undefined; // For uploaded media files context
     if (sessionData.has(sessionId)) {
       const data = sessionData.get(sessionId);
       prompt = data.prompt;
@@ -1115,6 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
       selectedElementHtml = data.selectedElementHtml || undefined; // For targeted element edits (v3 style)
+      mediaFiles = data.mediaFiles || undefined; // For uploaded media files to use in generation
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1238,6 +1240,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           userContent += `\n\nUser request: ${prompt}`;
           
+          // Add media files context if provided (for using uploaded images/videos)
+          if (mediaFiles && mediaFiles.length > 0) {
+            userContent += `\n\n📎 UPLOADED MEDIA FILES AVAILABLE:
+The user has uploaded ${mediaFiles.length} media file(s) to use in this project.
+You MUST use these exact data URLs when the user asks to add/replace images:
+
+${mediaFiles.map((url, i) => `Media ${i + 1}: ${url.substring(0, 100)}...`).join('\n')}
+
+When inserting an image, use the FULL data URL as the src attribute like this:
+<img src="${mediaFiles[0]}" alt="User uploaded image" class="..." />
+
+IMPORTANT: Use the complete data URL string, not a placeholder.`;
+          }
+          
           // Add STRICT targeted element instruction if element is selected (v3 style)
           // This must be at the END of the user message to take priority
           if (selectedElementHtml) {
@@ -1254,6 +1270,7 @@ STRICT RULES:
 3. Do NOT touch any other elements, sections, or code outside this element
 4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
 5. Focus ONLY on the element shown above
+${mediaFiles && mediaFiles.length > 0 ? `6. If adding an image, use the uploaded media file data URLs provided above` : ''}
 
 If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }
@@ -1542,6 +1559,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
     let cerebrasSelectedElementHtml: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
+    let cerebrasMediaFiles: string[] | undefined; // For uploaded media files context
     if (sessionData.has(sessionId)) {
       const data = sessionData.get(sessionId);
       prompt = data.prompt;
@@ -1549,6 +1567,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       cerebrasPreviousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
       cerebrasSelectedElementHtml = data.selectedElementHtml || undefined; // For targeted element edits (v3 style)
+      cerebrasMediaFiles = data.mediaFiles || undefined; // For uploaded media files to use in generation
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1671,6 +1690,20 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
           }
           cerebrasUserContent += `\n\nUser request: ${prompt}`;
           
+          // Add media files context if provided (for using uploaded images/videos)
+          if (cerebrasMediaFiles && cerebrasMediaFiles.length > 0) {
+            cerebrasUserContent += `\n\n📎 UPLOADED MEDIA FILES AVAILABLE:
+The user has uploaded ${cerebrasMediaFiles.length} media file(s) to use in this project.
+You MUST use these exact data URLs when the user asks to add/replace images:
+
+${cerebrasMediaFiles.map((url, i) => `Media ${i + 1}: ${url.substring(0, 100)}...`).join('\n')}
+
+When inserting an image, use the FULL data URL as the src attribute like this:
+<img src="${cerebrasMediaFiles[0]}" alt="User uploaded image" class="..." />
+
+IMPORTANT: Use the complete data URL string, not a placeholder.`;
+          }
+          
           // Add STRICT targeted element instruction if element is selected (v3 style)
           // This must be at the END of the user message to take priority
           if (cerebrasSelectedElementHtml) {
@@ -1687,6 +1720,7 @@ STRICT RULES:
 3. Do NOT touch any other elements, sections, or code outside this element
 4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
 5. Focus ONLY on the element shown above
+${cerebrasMediaFiles && cerebrasMediaFiles.length > 0 ? `6. If adding an image, use the uploaded media file data URLs provided above` : ''}
 
 If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }
