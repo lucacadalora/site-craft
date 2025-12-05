@@ -3088,13 +3088,18 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   style.id = 'jatevo-edit-mode-styles';
                   style.textContent = `
                     .jatevo-hovered-element {
-                      outline: 2px dashed #3b82f6 !important;
+                      outline: 3px dashed #3b82f6 !important;
                       outline-offset: 2px !important;
                       cursor: pointer !important;
+                      background-color: rgba(59, 130, 246, 0.1) !important;
+                      box-shadow: inset 0 0 0 2000px rgba(59, 130, 246, 0.05), 0 0 0 4px rgba(59, 130, 246, 0.3) !important;
+                      transition: all 0.15s ease !important;
                     }
                     .jatevo-selected-element {
                       outline: 3px solid #10b981 !important;
                       outline-offset: 2px !important;
+                      background-color: rgba(16, 185, 129, 0.08) !important;
+                      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.2) !important;
                     }
                   `;
                   doc.head.appendChild(style);
