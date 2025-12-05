@@ -3024,9 +3024,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               {/* Menu Bar */}
               <div className="flex items-center justify-between gap-1 px-2 py-2 border-t border-gray-800/50">
                 <div className="flex items-center gap-1 flex-wrap">
-                  {/* Show new project buttons if route is 'new' or no project ID yet */}
-                  {/* Show existing project buttons if project has an ID */}
-                  {(routeSessionId === 'new' || !project?.id) ? (
+                  {/* Show new project buttons only if no project ID yet */}
+                  {/* Show existing project buttons once project has been created (has ID) */}
+                  {!project?.id ? (
                     <>
                       {/* Enhance Toggle */}
                       <div 
