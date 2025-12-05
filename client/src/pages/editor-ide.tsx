@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useProject, ProjectFile } from '@/contexts/ProjectContext';
@@ -49,7 +50,8 @@ import {
   Crosshair,
   Code,
   XCircle,
-  ArrowUp
+  ArrowUp,
+  Undo2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -62,6 +64,100 @@ interface EditorIDEProps {
   initialApiConfig?: any;
   onApiConfigChange?: (newConfig: any) => void;
   isDisposable?: boolean;
+}
+
+// Undo Button Component - Restores previous version
+function UndoButton() {
+  const { project, setProject } = useProject();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch versions for the current project
+  const { data: versions = [] } = useQuery<any[]>({
+    queryKey: [`/api/projects/${project?.id}/versions`],
+    enabled: !!project?.id,
+  });
+  
+  const handleUndo = async () => {
+    if (!project?.id || versions.length < 2) {
+      toast({
+        title: "Nothing to undo",
+        description: "No previous version available.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Get the previous version (second to last)
+      const previousVersion = versions[versions.length - 2];
+      
+      // Call the restore API
+      const response = await fetch(`/api/projects/${project.id}/versions/${previousVersion.id}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to restore version');
+      }
+      
+      // Parse files from the restored version
+      const versionFiles = typeof previousVersion.files === 'string' 
+        ? JSON.parse(previousVersion.files) 
+        : previousVersion.files;
+      
+      // Update the project with the restored version's files
+      setProject({
+        ...project,
+        files: versionFiles,
+        currentVersionId: previousVersion.id
+      });
+      
+      // Invalidate versions query to refresh
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${project.id}/versions`] });
+      
+      toast({
+        title: "Undone",
+        description: "Restored to previous version.",
+        className: "bg-green-900 border-green-700 text-white"
+      });
+    } catch (error) {
+      console.error('Undo failed:', error);
+      toast({
+        title: "Undo failed",
+        description: "Could not restore previous version.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Only show if there are at least 2 versions (something to undo to)
+  if (!project?.id || versions.length < 2) {
+    return null;
+  }
+  
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleUndo}
+      disabled={isLoading}
+      className="h-8 px-3 text-xs gap-1.5 text-gray-300 hover:bg-gray-800"
+      title="Undo last change"
+      data-testid="button-undo"
+    >
+      <Undo2 className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
+      <span>Undo</span>
+    </Button>
+  );
 }
 
 export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDisposable = false }: EditorIDEProps) {
@@ -2688,6 +2784,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                 </Button>
                 
                 <History />
+                
+                {/* Undo Button - Restores previous version */}
+                <UndoButton />
               </div>
               
               <EditorTabs />

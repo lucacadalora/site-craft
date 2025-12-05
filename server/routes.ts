@@ -1238,9 +1238,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           userContent += `\n\nUser request: ${prompt}`;
           
-          // Add targeted element instruction if element is selected (v3 style)
+          // Add STRICT targeted element instruction if element is selected (v3 style)
+          // This must be at the END of the user message to take priority
           if (selectedElementHtml) {
-            userContent += `\n\nIMPORTANT: You MUST update ONLY the following element, NOTHING ELSE. Focus your changes specifically on this element:\n\n\`\`\`html\n${selectedElementHtml}\n\`\`\``;
+            userContent += `\n\n⚠️ CRITICAL CONSTRAINT - ELEMENT ISOLATION MODE ACTIVE ⚠️
+You MUST update ONLY this specific element and NOTHING ELSE in the entire page:
+
+\`\`\`html
+${selectedElementHtml}
+\`\`\`
+
+STRICT RULES:
+1. Your SEARCH block must contain ONLY content from within this element
+2. Your REPLACE block must ONLY modify this element's content
+3. Do NOT touch any other elements, sections, or code outside this element
+4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
+5. Focus ONLY on the element shown above
+
+If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }
         } catch (e) {
           console.error('Error parsing follow-up context (falling back to initial):', e);
@@ -1656,9 +1671,24 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
           }
           cerebrasUserContent += `\n\nUser request: ${prompt}`;
           
-          // Add targeted element instruction if element is selected (v3 style)
+          // Add STRICT targeted element instruction if element is selected (v3 style)
+          // This must be at the END of the user message to take priority
           if (cerebrasSelectedElementHtml) {
-            cerebrasUserContent += `\n\nIMPORTANT: You MUST update ONLY the following element, NOTHING ELSE. Focus your changes specifically on this element:\n\n\`\`\`html\n${cerebrasSelectedElementHtml}\n\`\`\``;
+            cerebrasUserContent += `\n\n⚠️ CRITICAL CONSTRAINT - ELEMENT ISOLATION MODE ACTIVE ⚠️
+You MUST update ONLY this specific element and NOTHING ELSE in the entire page:
+
+\`\`\`html
+${cerebrasSelectedElementHtml}
+\`\`\`
+
+STRICT RULES:
+1. Your SEARCH block must contain ONLY content from within this element
+2. Your REPLACE block must ONLY modify this element's content
+3. Do NOT touch any other elements, sections, or code outside this element
+4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
+5. Focus ONLY on the element shown above
+
+If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }
         } catch (e) {
           console.error('Error parsing Cerebras follow-up context (falling back to initial):', e);
