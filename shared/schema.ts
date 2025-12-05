@@ -79,7 +79,7 @@ export const projects = pgTable("projects", {
   css: text("css"), // Kept for backward compatibility
   files: json("files"), // New: Array of {name: string, content: string, language: string} for multi-file support
   prompts: json("prompts"), // New: Array of conversation history for follow-up editing
-  mediaFiles: json("media_files"), // Array of uploaded media file URLs (images, videos, audio)
+  mediaFiles: text("media_files").array(), // Array of uploaded media file URLs (images, videos, audio)
   currentCommit: text("current_commit"), // New: Track current version/commit
   settings: json("settings"),
   published: boolean("published").default(false),
