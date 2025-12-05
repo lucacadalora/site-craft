@@ -2596,6 +2596,286 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               className="flex-1 overflow-auto"
               onRunCode={() => setShowPreview(true)}
             />
+            
+            {/* Prompt Bar - Inside Code Editor Panel */}
+            <div className="bg-[#1a1a1a] border-t border-gray-800">
+              {/* Redesign URL Badge */}
+              {redesignData && (
+                <div className="px-3 pt-3">
+                  <div
+                    className={cn(
+                      "border border-emerald-500/50 bg-emerald-500/10 rounded-xl p-1.5 pr-3 max-w-max hover:brightness-110 transition-all duration-200 ease-in-out",
+                      isGenerating ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                    )}
+                    onClick={() => {
+                      if (!isGenerating) {
+                        setRedesignData(null);
+                      }
+                    }}
+                    data-testid="badge-redesign-url"
+                  >
+                    <div className="flex items-center justify-start gap-2">
+                      <div className="rounded-lg bg-emerald-500/20 w-6 h-6 flex items-center justify-center">
+                        <Paintbrush className="text-emerald-300 w-3.5 h-3.5" />
+                      </div>
+                      <p className="text-sm font-semibold text-emerald-200 truncate max-w-[200px]">{redesignData.url}</p>
+                      <X className="text-emerald-300 w-4 h-4 hover:text-emerald-200 transition-colors flex-shrink-0" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Prompt Input */}
+              <div className="relative">
+                <Textarea
+                  placeholder={
+                    isGenerating
+                      ? "Jatevo Web Builder is working..."
+                      : redesignData
+                      ? "Ask about the redesign..."
+                      : (project?.files?.length ?? 0) > 1
+                      ? "Ask for edits..."
+                      : "Describe the website you want to generate..."
+                  }
+                  value={isGenerating ? "" : prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && (prompt.trim() || redesignData)) {
+                      e.preventDefault();
+                      if (!isGenerating) {
+                        handleGenerate();
+                      }
+                    }
+                  }}
+                  className={cn(
+                    "min-h-[80px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-3 pb-2 pr-10 focus-visible:ring-0 focus-visible:ring-offset-0",
+                    redesignData ? "pt-2" : "pt-3"
+                  )}
+                  disabled={isGenerating}
+                  data-testid="input-prompt"
+                />
+                {/* Dice Button for Random Prompt - only show for new projects */}
+                {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => randomPrompt()}
+                    className={`absolute top-2 right-2 h-7 w-7 p-0 text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
+                    title="Get random prompt"
+                    disabled={isGenerating}
+                  >
+                    <Dices className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              
+              {/* Menu Bar */}
+              <div className="flex items-center justify-between gap-1 px-2 py-2 border-t border-gray-800/50">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) ? (
+                    <>
+                      {/* Enhance Toggle */}
+                      <div 
+                        className="flex items-center gap-1.5 h-7 px-2 text-xs text-gray-400"
+                        title={stylePreference !== 'default' ? `Enhancement disabled for ${stylePreference} style` : 'Enhance generated code'}
+                      >
+                        <Zap className={cn("w-3 h-3", enhancedSettings.isActive && "text-yellow-500", stylePreference !== 'default' && "opacity-50")} />
+                        <span className={cn("hidden lg:inline", stylePreference !== 'default' && "opacity-50")}>Enhance</span>
+                        <Switch
+                          checked={enhancedSettings.isActive}
+                          onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
+                          className="scale-[0.65]"
+                          disabled={stylePreference !== 'default'}
+                          data-testid="switch-enhance"
+                        />
+                      </div>
+                      
+                      {/* Model Selector */}
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger 
+                          className="h-7 w-auto min-w-[90px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-model"
+                        >
+                          <div className="flex items-center gap-1">
+                            <Zap className="w-3 h-3" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            DeepSeek V3
+                          </SelectItem>
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            glm-4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Style Selector */}
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
+                        <SelectTrigger 
+                          className="h-7 w-auto min-w-[70px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-style"
+                        >
+                          <div className="flex items-center gap-1">
+                            <Paintbrush className="w-3 h-3" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Default
+                          </SelectItem>
+                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v1
+                          </SelectItem>
+                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v2
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Redesign Button */}
+                      <Popover open={redesignOpen} onOpenChange={setRedesignOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "h-7 px-2 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50",
+                              redesignOpen && "bg-gray-800/50 text-gray-200"
+                            )}
+                            disabled={isGenerating || redesignLoading}
+                            data-testid="button-redesign"
+                          >
+                            <Paintbrush className="w-3 h-3 mr-1" />
+                            <span className="hidden lg:inline">Redesign</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="start"
+                          side="top"
+                          className="w-72 rounded-xl p-0 bg-white border-gray-200 text-center overflow-hidden"
+                        >
+                          <header className="bg-gray-50 p-4 border-b border-gray-200">
+                            <p className="text-lg font-semibold text-gray-900">
+                              Redesign your Site!
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Give your site a fresh look.
+                            </p>
+                          </header>
+                          <main className="space-y-3 p-4">
+                            <div>
+                              <Input
+                                type="text"
+                                placeholder="https://example.com"
+                                value={redesignUrl}
+                                onChange={(e) => setRedesignUrl(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleRedesign();
+                                  }
+                                }}
+                                className="bg-white border-gray-300 text-gray-800 placeholder:text-gray-400"
+                                data-testid="input-redesign-url"
+                              />
+                            </div>
+                            <Button
+                              onClick={handleRedesign}
+                              disabled={redesignLoading}
+                              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
+                              data-testid="button-start-redesign"
+                            >
+                              {redesignLoading ? 'Fetching...' : 'Redesign'}
+                            </Button>
+                          </main>
+                        </PopoverContent>
+                      </Popover>
+                    </>
+                  ) : (
+                    <>
+                      {/* Existing project buttons */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        data-testid="button-add-context"
+                      >
+                        <AtSign className="w-3 h-3 mr-1" />
+                        <span className="hidden lg:inline">Context</span>
+                      </Button>
+                      
+                      {/* Model Selector */}
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        <SelectTrigger 
+                          className="h-7 w-auto min-w-[90px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-model"
+                        >
+                          <div className="flex items-center gap-1">
+                            <Zap className="w-3 h-3" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            DeepSeek V3
+                          </SelectItem>
+                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            glm-4.6
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Style Selector */}
+                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
+                        <SelectTrigger 
+                          className="h-7 w-auto min-w-[70px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-style"
+                        >
+                          <div className="flex items-center gap-1">
+                            <Paintbrush className="w-3 h-3" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
+                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Default
+                          </SelectItem>
+                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v1
+                          </SelectItem>
+                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            v2
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+                </div>
+                
+                {/* Send/Stop Button */}
+                <Button
+                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
+                  disabled={!prompt.trim() && !isGenerating && !redesignData}
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  variant={isGenerating ? "destructive" : "default"}
+                  data-testid="button-generate"
+                >
+                  {isGenerating ? (
+                    <>
+                      <X className="w-3 h-3 mr-1" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-3 h-3 mr-1" />
+                      Run
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Preview - 80% width */}
@@ -2653,337 +2933,6 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                 previewRef.current?.focus();
               }}
             />
-          </div>
-
-          {/* Prompt Bar - Bottom Left Corner (v3 Design) */}
-          <div className="absolute bottom-4 left-4 w-[calc(30%_-_2rem)] min-w-[400px] z-30">
-            <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
-              {/* Redesign URL Badge */}
-              {redesignData && (
-                <div className="px-4 pt-3">
-                  <div
-                    className={cn(
-                      "border border-emerald-500/50 bg-emerald-500/10 rounded-xl p-1.5 pr-3 max-w-max hover:brightness-110 transition-all duration-200 ease-in-out",
-                      isGenerating ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-                    )}
-                    onClick={() => {
-                      if (!isGenerating) {
-                        setRedesignData(null);
-                      }
-                    }}
-                    data-testid="badge-redesign-url"
-                  >
-                    <div className="flex items-center justify-start gap-2">
-                      <div className="rounded-lg bg-emerald-500/20 w-6 h-6 flex items-center justify-center">
-                        <Paintbrush className="text-emerald-300 w-3.5 h-3.5" />
-                      </div>
-                      <p className="text-sm font-semibold text-emerald-200">{redesignData.url}</p>
-                      <X className="text-emerald-300 w-4 h-4 hover:text-emerald-200 transition-colors" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Prompt Input with Dice Button */}
-              <div className="relative">
-                <Textarea
-                  placeholder={
-                    isGenerating
-                      ? "Jatevo Web Builder is working..."
-                      : redesignData
-                      ? "Ask Jatevo Web Builder anything about the redesign of your site..."
-                      : (project?.files?.length ?? 0) > 1
-                      ? "Ask Jatevo Web Builder for edits"
-                      : "Describe the website you want to generate..."
-                  }
-                  value={isGenerating ? "" : prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && (prompt.trim() || redesignData)) {
-                      e.preventDefault();
-                      if (!isGenerating) {
-                        handleGenerate();
-                      }
-                    }
-                  }}
-                  className={cn(
-                    "min-h-[100px] resize-none border-0 bg-transparent text-gray-100 placeholder:text-gray-500 text-sm px-4 pb-2 pr-12 focus-visible:ring-0 focus-visible:ring-offset-0",
-                    redesignData ? "pt-2" : "pt-4"
-                  )}
-                  disabled={isGenerating}
-                  data-testid="input-prompt"
-                />
-                {/* Dice Button for Random Prompt - only show for new projects */}
-                {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => randomPrompt()}
-                    className={`absolute top-3 right-3 h-8 w-8 p-0 text-gray-500 hover:text-gray-200 hover:bg-gray-800/50 rounded-md ${randomPromptLoading ? 'animate-spin' : ''}`}
-                    title="Get random prompt"
-                    disabled={isGenerating}
-                  >
-                    <Dices className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-              
-              {/* Menu Bar */}
-              <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-gray-800/50">
-                <div className="flex items-center gap-2">
-                  {/* Conditional buttons based on project state */}
-                  {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) ? (
-                    <>
-                      {/* NEW PROJECT BUTTONS */}
-                      {/* Enhance Toggle */}
-                      <div 
-                        className="flex items-center gap-2 h-8 px-3 text-xs text-gray-400 border-r border-gray-800/50 pr-3 mr-1"
-                        title={stylePreference !== 'default' ? `Enhancement disabled for ${stylePreference} style (includes its own optimizations)` : 'Enhance generated code with best practices'}
-                      >
-                        <Zap className={cn("w-3.5 h-3.5", enhancedSettings.isActive && "text-yellow-500", stylePreference !== 'default' && "opacity-50")} />
-                        <span className={stylePreference !== 'default' ? "opacity-50" : ""}>Enhance</span>
-                        <Switch
-                          checked={enhancedSettings.isActive}
-                          onCheckedChange={(checked) => setEnhancedSettings({ isActive: checked })}
-                          className="scale-75"
-                          disabled={stylePreference !== 'default'}
-                          data-testid="switch-enhance"
-                        />
-                      </div>
-                      
-                      {/* Model Selector */}
-                      <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger 
-                          className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-model"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            DeepSeek V3
-                          </SelectItem>
-                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            glm-4.6
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
-                        <SelectTrigger 
-                          className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-style"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Paintbrush className="w-3.5 h-3.5" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            Default
-                          </SelectItem>
-                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v1 (Experimental)
-                          </SelectItem>
-                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v2 (Mobile Apps)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Redesign Button with Popover */}
-                      <Popover open={redesignOpen} onOpenChange={setRedesignOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50",
-                              redesignOpen && "bg-gray-800/50 text-gray-200"
-                            )}
-                            disabled={isGenerating || redesignLoading}
-                            data-testid="button-redesign"
-                          >
-                            <Paintbrush className="w-3.5 h-3.5 mr-1.5" />
-                            Redesign
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          align="start"
-                          className="w-80 rounded-2xl p-0 bg-white border-gray-200 text-center overflow-hidden"
-                        >
-                          <header className="bg-gray-50 p-6 border-b border-gray-200">
-                            <div className="flex items-center justify-center -space-x-4 mb-3">
-                              <div className="w-9 h-9 rounded-full bg-pink-200 shadow-sm flex items-center justify-center text-xl opacity-50">
-                                🎨
-                              </div>
-                              <div className="w-11 h-11 rounded-full bg-amber-200 shadow-lg flex items-center justify-center text-2xl z-10">
-                                🥳
-                              </div>
-                              <div className="w-9 h-9 rounded-full bg-sky-200 shadow-sm flex items-center justify-center text-xl opacity-50">
-                                💎
-                              </div>
-                            </div>
-                            <p className="text-xl font-semibold text-gray-900">
-                              Redesign your Site!
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1.5">
-                              Try our new Redesign feature to give your site a fresh look.
-                            </p>
-                          </header>
-                          <main className="space-y-4 p-6">
-                            <div>
-                              <p className="text-sm text-gray-700 mb-2">
-                                Enter your website URL to get started:
-                              </p>
-                              <Input
-                                type="text"
-                                placeholder="https://example.com"
-                                value={redesignUrl}
-                                onChange={(e) => setRedesignUrl(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleRedesign();
-                                  }
-                                }}
-                                className="bg-white border-gray-300 text-gray-800 placeholder:text-gray-400"
-                                data-testid="input-redesign-url"
-                              />
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-700 mb-2">
-                                Then, let's redesign it!
-                              </p>
-                              <Button
-                                onClick={handleRedesign}
-                                disabled={redesignLoading}
-                                className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white"
-                                data-testid="button-start-redesign"
-                              >
-                                {redesignLoading ? (
-                                  <>Fetching your site...</>
-                                ) : (
-                                  <>
-                                    Redesign <Paintbrush className="w-4 h-4 ml-1" />
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </main>
-                        </PopoverContent>
-                      </Popover>
-                    </>
-                  ) : (
-                    <>
-                      {/* EXISTING PROJECT BUTTONS (after generation) */}
-                      {/* Add Context Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        data-testid="button-add-context"
-                      >
-                        <AtSign className="w-3.5 h-3.5 mr-1.5" />
-                        Add Context
-                      </Button>
-                      
-                      {/* Model Selector */}
-                      <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger 
-                          className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-model"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Zap className="w-3.5 h-3.5" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="deepseek-v3-0324" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            DeepSeek V3
-                          </SelectItem>
-                          <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            glm-4.6
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
-                        <SelectTrigger 
-                          className="h-8 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-style"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <Paintbrush className="w-3.5 h-3.5" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            Default
-                          </SelectItem>
-                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v1 (Experimental)
-                          </SelectItem>
-                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v2 (Mobile Apps)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      {/* Attach Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        data-testid="button-attach"
-                      >
-                        <Paperclip className="w-3.5 h-3.5 mr-1.5" />
-                        Attach
-                      </Button>
-                      
-                      {/* Edit Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        data-testid="button-edit"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-                        Edit
-                      </Button>
-                    </>
-                  )}
-                </div>
-                
-                {/* Send/Stop Button */}
-                <Button
-                  onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                  disabled={!prompt.trim() && !isGenerating}
-                  size="sm"
-                  className="h-8 px-4 text-xs"
-                  variant={isGenerating ? "destructive" : "default"}
-                  data-testid="button-generate"
-                >
-                  {isGenerating ? (
-                    <>
-                      <X className="w-3.5 h-3.5 mr-1.5" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <ChevronUp className="w-3.5 h-3.5 mr-1.5" />
-                      Run
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>
