@@ -1573,25 +1573,18 @@ const App = () => {
 
     setIsGenerating(true);
     
-    // Build the prompt based on selected element context
-    let basePrompt = prompt.trim();
-    
-    // If an element is selected, prepend the element context to the prompt
+    // Capture selectedElementHtml before clearing
+    let selectedElementHtml: string | null = null;
     if (selectedElement) {
-      const elementHtml = selectedElement.outerHTML;
-      const elementTag = selectedElement.tagName.toLowerCase();
-      basePrompt = `Please edit the following ${elementTag} element in my website:
-
-<selected_element>
-${elementHtml}
-</selected_element>
-
-User request: ${basePrompt || 'Improve this element'}`;
-      
-      // Clear the selected element after including it in the prompt
+      selectedElementHtml = selectedElement.outerHTML;
+      // Clear the selected element styling
       selectedElement.classList.remove('jatevo-selected-element');
       setSelectedElement(null);
+      setIsEditableModeEnabled(false);
     }
+    
+    // Build the prompt based on context
+    let basePrompt = prompt.trim();
     
     // Build the prompt based on redesign context
     if (redesignData) {
@@ -1652,7 +1645,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
         useFollowUpPrompt: isFollowUp,
         systemPrompt: isFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : undefined,
         // Only include style preference for initial generation, not for follow-up edits
-        ...(isFollowUp ? {} : { stylePreference: stylePreference })
+        ...(isFollowUp ? {} : { stylePreference: stylePreference }),
+        // Include selected element HTML for targeted edits (v3 style)
+        ...(selectedElementHtml ? { selectedElementHtml } : {})
       };
       
       if (isFollowUp && project) {

@@ -1105,6 +1105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let prompt: string;
     let existingFilesParam: string | undefined;
     let previousPromptsParam: string | undefined;
+    let selectedElementHtml: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
@@ -1113,6 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       existingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       previousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
+      selectedElementHtml = data.selectedElementHtml || undefined; // For targeted element edits (v3 style)
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1228,13 +1230,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const existingFiles = typeof existingFilesParam === 'string' ? JSON.parse(existingFilesParam) : existingFilesParam;
           const previousPrompts = typeof previousPromptsParam === 'string' ? JSON.parse(previousPromptsParam) : previousPromptsParam;
           
-          console.log(`Follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
+          console.log(`Follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts${selectedElementHtml ? ' (with selected element)' : ''}`);
           
           userContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n`;
           for (const file of existingFiles) {
             userContent += `\n${file.name}:\n${file.content}\n`;
           }
           userContent += `\n\nUser request: ${prompt}`;
+          
+          // Add targeted element instruction if element is selected (v3 style)
+          if (selectedElementHtml) {
+            userContent += `\n\nIMPORTANT: You MUST update ONLY the following element, NOTHING ELSE. Focus your changes specifically on this element:\n\n\`\`\`html\n${selectedElementHtml}\n\`\`\``;
+          }
         } catch (e) {
           console.error('Error parsing follow-up context (falling back to initial):', e);
         }
@@ -1517,6 +1524,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
     let prompt: string;
     let cerebrasExistingFilesParam: string | undefined;
     let cerebrasPreviousPromptsParam: string | undefined;
+    let cerebrasSelectedElementHtml: string | undefined;
     
     let stylePreference = 'default'; // Extract this BEFORE deleting session
     if (sessionData.has(sessionId)) {
@@ -1525,6 +1533,7 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
       cerebrasExistingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
       cerebrasPreviousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
       stylePreference = data.stylePreference || 'default'; // Extract style preference here!
+      cerebrasSelectedElementHtml = data.selectedElementHtml || undefined; // For targeted element edits (v3 style)
       // Clean up session data after reading
       sessionData.delete(sessionId);
     } else {
@@ -1639,13 +1648,18 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
           const existingFiles = typeof cerebrasExistingFilesParam === 'string' ? JSON.parse(cerebrasExistingFilesParam) : cerebrasExistingFilesParam;
           const previousPrompts = typeof cerebrasPreviousPromptsParam === 'string' ? JSON.parse(cerebrasPreviousPromptsParam) : cerebrasPreviousPromptsParam;
           
-          console.log(`Cerebras follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts`);
+          console.log(`Cerebras follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts${cerebrasSelectedElementHtml ? ' (with selected element)' : ''}`);
           
           cerebrasUserContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n`;
           for (const file of existingFiles) {
             cerebrasUserContent += `\n${file.name}:\n${file.content}\n`;
           }
           cerebrasUserContent += `\n\nUser request: ${prompt}`;
+          
+          // Add targeted element instruction if element is selected (v3 style)
+          if (cerebrasSelectedElementHtml) {
+            cerebrasUserContent += `\n\nIMPORTANT: You MUST update ONLY the following element, NOTHING ELSE. Focus your changes specifically on this element:\n\n\`\`\`html\n${cerebrasSelectedElementHtml}\n\`\`\``;
+          }
         } catch (e) {
           console.error('Error parsing Cerebras follow-up context (falling back to initial):', e);
         }
