@@ -238,17 +238,24 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
   }, []);
 
   const saveProject = useCallback(async (sessionId?: string, projectName?: string, explicitFiles?: ProjectFile[], promptText?: string) => {
-    if (!project) return null;
+    // Use projectRef for current state to avoid stale closure issues
+    const currentProject = projectRef.current;
+    
+    // Allow saving even if project is null, as long as we have explicit files
+    if (!currentProject && !explicitFiles) {
+      console.warn('Cannot save: no project and no explicit files provided');
+      return null;
+    }
     
     try {
       const token = localStorage.getItem('auth_token');
-      const nameToUse = projectName || project.name || 'Untitled Project';
-      const filesToSave = explicitFiles || project.files; // Use explicit files if provided
-      const promptToUse = promptText || project.prompts[0] || nameToUse; // Use provided prompt or fallback
+      const nameToUse = projectName || currentProject?.name || 'Untitled Project';
+      const filesToSave = explicitFiles || currentProject?.files || []; // Use explicit files if provided
+      const promptToUse = promptText || currentProject?.prompts?.[0] || nameToUse; // Use provided prompt or fallback
       
-      if (project.id) {
+      if (currentProject?.id) {
         // Update existing project
-        const response = await fetch(`/api/projects/${project.id}`, {
+        const response = await fetch(`/api/projects/${currentProject.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -256,19 +263,19 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           },
           body: JSON.stringify({
             name: nameToUse,
-            sessionId: sessionId || project.sessionId,
+            sessionId: sessionId || currentProject.sessionId,
             prompt: promptToUse,
             html: filesToSave.find(f => f.name === 'index.html')?.content || '',
             css: filesToSave.find(f => f.name === 'style.css' || f.name === 'styles.css')?.content || '',
             files: filesToSave,
-            prompts: project.prompts
+            prompts: currentProject.prompts
           })
         });
 
         if (!response.ok) {
           const errorData = await response.text();
           console.error('Update project failed:', response.status, errorData);
-          console.error('Attempted to update project with ID:', project.id);
+          console.error('Attempted to update project with ID:', currentProject.id);
           throw new Error(`Failed to update project: ${response.status} - ${errorData}`);
         }
 
@@ -291,7 +298,7 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
           html: filesToSave.find(f => f.name === 'index.html')?.content || '',
           css: filesToSave.find(f => f.name === 'style.css' || f.name === 'styles.css')?.content || '',
           files: filesToSave,
-          prompts: promptText ? [promptText, ...project.prompts] : project.prompts
+          prompts: promptText ? [promptText, ...(currentProject?.prompts || [])] : (currentProject?.prompts || [])
         };
         
         console.log('Creating new project with payload:', { 
@@ -319,22 +326,32 @@ export const ProjectProvider = ({ children }: ProjectProviderProps) => {
         const savedProject = await response.json();
         console.log('Project created successfully:', savedProject.id, savedProject.slug);
         
-        setProjectState(prev => prev ? {
-          ...prev,
-          id: savedProject.id?.toString(),
-          sessionId: savedProject.sessionId,
-          name: nameToUse,
-          isDirty: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } : null);
+        setProjectState(prev => {
+          // Create new project state with saved ID
+          const baseProject = prev || {
+            name: nameToUse,
+            files: filesToSave,
+            activeFile: filesToSave[0]?.name,
+            openFiles: filesToSave[0]?.name ? [filesToSave[0].name] : [],
+            prompts: promptText ? [promptText] : []
+          };
+          return {
+            ...baseProject,
+            id: savedProject.id?.toString(),
+            sessionId: savedProject.sessionId,
+            name: nameToUse,
+            isDirty: false,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+        });
         return savedProject;
       }
     } catch (error) {
       console.error('Error saving project:', error);
       throw error;
     }
-  }, [project]);
+  }, []);
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
