@@ -2,203 +2,39 @@
 
 ## Overview
 
-Jatevo Web Builder is an advanced full-stack AI-powered website generator that leverages multiple AI technologies to create dynamic, context-aware websites. The application enables users to generate professional-quality websites using AI models like DeepSeek-V3-0324 and OpenAI, with features including real-time streaming generation, template customization, and one-click deployment.
-
-## System Architecture
-
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **Styling**: TailwindCSS with Shadcn/UI components
-- **Routing**: Wouter for client-side navigation
-- **State Management**: React Query for server state management
-- **Build Tool**: Vite for development and production builds
-
-### Backend Architecture
-- **Runtime**: Node.js with Express.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT-based authentication with bcrypt for password hashing
-- **API Integration**: Multiple AI providers (Jatevo, OpenAI, SambaNova)
-- **File Storage**: Local file system with planned cloud storage support
-
-### Database Schema
-- **Users**: Email-based authentication, token usage tracking, generation count
-- **Projects**: User-owned landing page projects with metadata
-- **Templates**: Predefined templates for different categories
-- **Deployments**: Published landing pages with slug-based routing
-
-## Key Components
-
-### AI Integration Layer
-- **Primary Provider**: Jatevo (DeepSeek-V3-0324) with hardcoded API key for production reliability
-- **Fallback Provider**: OpenAI GPT-4 for premium features
-- **SambaNova**: Additional AI model support
-- **Streaming**: Real-time AI response streaming with typewriter effect
-
-### Code Editor
-- **Enhanced Editor**: Monaco-based code editor with syntax highlighting
-- **Real-time Preview**: Live HTML/CSS preview with responsive design testing
-- **Minimap**: Code navigation with scroll synchronization
-- **Export Options**: HTML/CSS download and deployment capabilities
-
-### Template System
-- **Categories**: Education, Portfolio, Finance, Marketplace, General
-- **Customization**: Color schemes, fonts, layouts
-- **UMKM Focus**: Indonesian small/medium enterprise templates
-
-### Authentication & Authorization
-- **JWT Tokens**: Secure token-based authentication
-- **Email-based**: Primary identifier is email address
-- **Protected Routes**: Frontend route protection with context-based state management
-- **Session Management**: Persistent login with localStorage
-
-## Data Flow
-
-1. **User Authentication**: Email/password → JWT token → Protected routes
-2. **Project Creation**: User input → AI processing → HTML/CSS generation
-3. **AI Generation**: Prompt → AI API → Streaming response → Real-time editor updates
-4. **Template Selection**: Category → Template → Settings → Customized output
-5. **Deployment**: Project → Validation → File generation → Public URL
-
-## External Dependencies
-
-### Core Dependencies
-- **Database**: PostgreSQL (Neon serverless recommended)
-- **AI Services**: Jatevo API, OpenAI API, SambaNova API
-- **Authentication**: JWT for token management
-- **UI Components**: Radix UI primitives via Shadcn/UI
-
-### Development Dependencies
-- **TypeScript**: Type safety across full stack
-- **Drizzle Kit**: Database migrations and schema management
-- **ESBuild**: Server-side bundling for production
-- **Tailwind CSS**: Utility-first styling framework
-
-## Deployment Strategy
-
-### Development Environment
-- **Local Development**: Vite dev server + Express API server
-- **Database**: PostgreSQL with Drizzle ORM migrations
-- **Environment Variables**: API keys, database URLs, JWT secrets
-
-### Production Deployment
-- **Single Container**: Unified build process combining frontend and backend
-- **Multi-Service**: Optional separation into backend API, frontend editor, and static site services
-- **Cloud Run**: Google Cloud Run deployment with Docker support
-- **Database**: Production PostgreSQL with connection pooling
-
-### Container Configuration
-- **Base Image**: Node.js 18 Alpine
-- **Build Process**: Vite frontend build + ESBuild backend bundle
-- **Port**: 8080 (configurable)
-- **Health Checks**: Basic HTTP endpoint monitoring
-
-## Changelog
-
-- July 04, 2025. Initial setup
-- July 04, 2025. Cloned deepsite-v2 from Hugging Face (https://huggingface.co/spaces/enzostvs/deepsite) into source/deepsite-v2 folder for future integration with the editor
-- September 07, 2025. Removed conversation/follow-up functionality:
-  - Removed ConversationPanel component and conversation history features
-  - Simplified API to focus on single-prompt streaming generation
-  - Restored clean, focused editor interface for optimal streaming UX
-  - Editor now provides pure streaming generation experience without conversation complexity
-- November 15, 2025. Transformed to full IDE experience with multi-file support:
-  - Added multi-file project support (HTML, CSS, JavaScript)
-  - Implemented file browser sidebar and tab navigation for open files
-  - Created ProjectContext for centralized state management
-  - Added project management API endpoints (save, load, list, delete)
-  - Implemented AI response parsing for multi-file generation using v3 markers (<<<<<<< NEW_FILE_START)
-  - Added follow-up prompting to modify existing projects
-  - Created /projects page for managing saved projects
-  - Added project export as ZIP functionality
-  - Maintained backward compatibility with legacy single-file editor at /editor
-  - New IDE interface available at /ide route
-  - Updated AI prompts to enforce multi-file generation (minimum 3 files: index.html, style.css, script.js)
-  - Added explicit multi-file example in system prompt to guide AI behavior
-  - Integrated v3 prompt architecture with Web Components support in components/ folder
-- November 19, 2025. Enhanced React support with universal compatibility:
-  - Implemented automatic library detection for React projects (Material-UI, Axios, Framer Motion, Recharts, etc.)
-  - Added TypeScript support with automatic type stripping for .ts and .tsx files
-  - Enhanced import/export processing for ES6 modules, CommonJS, and various export patterns
-  - Added JSX Fragment support and improved component detection
-  - Updated deployment bundler to properly handle React projects
-  - Deployment now generates React-compatible HTML with all necessary CDN links
-  - React preview works universally for ANY React code pasted (Create React App, Next.js, Vite, etc.)
-  - Both IDE preview and deployment now handle React projects correctly
-- November 20, 2025. Fixed stuck loading screens in preview:
-  - Added automatic loading screen detection and removal after 2-second timeout
-  - Preview now detects full-screen loading overlays (fixed/absolute position, high z-index)
-  - Automatically hides stuck loading screens by adding hidden class, opacity 0, and display none
-  - Prevents AI-generated websites with loading animations from getting stuck in preview
-  - Loading screens work normally but have a failsafe to ensure they don't block the preview permanently
-- November 20, 2025. Fixed edit/SEARCH-REPLACE failures that caused broken websites:
-  - Implemented 3-tier matching strategy for SEARCH/REPLACE blocks: exact match → whitespace normalization → flexible regex
-  - Whitespace normalization intelligently finds matching code sections even with different indentation
-  - Failed edits now skip gracefully with warnings instead of breaking the website
-  - Edit process no longer freezes or makes pages unresponsive
-  - Improved error messages show search pattern and file content for debugging
-  - AI-generated edits are now much more reliable even with imperfect whitespace matching
-- November 20, 2025. Fixed false positive React detection in HTML/CSS/JS projects:
-  - Replaced overly broad React detection patterns that flagged Web Components as React
-  - Removed className= and onClick= from detection (these are valid in regular HTML/Web Components)
-  - Now requires actual React imports (from 'react') OR explicit React API calls (ReactDOM, React.createElement)
-  - Web Components using custom elements, className, onClick no longer trigger "React code detected" warnings
-  - Strict detection ensures only genuine React/JSX code is processed as React
-  - Applied consistent detection logic across process-ai-response.ts, bundle-for-deployment.ts, and editor-ide.tsx
-- November 20, 2025. Fixed React preview not rendering pasted code with export default:
-  - Fixed critical bug where `export default App` wasn't exposing components globally
-  - Preview auto-detection now properly finds components with ES6 module exports
-  - Changed export handling from commenting out to `window.ComponentName = ComponentName`
-  - React code pasted into .jsx files now renders correctly in preview
-  - Fixed standalone exports like `export default App;` to expose component for rendering
-- November 20, 2025. **FINAL FIX: Universal React Preview Compatibility** (Architect-Approved):
-  - Completely rewrote React component auto-detection to work with ANY React code
-  - Comprehensive export tracking captures ALL patterns: default exports, named exports, async exports, barrel re-exports
-  - Supported patterns: `export default function/class/const`, `export const/function/class`, `export async function`, `export { default as App }`
-  - Window exposure mechanism: after user code runs, tracked components exposed with try/catch blocks
-  - Handles both function declarations (globally scoped) and const/arrow components (block-scoped)
-  - Auto-detection scans entire window object with priority-based search (exported names → common names → all candidates)
-  - Component validation: checks if function returns JSX before selecting
-  - Added comprehensive console logging with [React Preview] prefix for debugging
-  - **Result**: Preview works universally with SleepArchitect, LuminaWellness, ANY component name from CRA/Next.js/Vite
-  - No whitelisting required - truly universal React code support for all real-world projects
-- December 02, 2025. Fixed interactive preview for games and apps:
-  - Enhanced iframe sandbox with `allow-pointer-lock`, `allow-popups`, `allow-popups-to-escape-sandbox` for full interactivity
-  - Added `tabIndex={0}` and `onClick` focus handler to enable keyboard events for games
-  - Added scroll prevention: arrow keys, WASD, and space bar no longer scroll the page when preview is focused
-  - Added `onWheel` handler to prevent scroll wheel propagation from preview
-  - Added `pointer-events-none` to loading overlay so it doesn't block interactions after generation
-  - Games like Snake now respond to keyboard controls properly
-  - **Result**: Generated interactive apps/games are now fully clickable and controllable
-- December 02, 2025. Added Custom Domain Support (Premium Feature):
-  - Created `custom_domains` database table with fields: domain, deploymentSlug, userId, verificationToken, verified, sslStatus
-  - Built complete custom domain infrastructure with storage layer (`custom-domains-storage.ts`)
-  - Added API endpoints: POST /api/domains, GET /api/domains, POST /api/domains/:id/mark-active, DELETE /api/domains/:id
-  - **Cloudflare Workers Approach**: Instead of DNS-based verification, users deploy a Cloudflare Worker that proxies requests
-  - Worker script generated server-side using JATEVO_PUBLIC_URL environment variable for correct target URL
-  - Worker proxies requests from custom domain to `/sites/{slug}` path, avoiding proxy loops
-  - Created `CustomDomainManager` UI component with step-by-step Cloudflare Workers deployment instructions
-  - "Mark Active" button for users to confirm Worker deployment (no automatic DNS verification)
-  - GET /api/domains returns `jatevoHost` so existing domains can generate correct Worker scripts
-  - Deploy dialog sized to 700px width to accommodate custom domain setup content
-  - **Result**: Users can connect their own domains via Cloudflare Workers proxy (e.g., batik.com → Worker → Jatevo)
-- December 04, 2025. Added Website Redesign Feature using Jina AI:
-  - Created `/api/re-design` endpoint using Jina AI Reader API (`r.jina.ai`) to fetch website content
-  - Uses JINA_API_KEY secret for authenticated API access with better rate limits
-  - RedesignButton component with popover UI for entering website URLs
-  - Fetches markdown representation of any website and uses it as context for AI redesign
-  - Integrated with ChatBar to trigger AI generation with redesign prompt
-  - Includes timeout handling (30 seconds) and proper error messages
-  - **Result**: Users can now paste a website URL and get a completely redesigned modern version generated by AI
-- December 04, 2025. **Projects Page Performance Optimization**:
-  - Created `/api/projects/summary` endpoint that returns only lightweight fields (id, name, thumbnail, dates, slug, publishPath)
-  - Excludes large fields (html, css, files, prompts) from listing queries - reduces payload from multi-MB to minimal data
-  - Added pagination support with configurable limit/offset (default 12 projects per page)
-  - Added Previous/Next pagination controls to the projects page UI
-  - Created database indexes: `projects_user_id_idx`, `deployments_user_id_idx`, `deployments_project_id_idx`
-  - Updated cache invalidation to use predicate-based queries for proper pagination cache handling
-  - Export functionality now fetches full project data separately only when needed
-  - **Result**: Projects page loads significantly faster, especially for users with many projects
+Jatevo Web Builder is an advanced full-stack AI-powered website generator that leverages multiple AI technologies to create dynamic, context-aware websites. It enables users to generate professional-quality websites using AI models like DeepSeek-V3-0324 and OpenAI, featuring real-time streaming generation, template customization, and one-click deployment. The project aims to provide an accessible and powerful tool for individuals and UMKM (Indonesian small/medium enterprises) to establish an online presence efficiently.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### UI/UX Decisions
+- **Styling**: TailwindCSS with Shadcn/UI components for a modern and responsive design.
+- **Code Editor**: Monaco-based editor with syntax highlighting, minimap, and real-time preview.
+- **Template System**: Categorized templates (Education, Portfolio, Finance, Marketplace, General) with customization options for colors, fonts, and layouts, specifically tailored for UMKM.
+
+### Technical Implementations
+- **Frontend**: React 18 with TypeScript, Wouter for routing, React Query for state management, and Vite for building.
+- **Backend**: Node.js with Express.js.
+- **AI Integration**: Primary AI provider is Jatevo (DeepSeek-V3-0324) with OpenAI GPT-4 as a fallback and SambaNova for additional model support. Features real-time AI response streaming.
+- **Authentication**: JWT-based authentication with bcrypt for password hashing and email-based user identification.
+- **Multi-file IDE**: Supports multi-file projects (HTML, CSS, JS, JSX, TS, TSX) with a file browser, tab navigation, and project management capabilities (save, load, list, delete, export as ZIP).
+- **React Support**: Universal React preview compatibility, automatically detecting and rendering various React code patterns, including different export types and component definitions, with automatic type stripping for TypeScript.
+- **Website Redesign**: Integrates with Jina AI Reader API to fetch and redesign existing websites based on user-provided URLs.
+- **Custom Domain Support**: Allows users to connect custom domains via Cloudflare Workers for proxying requests to their deployed sites.
+- **Interactive Preview**: Enhanced iframe sandboxing and event handling for fully interactive previews of games and applications, preventing stuck loading screens.
+
+### System Design Choices
+- **Database**: PostgreSQL with Drizzle ORM for managing users, projects, templates, and deployments. Optimized for performance with lightweight project summaries and pagination.
+- **Data Flow**: Secure user authentication leads to AI-powered project generation, template selection, and eventual deployment to a public URL.
+- **Deployment Strategy**: Designed for single-container deployment (Node.js 18 Alpine base image) to platforms like Google Cloud Run, combining frontend and backend builds.
+
+## External Dependencies
+
+- **Database**: PostgreSQL (e.g., Neon serverless)
+- **AI Services**: Jatevo API, OpenAI API, SambaNova API, Jina AI Reader API
+- **Authentication**: JWT libraries
+- **UI Components**: Radix UI primitives (via Shadcn/UI)
+- **Development Tools**: TypeScript, Drizzle Kit, ESBuild, Tailwind CSS

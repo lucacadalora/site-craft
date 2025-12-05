@@ -1427,37 +1427,93 @@ const App = () => {
       }
     });
     
-    // CRITICAL FIX: Auto-hide loading screens that get stuck
+    // CRITICAL FIX: Aggressive auto-hide for ALL types of loading screens, overlays, and popups
     // This ensures loading screens always disappear even if JavaScript has errors
-    setTimeout(() => {
-      const allLoadingElements = document.querySelectorAll(
-        '.loading-screen, .loader-container, .splash-screen, .preloader, ' +
-        '[id*="loading"], [id*="loader"], [id*="splash"], [id*="preloader"], ' +
-        '[class*="loading-"], [class*="loader-"], [class*="splash-"], [class*="preloader-"]'
-      );
+    function hideStuckOverlays() {
+      // Extended selector for loading elements with many patterns
+      const loadingSelectors = [
+        '.loading-screen', '.loader-container', '.splash-screen', '.preloader',
+        '.loading-overlay', '.page-loader', '.site-loader', '.content-loader',
+        '[id*="loading"]', '[id*="loader"]', '[id*="splash"]', '[id*="preloader"]',
+        '[class*="loading"]', '[class*="loader"]', '[class*="splash"]', '[class*="preloader"]',
+        '[class*="overlay"]', '[class*="popup"]', '[class*="modal"]', '[class*="Popup"]', '[class*="Modal"]'
+      ].join(', ');
+      
+      const allLoadingElements = document.querySelectorAll(loadingSelectors);
       
       allLoadingElements.forEach(element => {
-        // Check if it's actually blocking the page (covers significant area)
+        const style = window.getComputedStyle(element);
         const rect = element.getBoundingClientRect();
-        const isFullScreen = (rect.width > window.innerWidth * 0.8 && rect.height > window.innerHeight * 0.8);
-        const hasFixedOrAbsolutePosition = ['fixed', 'absolute'].includes(window.getComputedStyle(element).position);
-        const hasHighZIndex = parseInt(window.getComputedStyle(element).zIndex || '0') > 100;
         
-        // If it looks like a full-screen loading overlay, hide it
-        if ((isFullScreen && hasFixedOrAbsolutePosition) || (hasHighZIndex && hasFixedOrAbsolutePosition)) {
-          console.log('Auto-hiding stuck loading screen:', element);
-          element.classList.add('hidden');
+        // Check various conditions that indicate a blocking overlay
+        const isVisible = style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.opacity) > 0;
+        const isPositioned = ['fixed', 'absolute'].includes(style.position);
+        const coversViewport = (rect.width > window.innerWidth * 0.5 && rect.height > window.innerHeight * 0.5);
+        const hasHighZIndex = parseInt(style.zIndex || '0') > 10;
+        const isCentered = (rect.left < window.innerWidth * 0.3 && rect.right > window.innerWidth * 0.7);
+        
+        // Check if element or its children contain loading-related text
+        const textContent = element.textContent?.toLowerCase() || '';
+        const hasLoadingText = ['loading', 'memuat', 'wait', 'please wait', 'mohon tunggu', 'sedang', 'proses'].some(t => textContent.includes(t));
+        
+        // Check for animation (common in loading spinners)
+        const hasAnimation = style.animation !== 'none' || style.animationName !== 'none';
+        const hasAnimatedChild = element.querySelector('[class*="spin"], [class*="pulse"], [class*="bounce"], [class*="animate"]');
+        
+        // Hide if it looks like a loading overlay
+        if (isVisible && isPositioned && (
+          (coversViewport && hasHighZIndex) || 
+          (hasLoadingText && (isPositioned || hasHighZIndex)) ||
+          (hasAnimation && coversViewport) ||
+          (hasAnimatedChild && coversViewport)
+        )) {
+          console.log('[Preview] Auto-hiding stuck overlay:', element.className || element.id || 'unnamed');
+          element.style.transition = 'opacity 0.3s ease';
           element.style.opacity = '0';
-          element.style.visibility = 'hidden';
           element.style.pointerEvents = 'none';
-          
-          // Also completely remove it after fade out
           setTimeout(() => {
             element.style.display = 'none';
-          }, 500);
+            element.style.visibility = 'hidden';
+          }, 300);
         }
       });
-    }, 2000); // Give the original code 2 seconds to hide it normally, then force hide
+      
+      // Also scan for elements by their visual appearance (centered, covering viewport)
+      document.querySelectorAll('*').forEach(element => {
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        
+        // Skip if already hidden or is body/html
+        if (element === document.body || element === document.documentElement) return;
+        if (style.display === 'none' || style.visibility === 'hidden') return;
+        
+        const isFixed = style.position === 'fixed';
+        const coversViewport = (rect.width >= window.innerWidth && rect.height >= window.innerHeight);
+        const hasHighZIndex = parseInt(style.zIndex || '0') >= 50;
+        const hasDarkBackground = style.backgroundColor.includes('rgba') && parseFloat(style.backgroundColor.split(',')[3] || '1') > 0.3;
+        
+        // Full-screen fixed overlay with dark background = likely a loading screen or modal backdrop
+        if (isFixed && coversViewport && (hasHighZIndex || hasDarkBackground)) {
+          const textContent = element.textContent?.toLowerCase() || '';
+          const isMainContent = textContent.length > 1000; // Likely actual content, not a loader
+          
+          if (!isMainContent) {
+            console.log('[Preview] Auto-hiding full-screen overlay:', element.className || 'unnamed');
+            element.style.transition = 'opacity 0.3s ease';
+            element.style.opacity = '0';
+            element.style.pointerEvents = 'none';
+            setTimeout(() => {
+              element.style.display = 'none';
+            }, 300);
+          }
+        }
+      });
+    }
+    
+    // Run at multiple intervals to catch late-appearing loaders
+    setTimeout(hideStuckOverlays, 500);  // Quick first check
+    setTimeout(hideStuckOverlays, 1500); // Second check
+    setTimeout(hideStuckOverlays, 3000); // Final aggressive check
     
     // Fix any buttons or clickable elements that might not be working
     document.querySelectorAll('[onclick]').forEach(element => {
