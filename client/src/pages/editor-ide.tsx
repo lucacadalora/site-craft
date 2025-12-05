@@ -2880,9 +2880,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
         </>
 
         {/* Editor and Preview Container */}
-        <div className="flex-1 flex relative">
-          {/* Code Editor - 30% width */}
-          <div className="w-[30%] min-w-[400px] bg-[#1e1e1e] flex flex-col border-r border-gray-800">
+        <div className="flex-1 flex relative overflow-hidden">
+          {/* Code Editor - 30% width with explicit constraints */}
+          <div className="w-[30%] min-w-[400px] max-w-[50%] bg-[#1e1e1e] flex flex-col border-r border-gray-800 flex-shrink-0">
             {/* Editor Header with Files and History Buttons */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
               <div className="flex items-center gap-2">
