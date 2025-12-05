@@ -45,7 +45,10 @@ import {
   Edit3,
   ChevronUp,
   Dices,
-  Paintbrush
+  Paintbrush,
+  Crosshair,
+  Code,
+  XCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -112,6 +115,10 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   const [redesignUrl, setRedesignUrl] = useState('');
   const [redesignLoading, setRedesignLoading] = useState(false);
   const [redesignOpen, setRedesignOpen] = useState(false);
+  
+  // Edit mode state - allows users to click elements in preview to target them for AI edits
+  const [isEditableModeEnabled, setIsEditableModeEnabled] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
   const [redesignData, setRedesignData] = useState<{ markdown: string; url: string } | null>(() => {
     const storedRedesignData = sessionStorage.getItem('redesignData');
     if (storedRedesignData) {
@@ -192,6 +199,77 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   // Refs
   const previewRef = useRef<HTMLIFrameElement>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
+  const hoveredElementRef = useRef<HTMLElement | null>(null);
+
+  // Handle element selection in edit mode
+  useEffect(() => {
+    if (!previewRef.current?.contentDocument) return;
+    
+    const iframeDocument = previewRef.current.contentDocument;
+    
+    const handleMouseOver = (event: MouseEvent) => {
+      if (!isEditableModeEnabled) return;
+      
+      const targetElement = event.target as HTMLElement;
+      if (targetElement === iframeDocument.body || targetElement === iframeDocument.documentElement) return;
+      
+      // Remove previous hover styling
+      if (hoveredElementRef.current && hoveredElementRef.current !== targetElement) {
+        hoveredElementRef.current.classList.remove('jatevo-hovered-element');
+      }
+      
+      // Add hover styling to new element
+      targetElement.classList.add('jatevo-hovered-element');
+      hoveredElementRef.current = targetElement;
+    };
+    
+    const handleMouseOut = (event: MouseEvent) => {
+      if (!isEditableModeEnabled) return;
+      
+      const targetElement = event.target as HTMLElement;
+      targetElement.classList.remove('jatevo-hovered-element');
+    };
+    
+    const handleClick = (event: MouseEvent) => {
+      if (!isEditableModeEnabled) return;
+      
+      event.preventDefault();
+      event.stopPropagation();
+      
+      const targetElement = event.target as HTMLElement;
+      if (targetElement === iframeDocument.body || targetElement === iframeDocument.documentElement) return;
+      
+      // Remove hover class and add selected class
+      targetElement.classList.remove('jatevo-hovered-element');
+      
+      // Remove selected class from previously selected element
+      if (selectedElement) {
+        selectedElement.classList.remove('jatevo-selected-element');
+      }
+      
+      targetElement.classList.add('jatevo-selected-element');
+      setSelectedElement(targetElement);
+      setIsEditableModeEnabled(false);
+    };
+    
+    if (isEditableModeEnabled) {
+      iframeDocument.addEventListener('mouseover', handleMouseOver);
+      iframeDocument.addEventListener('mouseout', handleMouseOut);
+      iframeDocument.addEventListener('click', handleClick, true);
+    }
+    
+    return () => {
+      iframeDocument.removeEventListener('mouseover', handleMouseOver);
+      iframeDocument.removeEventListener('mouseout', handleMouseOut);
+      iframeDocument.removeEventListener('click', handleClick, true);
+      
+      // Clean up hover styling
+      if (hoveredElementRef.current) {
+        hoveredElementRef.current.classList.remove('jatevo-hovered-element');
+        hoveredElementRef.current = null;
+      }
+    };
+  }, [isEditableModeEnabled, previewRef.current?.contentDocument, selectedElement]);
 
   // Load project if sessionId is provided
   useEffect(() => {
@@ -1483,7 +1561,7 @@ const App = () => {
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim() && !redesignData) {
+    if (!prompt.trim() && !redesignData && !selectedElement) {
       toast({
         title: "Error",
         description: "Please enter a prompt",
@@ -1494,8 +1572,27 @@ const App = () => {
 
     setIsGenerating(true);
     
-    // Build the prompt based on redesign context
+    // Build the prompt based on selected element context
     let basePrompt = prompt.trim();
+    
+    // If an element is selected, prepend the element context to the prompt
+    if (selectedElement) {
+      const elementHtml = selectedElement.outerHTML;
+      const elementTag = selectedElement.tagName.toLowerCase();
+      basePrompt = `Please edit the following ${elementTag} element in my website:
+
+<selected_element>
+${elementHtml}
+</selected_element>
+
+User request: ${basePrompt || 'Improve this element'}`;
+      
+      // Clear the selected element after including it in the prompt
+      selectedElement.classList.remove('jatevo-selected-element');
+      setSelectedElement(null);
+    }
+    
+    // Build the prompt based on redesign context
     if (redesignData) {
       const userInstructions = basePrompt ? `\n\nAdditional instructions: ${basePrompt}` : '';
       basePrompt = `Redesign the following website with a modern, beautiful look. Keep the same content structure but make it visually stunning with better typography, colors, spacing, and animations.
@@ -2599,6 +2696,36 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
             
             {/* Prompt Bar - Inside Code Editor Panel */}
             <div className="bg-[#1a1a1a] border-t border-gray-800">
+              {/* Selected Element Badge */}
+              {selectedElement && !isGenerating && (
+                <div className="px-3 pt-3">
+                  <div
+                    className={cn(
+                      "border border-blue-500/50 bg-blue-500/10 rounded-xl p-1.5 pr-3 max-w-max hover:brightness-110 transition-all duration-200 ease-in-out cursor-pointer"
+                    )}
+                    onClick={() => {
+                      // Remove selected styling from element
+                      selectedElement.classList.remove('jatevo-selected-element');
+                      setSelectedElement(null);
+                    }}
+                    data-testid="badge-selected-element"
+                  >
+                    <div className="flex items-center justify-start gap-2">
+                      <div className="rounded-lg bg-blue-500/20 w-6 h-6 flex items-center justify-center">
+                        <Code className="text-blue-300 w-3.5 h-3.5" />
+                      </div>
+                      <p className="text-sm font-semibold text-blue-200">
+                        {selectedElement.textContent?.trim().split(/\s+/).slice(0, 3).join(' ') || selectedElement.tagName.toLowerCase()}
+                        <span className="text-blue-400 ml-1 font-normal">
+                          &lt;{selectedElement.tagName.toLowerCase()}&gt;
+                        </span>
+                      </p>
+                      <XCircle className="text-blue-300 w-4 h-4 hover:text-blue-200 transition-colors flex-shrink-0" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Redesign URL Badge */}
               {redesignData && (
                 <div className="px-3 pt-3">
@@ -2630,6 +2757,8 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   placeholder={
                     isGenerating
                       ? "Jatevo Web Builder is working..."
+                      : selectedElement
+                      ? `Ask about the ${selectedElement.tagName.toLowerCase()} element...`
                       : redesignData
                       ? "Ask about the redesign..."
                       : (project?.files?.length ?? 0) > 1
@@ -2795,14 +2924,22 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   ) : (
                     <>
                       {/* Existing project buttons */}
+                      {/* Edit Button - enables element selection mode */}
                       <Button
-                        variant="ghost"
+                        variant={isEditableModeEnabled ? "default" : "ghost"}
                         size="sm"
-                        className="h-7 px-2 text-xs text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        data-testid="button-add-context"
+                        onClick={() => setIsEditableModeEnabled(!isEditableModeEnabled)}
+                        className={cn(
+                          "h-7 px-2 text-xs",
+                          isEditableModeEnabled 
+                            ? "bg-blue-600 text-white hover:bg-blue-700" 
+                            : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+                        )}
+                        data-testid="button-edit-mode"
+                        title="Select an element on the page to edit it directly"
                       >
-                        <AtSign className="w-3 h-3 mr-1" />
-                        <span className="hidden lg:inline">Context</span>
+                        <Crosshair className="w-3 h-3 mr-1" />
+                        <span className="hidden lg:inline">Edit</span>
                       </Button>
                       
                       {/* Model Selector */}
@@ -2856,7 +2993,7 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                 {/* Send/Stop Button */}
                 <Button
                   onClick={isGenerating ? handleStopGeneration : handleGenerate}
-                  disabled={!prompt.trim() && !isGenerating && !redesignData}
+                  disabled={!prompt.trim() && !isGenerating && !redesignData && !selectedElement}
                   size="sm"
                   className="h-7 px-3 text-xs"
                   variant={isGenerating ? "destructive" : "default"}
@@ -2880,7 +3017,10 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
 
           {/* Preview - 80% width */}
           <div 
-            className="flex-1 bg-white relative overflow-hidden"
+            className={cn(
+              "flex-1 bg-white relative overflow-hidden",
+              isEditableModeEnabled && "cursor-crosshair"
+            )}
             onKeyDown={(e) => {
               // Prevent page scroll when arrow keys or game controls are pressed in preview
               const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
@@ -2894,6 +3034,20 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               e.stopPropagation();
             }}
           >
+            {/* Edit Mode Indicator */}
+            {isEditableModeEnabled && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-lg">
+                <Crosshair className="w-3 h-3" />
+                Click an element to select it for editing
+                <button 
+                  onClick={() => setIsEditableModeEnabled(false)}
+                  className="ml-1 hover:bg-blue-500 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            
             {/* Loading overlay for preview */}
             {isGenerating && (
               <div className="absolute inset-0 bg-white/90 dark:bg-gray-900/90 z-10 flex items-center justify-center pointer-events-none">
@@ -2913,7 +3067,10 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
             
             <iframe
               ref={previewRef}
-              className="w-full h-full border-0 outline-none"
+              className={cn(
+                "w-full h-full border-0 outline-none",
+                isEditableModeEnabled && "pointer-events-auto"
+              )}
               sandbox="allow-scripts allow-forms allow-same-origin allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox"
               title="Preview"
               data-testid="iframe-preview"
@@ -2926,6 +3083,22 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   if (doc.body && doc.body.innerHTML.trim()) {
                     console.log('Preview loaded successfully');
                   }
+                  
+                  // Inject hover/selection styles for edit mode
+                  const style = doc.createElement('style');
+                  style.id = 'jatevo-edit-mode-styles';
+                  style.textContent = `
+                    .jatevo-hovered-element {
+                      outline: 2px dashed #3b82f6 !important;
+                      outline-offset: 2px !important;
+                      cursor: pointer !important;
+                    }
+                    .jatevo-selected-element {
+                      outline: 3px solid #10b981 !important;
+                      outline-offset: 2px !important;
+                    }
+                  `;
+                  doc.head.appendChild(style);
                 }
               }}
               onClick={() => {
