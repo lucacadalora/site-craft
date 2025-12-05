@@ -20,7 +20,6 @@ import {
   Eye,
   Clock,
   Code2,
-  Share2,
   Settings,
   Copy,
   Globe,
@@ -343,14 +342,6 @@ ${project.prompts?.map((p: any, i: number) => `${i + 1}. ${p}`).join('\n') || 'N
           </div>
           
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-gray-700 hover:bg-gray-800"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Discord Community
-            </Button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">
                 {user.email?.charAt(0).toUpperCase() || 'U'}
