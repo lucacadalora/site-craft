@@ -1229,8 +1229,9 @@ const App = () => {
     
     // Inject ALL CSS files inline
     if (cssFiles.length > 0) {
-      // Remove ALL external CSS references (but preserve CDN links)
-      fullHtml = fullHtml.replace(/<link[^>]*href=["'](?!https?:\/\/|\/\/)[^"']*\.css["'][^>]*>/gi, '');
+      // Remove ALL external CSS references
+      fullHtml = fullHtml.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');
+      fullHtml = fullHtml.replace(/<link[^>]*href=["'][^"']*\.css["'][^>]*>/gi, '');
       
       // Build combined CSS from all CSS files
       let combinedCss = '';
@@ -1244,72 +1245,6 @@ const App = () => {
         fullHtml = fullHtml.slice(0, headEnd) + 
           `\n<style>\n${combinedCss}\n</style>\n` + 
           fullHtml.slice(headEnd);
-      }
-    }
-    
-    // CRITICAL FIX: Add Tailwind fallback mechanism ONLY if Tailwind CDN is already present
-    // This fixes intermittent rendering issues where Tailwind CDN fails to load in sandboxed iframe
-    // Strategy: Wait for window.onload (all resources loaded), then check if Tailwind works
-    // If not, inject fallback CSS. Simple and robust - no polling, no race conditions.
-    const hasTailwindScript = fullHtml.includes('cdn.tailwindcss.com');
-    
-    if (hasTailwindScript) {
-      const tailwindFallbackScript = `
-<script>
-(function() {
-  var checked = false;
-  
-  function isTailwindWorking() {
-    if (!document.body) return false;
-    var el = document.createElement('div');
-    el.className = 'sr-only';
-    el.style.cssText = 'position:static!important;width:auto!important;height:auto!important;';
-    document.body.appendChild(el);
-    var cs = window.getComputedStyle(el);
-    var works = cs.position === 'absolute' && cs.width === '1px' && cs.height === '1px';
-    document.body.removeChild(el);
-    return works;
-  }
-  
-  function injectFallback() {
-    if (document.getElementById('tailwind-fallback-css')) return;
-    var css = '.hidden{display:none!important}.flex{display:flex}.grid{display:grid}.block{display:block}.inline-block{display:inline-block}.inline{display:inline}.items-center{align-items:center}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.justify-start{justify-content:flex-start}.justify-end{justify-content:flex-end}.flex-col{flex-direction:column}.flex-row{flex-direction:row}.flex-wrap{flex-wrap:wrap}.flex-1{flex:1 1 0%}.text-center{text-align:center}.text-left{text-align:left}.text-right{text-align:right}.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}.font-normal{font-weight:400}.text-white{color:#fff}.text-black{color:#000}.text-gray-50{color:#f9fafb}.text-gray-100{color:#f3f4f6}.text-gray-200{color:#e5e7eb}.text-gray-300{color:#d1d5db}.text-gray-400{color:#9ca3af}.text-gray-500{color:#6b7280}.text-gray-600{color:#4b5563}.text-gray-700{color:#374151}.text-gray-800{color:#1f2937}.text-gray-900{color:#111827}.bg-white{background-color:#fff}.bg-black{background-color:#000}.bg-gray-50{background-color:#f9fafb}.bg-gray-100{background-color:#f3f4f6}.bg-gray-200{background-color:#e5e7eb}.bg-gray-300{background-color:#d1d5db}.bg-gray-800{background-color:#1f2937}.bg-gray-900{background-color:#111827}.bg-blue-500{background-color:#3b82f6}.bg-blue-600{background-color:#2563eb}.bg-blue-700{background-color:#1d4ed8}.bg-green-500{background-color:#22c55e}.bg-red-500{background-color:#ef4444}.bg-yellow-500{background-color:#eab308}.rounded{border-radius:.25rem}.rounded-md{border-radius:.375rem}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.shadow{box-shadow:0 1px 3px rgba(0,0,0,.1)}.shadow-md{box-shadow:0 4px 6px rgba(0,0,0,.1)}.shadow-lg{box-shadow:0 10px 15px rgba(0,0,0,.1)}.shadow-xl{box-shadow:0 20px 25px rgba(0,0,0,.1)}.p-1{padding:.25rem}.p-2{padding:.5rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.px-8{padding-left:2rem;padding-right:2rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.m-0{margin:0}.m-1{margin:.25rem}.m-2{margin:.5rem}.m-4{margin:1rem}.mx-auto{margin-left:auto;margin-right:auto}.my-2{margin-top:.5rem;margin-bottom:.5rem}.my-4{margin-top:1rem;margin-bottom:1rem}.mb-1{margin-bottom:.25rem}.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.ml-1{margin-left:.25rem}.ml-2{margin-left:.5rem}.ml-4{margin-left:1rem}.mr-1{margin-right:.25rem}.mr-2{margin-right:.5rem}.mr-4{margin-right:1rem}.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-8{gap:2rem}.space-x-1>*+*{margin-left:.25rem}.space-x-2>*+*{margin-left:.5rem}.space-x-4>*+*{margin-left:1rem}.space-y-1>*+*{margin-top:.25rem}.space-y-2>*+*{margin-top:.5rem}.space-y-4>*+*{margin-top:1rem}.w-full{width:100%}.w-auto{width:auto}.w-1\\/2{width:50%}.w-1\\/3{width:33.333%}.w-2\\/3{width:66.667%}.w-1\\/4{width:25%}.h-full{height:100%}.h-auto{height:auto}.h-screen{height:100vh}.min-h-screen{min-height:100vh}.max-w-xs{max-width:20rem}.max-w-sm{max-width:24rem}.max-w-md{max-width:28rem}.max-w-lg{max-width:32rem}.max-w-xl{max-width:36rem}.max-w-2xl{max-width:42rem}.max-w-3xl{max-width:48rem}.max-w-4xl{max-width:56rem}.max-w-5xl{max-width:64rem}.max-w-6xl{max-width:72rem}.max-w-7xl{max-width:80rem}.max-w-full{max-width:100%}.container{width:100%;max-width:1280px;margin:0 auto;padding:0 1rem}.overflow-hidden{overflow:hidden}.overflow-auto{overflow:auto}.overflow-scroll{overflow:scroll}.relative{position:relative}.absolute{position:absolute}.fixed{position:fixed}.sticky{position:sticky}.inset-0{top:0;right:0;bottom:0;left:0}.top-0{top:0}.left-0{left:0}.right-0{right:0}.bottom-0{bottom:0}.z-0{z-index:0}.z-10{z-index:10}.z-20{z-index:20}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.cursor-pointer{cursor:pointer}.pointer-events-none{pointer-events:none}.select-none{user-select:none}.opacity-0{opacity:0}.opacity-50{opacity:.5}.opacity-100{opacity:1}.transition{transition:all .15s ease}.transition-all{transition:all .15s ease}.duration-150{transition-duration:150ms}.duration-200{transition-duration:200ms}.duration-300{transition-duration:300ms}.ease-in-out{transition-timing-function:ease-in-out}.border{border:1px solid #e5e7eb}.border-0{border:0}.border-2{border-width:2px}.border-gray-100{border-color:#f3f4f6}.border-gray-200{border-color:#e5e7eb}.border-gray-300{border-color:#d1d5db}.border-transparent{border-color:transparent}.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-base{font-size:1rem}.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.875rem}.text-4xl{font-size:2.25rem}.text-5xl{font-size:3rem}.leading-none{line-height:1}.leading-tight{line-height:1.25}.leading-normal{line-height:1.5}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-.025em}.tracking-wide{letter-spacing:.025em}.uppercase{text-transform:uppercase}.lowercase{text-transform:lowercase}.capitalize{text-transform:capitalize}.underline{text-decoration:underline}.no-underline{text-decoration:none}.object-cover{object-fit:cover}.object-contain{object-fit:contain}.object-center{object-position:center}.list-none{list-style:none}.whitespace-nowrap{white-space:nowrap}.break-words{word-wrap:break-word}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}a{color:#3b82f6;text-decoration:none}a:hover{text-decoration:underline}img{max-width:100%;height:auto}button,input,select,textarea{font-family:inherit;font-size:100%}button{cursor:pointer}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;line-height:1.5}';
-    var s = document.createElement('style');
-    s.id = 'tailwind-fallback-css';
-    s.textContent = css;
-    document.head.appendChild(s);
-    console.warn('[Preview] Tailwind CSS failed to load, applying fallback styles');
-  }
-  
-  function checkAndApplyFallback() {
-    if (checked) return;
-    checked = true;
-    if (!isTailwindWorking()) {
-      injectFallback();
-    } else {
-      console.log('[Preview] Tailwind CSS loaded successfully');
-    }
-  }
-  
-  // Primary trigger: window.onload (all resources loaded)
-  if (document.readyState === 'complete') {
-    setTimeout(checkAndApplyFallback, 100);
-  } else {
-    window.addEventListener('load', function() {
-      setTimeout(checkAndApplyFallback, 100);
-    });
-  }
-  
-  // Fallback trigger: 4 second timeout in case load event doesn't fire
-  setTimeout(function() { checkAndApplyFallback(); }, 4000);
-})();
-</script>
-`;
-      
-      // Inject the fallback script BEFORE </body> to ensure body exists
-      const bodyEndPos = fullHtml.indexOf('</body>');
-      if (bodyEndPos > -1) {
-        fullHtml = fullHtml.slice(0, bodyEndPos) + tailwindFallbackScript + fullHtml.slice(bodyEndPos);
       }
     }
     
