@@ -1843,7 +1843,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
         // Only include style preference for initial generation, not for follow-up edits
         ...(isFollowUp ? {} : { stylePreference: stylePreference }),
         // Include selected element HTML for targeted edits (v3 style)
-        ...(selectedElementHtml ? { selectedElementHtml } : {})
+        ...(selectedElementHtml ? { selectedElementHtml } : {}),
+        // Include selected media files for AI context
+        ...(selectedMediaFiles.length > 0 ? { mediaFiles: selectedMediaFiles } : {})
       };
       
       if (isFollowUp && project) {
