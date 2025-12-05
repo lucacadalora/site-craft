@@ -48,7 +48,8 @@ import {
   Paintbrush,
   Crosshair,
   Code,
-  XCircle
+  XCircle,
+  ArrowUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { processAiResponse, convertToProjectFiles } from '@/lib/process-ai-response';
@@ -2762,7 +2763,7 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                       : redesignData
                       ? "Ask about the redesign..."
                       : (project?.files?.length ?? 0) > 1
-                      ? "Ask for edits..."
+                      ? "Ask Jatevo for edits..."
                       : "Describe the website you want to generate..."
                   }
                   value={isGenerating ? "" : prompt}
@@ -2923,33 +2924,27 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                     </>
                   ) : (
                     <>
-                      {/* Existing project buttons */}
-                      {/* Edit Button - enables element selection mode */}
+                      {/* Existing project buttons - v3 design: Add Context, Model, Attach, Edit */}
+                      
+                      {/* @ Add Context Button */}
                       <Button
-                        variant={isEditableModeEnabled ? "default" : "ghost"}
+                        variant="outline"
                         size="sm"
-                        onClick={() => setIsEditableModeEnabled(!isEditableModeEnabled)}
-                        className={cn(
-                          "h-7 px-2 text-xs",
-                          isEditableModeEnabled 
-                            ? "bg-blue-600 text-white hover:bg-blue-700" 
-                            : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-                        )}
-                        data-testid="button-edit-mode"
-                        title="Select an element on the page to edit it directly"
+                        className="h-7 px-3 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-gray-100"
+                        data-testid="button-add-context"
                       >
-                        <Crosshair className="w-3 h-3 mr-1" />
-                        <span className="hidden lg:inline">Edit</span>
+                        <AtSign className="w-3 h-3 mr-1" />
+                        Add Context
                       </Button>
                       
                       {/* Model Selector */}
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
                         <SelectTrigger 
-                          className="h-7 w-auto min-w-[90px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-model"
+                          className="h-7 w-auto min-w-[100px] px-3 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800/50"
+                          data-testid="select-model-edit"
                         >
-                          <div className="flex items-center gap-1">
-                            <Zap className="w-3 h-3" />
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-white">Z</span>
                             <SelectValue />
                           </div>
                         </SelectTrigger>
@@ -2963,52 +2958,56 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                         </SelectContent>
                       </Select>
                       
-                      {/* Style Selector */}
-                      <Select value={stylePreference} onValueChange={(value) => setStylePreference(value as 'default' | 'v1' | 'v2')}>
-                        <SelectTrigger 
-                          className="h-7 w-auto min-w-[70px] px-2 text-xs bg-transparent border-gray-700 text-gray-300 hover:bg-gray-800/50"
-                          data-testid="select-style"
-                        >
-                          <div className="flex items-center gap-1">
-                            <Paintbrush className="w-3 h-3" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                          <SelectItem value="default" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            Default
-                          </SelectItem>
-                          <SelectItem value="v1" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v1
-                          </SelectItem>
-                          <SelectItem value="v2" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
-                            v2
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {/* Attach Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-3 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-gray-100"
+                        data-testid="button-attach"
+                      >
+                        <Paperclip className="w-3 h-3 mr-1" />
+                        Attach
+                      </Button>
+                      
+                      {/* Edit Button - enables element selection mode */}
+                      <Button
+                        variant={isEditableModeEnabled ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsEditableModeEnabled(!isEditableModeEnabled)}
+                        className={cn(
+                          "h-7 px-3 text-xs",
+                          isEditableModeEnabled 
+                            ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600" 
+                            : "bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-gray-100"
+                        )}
+                        data-testid="button-edit-mode"
+                        title="Select an element on the page to edit it directly"
+                      >
+                        <Crosshair className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
                     </>
                   )}
                 </div>
                 
-                {/* Send/Stop Button */}
+                {/* Send/Stop Button - v3 style: circular with just icon */}
                 <Button
                   onClick={isGenerating ? handleStopGeneration : handleGenerate}
                   disabled={!prompt.trim() && !isGenerating && !redesignData && !selectedElement}
                   size="sm"
-                  className="h-7 px-3 text-xs"
-                  variant={isGenerating ? "destructive" : "default"}
+                  className={cn(
+                    "h-8 w-8 p-0 rounded-full",
+                    isGenerating 
+                      ? "bg-red-500 hover:bg-red-600" 
+                      : "bg-gray-600 hover:bg-gray-500"
+                  )}
+                  variant="ghost"
                   data-testid="button-generate"
                 >
                   {isGenerating ? (
-                    <>
-                      <X className="w-3 h-3 mr-1" />
-                      Stop
-                    </>
+                    <X className="w-4 h-4 text-white" />
                   ) : (
-                    <>
-                      <ChevronUp className="w-3 h-3 mr-1" />
-                      Run
-                    </>
+                    <ArrowUp className="w-4 h-4 text-white" />
                   )}
                 </Button>
               </div>
