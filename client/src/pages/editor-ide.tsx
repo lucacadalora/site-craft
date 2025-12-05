@@ -2787,8 +2787,8 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   disabled={isGenerating}
                   data-testid="input-prompt"
                 />
-                {/* Dice Button for Random Prompt - only show for new projects */}
-                {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) && (
+                {/* Dice Button for Random Prompt - only show for new projects (no project ID yet) */}
+                {(routeSessionId === 'new' || !project?.id) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2805,7 +2805,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               {/* Menu Bar */}
               <div className="flex items-center justify-between gap-1 px-2 py-2 border-t border-gray-800/50">
                 <div className="flex items-center gap-1 flex-wrap">
-                  {(routeSessionId === 'new' || (project?.files?.length ?? 0) <= 1) ? (
+                  {/* Show new project buttons if route is 'new' or no project ID yet */}
+                  {/* Show existing project buttons if project has an ID */}
+                  {(routeSessionId === 'new' || !project?.id) ? (
                     <>
                       {/* Enhance Toggle */}
                       <div 
