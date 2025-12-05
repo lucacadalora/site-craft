@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { useProject, ProjectFile } from '@/contexts/ProjectContext';
@@ -15,6 +15,7 @@ import { DeployButton } from '@/components/deploy-button';
 import { GenerationProgressBar } from '@/components/GenerationProgressBar';
 import { VersionHistory } from '@/components/VersionHistory';
 import { History } from '@/components/History';
+import { MediaFilesManager, getFileType } from '@/components/MediaFilesManager';
 import {
   Select,
   SelectContent,
@@ -242,6 +243,11 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
   );
   
+  // Media files state - for image/video/audio attachments
+  const [mediaFiles, setMediaFiles] = useState<string[]>([]);
+  const [selectedMediaFiles, setSelectedMediaFiles] = useState<string[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  
   // Style preference with localStorage persistence, prioritizing URL param
   const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1' | 'v2'>(() => {
     // If style is in URL params, use that (guest users from landing page)
@@ -420,6 +426,93 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
     
     loadVersions();
   }, [project?.id, loadProjectVersions]);
+
+  // Load media files when project changes
+  useEffect(() => {
+    const loadMediaFiles = async () => {
+      if (project?.id) {
+        try {
+          const response = await fetch(`/api/projects/${project.id}/media`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setMediaFiles(data.files || []);
+          }
+        } catch (error) {
+          console.error('Failed to load media files:', error);
+        }
+      } else {
+        setMediaFiles([]);
+        setSelectedMediaFiles([]);
+      }
+    };
+    
+    loadMediaFiles();
+  }, [project?.id]);
+
+  // Handle media file upload
+  const handleMediaUpload = async (files: FileList) => {
+    if (!project?.id || files.length === 0) return;
+    
+    setIsUploadingMedia(true);
+    
+    try {
+      const filePromises = Array.from(files).map((file) => {
+        return new Promise<{ name: string; type: string; data: string }>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              name: file.name,
+              type: file.type,
+              data: reader.result as string
+            });
+          };
+          reader.onerror = () => reject(new Error(`Failed to read file ${file.name}`));
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      const fileData = await Promise.all(filePromises);
+      
+      const response = await fetch(`/api/projects/${project.id}/media`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({ files: fileData })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload media files');
+      }
+      
+      const data = await response.json();
+      
+      // Add new files to state
+      setMediaFiles(prev => [...prev, ...data.uploadedFiles]);
+      
+      toast({
+        title: "Media uploaded",
+        description: `Successfully uploaded ${files.length} file(s)`,
+        className: "bg-green-900 border-green-700 text-white"
+      });
+    } catch (error) {
+      console.error('Failed to upload media files:', error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Could not upload media files",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
 
   // Handle messages from iframe for navigation (v3 approach)
   useEffect(() => {
@@ -3070,16 +3163,17 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                         </SelectContent>
                       </Select>
                       
-                      {/* Attach Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-3 text-xs bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800/50 hover:text-gray-100"
-                        data-testid="button-attach"
-                      >
-                        <Paperclip className="w-3 h-3 mr-1" />
-                        Attach
-                      </Button>
+                      {/* Attach Button - Media Files Manager */}
+                      <MediaFilesManager
+                        projectId={project?.id || null}
+                        files={mediaFiles}
+                        selectedFiles={selectedMediaFiles}
+                        onFilesChange={setMediaFiles}
+                        onSelectedFilesChange={setSelectedMediaFiles}
+                        isUploading={isUploadingMedia}
+                        onUpload={handleMediaUpload}
+                        disabled={isGenerating}
+                      />
                       
                       {/* Edit Button - enables element selection mode */}
                       <Button
