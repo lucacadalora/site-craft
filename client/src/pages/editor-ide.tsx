@@ -1980,17 +1980,26 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   projectName = eventData.projectName;
                 }
               } else if (isFollowUp && eventData.files && eventData.files.length === 0) {
-                // Follow-up edit failed to parse files (SEARCH/REPLACE blocks didn't match)
-                console.warn('⚠️ Follow-up edit failed: No files were parsed from AI response');
-                setIsGenerating(false);
-                eventSource.close();
+                // Backend parsing returned 0 files, but check if frontend already processed the update via SEARCH/REPLACE
+                // This happens when the AI uses UPDATE_FILE_START with SEARCH/REPLACE format which is parsed on frontend
+                const hasExistingContent = currentFiles.size > 0 && 
+                  Array.from(currentFiles.values()).some(f => f.content && f.content.trim().length > 0);
                 
-                toast({
-                  title: "⚠️ Edit Failed",
-                  description: "The AI couldn't apply your changes. Try being more specific or regenerate the entire project.",
-                  variant: "destructive"
-                });
-                return; // Exit early to prevent version creation with no changes
+                if (!hasExistingContent) {
+                  // Actually failed - no content was parsed
+                  console.warn('⚠️ Follow-up edit failed: No files were parsed from AI response');
+                  setIsGenerating(false);
+                  eventSource.close();
+                  
+                  toast({
+                    title: "⚠️ Edit Failed",
+                    description: "The AI couldn't apply your changes. Try being more specific or regenerate the entire project.",
+                    variant: "destructive"
+                  });
+                  return; // Exit early to prevent version creation with no changes
+                }
+                // Otherwise, frontend already processed the update - continue to version creation
+                console.log('✅ Frontend processed SEARCH/REPLACE update, continuing with version creation');
               }
               
               // Mark all files as complete and remove cursors
