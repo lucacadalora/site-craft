@@ -1242,16 +1242,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add media files context if provided (for using uploaded images/videos)
           if (mediaFiles && mediaFiles.length > 0) {
-            userContent += `\n\n📎 UPLOADED MEDIA FILES AVAILABLE:
-The user has uploaded ${mediaFiles.length} media file(s) to use in this project.
-You MUST use these exact data URLs when the user asks to add/replace images:
+            userContent += `\n\n📎 UPLOADED MEDIA FILES (${mediaFiles.length} file${mediaFiles.length > 1 ? 's' : ''} available):
+The user has uploaded images to use. Use these EXACT placeholder strings as src attributes:
 
-${mediaFiles.map((url, i) => `Media ${i + 1}: ${url.substring(0, 100)}...`).join('\n')}
+${mediaFiles.map((_, i) => `- For image ${i + 1}: use src="{{MEDIA_${i + 1}}}"`).join('\n')}
 
-When inserting an image, use the FULL data URL as the src attribute like this:
-<img src="${mediaFiles[0]}" alt="User uploaded image" class="..." />
+Example: <img src="{{MEDIA_1}}" alt="User uploaded image" class="w-full h-48 object-cover" />
 
-IMPORTANT: Use the complete data URL string, not a placeholder.`;
+The placeholders will be automatically replaced with the actual image data.
+IMPORTANT: Use EXACTLY {{MEDIA_1}}, {{MEDIA_2}}, etc. - do not modify or guess the format.`;
           }
           
           // Add STRICT targeted element instruction if element is selected (v3 style)
@@ -1270,7 +1269,7 @@ STRICT RULES:
 3. Do NOT touch any other elements, sections, or code outside this element
 4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
 5. Focus ONLY on the element shown above
-${mediaFiles && mediaFiles.length > 0 ? `6. If adding an image, use the uploaded media file data URLs provided above` : ''}
+${mediaFiles && mediaFiles.length > 0 ? `6. If adding an image, use the {{MEDIA_1}}, {{MEDIA_2}}, etc. placeholders provided above` : ''}
 
 If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }
@@ -1692,16 +1691,15 @@ IMPORTANT: Keep my original idea, just add more detail and specificity to make t
           
           // Add media files context if provided (for using uploaded images/videos)
           if (cerebrasMediaFiles && cerebrasMediaFiles.length > 0) {
-            cerebrasUserContent += `\n\n📎 UPLOADED MEDIA FILES AVAILABLE:
-The user has uploaded ${cerebrasMediaFiles.length} media file(s) to use in this project.
-You MUST use these exact data URLs when the user asks to add/replace images:
+            cerebrasUserContent += `\n\n📎 UPLOADED MEDIA FILES (${cerebrasMediaFiles.length} file${cerebrasMediaFiles.length > 1 ? 's' : ''} available):
+The user has uploaded images to use. Use these EXACT placeholder strings as src attributes:
 
-${cerebrasMediaFiles.map((url, i) => `Media ${i + 1}: ${url.substring(0, 100)}...`).join('\n')}
+${cerebrasMediaFiles.map((_, i) => `- For image ${i + 1}: use src="{{MEDIA_${i + 1}}}"`).join('\n')}
 
-When inserting an image, use the FULL data URL as the src attribute like this:
-<img src="${cerebrasMediaFiles[0]}" alt="User uploaded image" class="..." />
+Example: <img src="{{MEDIA_1}}" alt="User uploaded image" class="w-full h-48 object-cover" />
 
-IMPORTANT: Use the complete data URL string, not a placeholder.`;
+The placeholders will be automatically replaced with the actual image data.
+IMPORTANT: Use EXACTLY {{MEDIA_1}}, {{MEDIA_2}}, etc. - do not modify or guess the format.`;
           }
           
           // Add STRICT targeted element instruction if element is selected (v3 style)
@@ -1720,7 +1718,7 @@ STRICT RULES:
 3. Do NOT touch any other elements, sections, or code outside this element
 4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
 5. Focus ONLY on the element shown above
-${cerebrasMediaFiles && cerebrasMediaFiles.length > 0 ? `6. If adding an image, use the uploaded media file data URLs provided above` : ''}
+${cerebrasMediaFiles && cerebrasMediaFiles.length > 0 ? `6. If adding an image, use the {{MEDIA_1}}, {{MEDIA_2}}, etc. placeholders provided above` : ''}
 
 If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
           }

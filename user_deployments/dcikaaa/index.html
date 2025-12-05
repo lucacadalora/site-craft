@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dcika Bakery - Kue Terlezat di Bekasi Raya</title>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --pink-100: #fce7f3;
+    --pink-300: #f9a8d4;
+    --pink-400: #f472b6;
+    --pink-500: #ec4899;
+    --pink-600: #db2777;
+    --peach-300: #fdba74;
+    --peach-400: #fb923c;
+    --peach-500: #f97316;
+    --peach-600: #ea580c;
+    --cream-50: #fef3c7;
+    --cream-100: #fde68a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    scroll-behavior: smooth;
+}
+
+.font-playfair {
+    font-family: 'Playfair Display', serif;
+}
+
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+
+.bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+.bg-gradient-to-b {
+    background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+}
+
+.from-pink-100 {
+    --tw-gradient-from: var(--pink-100);
+    --tw-gradient-stops: var(--pink-100), var(--tw-gradient-to);
+}
+
+.from-pink-300 {
+    --tw-gradient-from: var(--pink-300);
+    --tw-gradient-stops: var(--pink-300), var(--tw-gradient-to);
+}
+
+.from-pink-400 {
+    --tw-gradient-from: var(--pink-400);
+    --tw-gradient-stops: var(--pink-400), var(--tw-gradient-to);
+}
+
+.from-pink-500 {
+    --tw-gradient-from: var(--pink-500);
+    --tw-gradient-stops: var(--pink-500), var(--tw-gradient-to);
+}
+
+.from-pink-600 {
+    --tw-gradient-from: var(--pink-600);
+    --tw-gradient-stops: var(--pink-600), var(--tw-gradient-to);
+}
+
+.to-peach-300 {
+    --tw-gradient-to: var(--peach-300);
+}
+
+.to-peach-400 {
+    --tw-gradient-to: var(--peach-400);
+}
+
+.to-peach-500 {
+    --tw-gradient-to: var(--peach-500);
+}
+
+.to-peach-600 {
+    --tw-gradient-to: var(--peach-600);
+}
+
+.to-cream-50 {
+    --tw-gradient-to: var(--cream-50);
+}
+
+.to-cream-100 {
+    --tw-gradient-to: var(--cream-100);
+}
+
+.via-peach-50 {
+    --tw-gradient-stops: var(--pink-100), #ffedd5, var(--cream-100);
+}
+
+.bg-clip-text {
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.animation-delay-200 {
+    animation-delay: 0.2s;
+}
+
+.animation-delay-400 {
+    animation-delay: 0.4s;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.product-card {
+    transition: all 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+}
+
+.scroll-animate {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+
+.scroll-animate.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, var(--pink-400), var(--peach-400));
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, var(--pink-500), var(--peach-500));
+}
+
+/* Smooth transitions for all interactive elements */
+a, button {
+    transition: all 0.3s ease;
+}
+
+/* Loading animation */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.25rem;
+    }
+}
+</style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="font-poppins">
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 w-full bg-white/95 backdrop-blur-sm shadow-sm z-50 transition-all duration-300">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-peach-300 rounded-full flex items-center justify-center">
+                        <i data-feather="coffee" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <span class="text-2xl font-playfair font-bold bg-gradient-to-r from-pink-500 to-peach-500 bg-clip-text text-transparent">Dcika Bakery</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#beranda" class="text-gray-700 hover:text-pink-500 transition-colors">Beranda</a>
+                    <a href="#produk" class="text-gray-700 hover:text-pink-500 transition-colors">Produk</a>
+                    <a href="#tentang" class="text-gray-700 hover:text-pink-500 transition-colors">Tentang Kami</a>
+                    <a href="#testimoni" class="text-gray-700 hover:text-pink-500 transition-colors">Testimoni</a>
+                    <a href="#galeri" class="text-gray-700 hover:text-pink-500 transition-colors">Galeri</a>
+                    <a href="#lokasi" class="text-gray-700 hover:text-pink-500 transition-colors">Lokasi</a>
+                    <a href="#kontak" class="text-gray-700 hover:text-pink-500 transition-colors">Kontak</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="cart-btn" class="relative p-2 text-gray-700 hover:text-pink-500 transition-colors">
+                        <i data-feather="shopping-cart" class="w-6 h-6"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </button>
+                    <button id="mobile-menu-btn" class="md:hidden p-2">
+                        <i data-feather="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t">
+            <div class="container mx-auto px-4 py-4 space-y-3">
+                <a href="#beranda" class="block text-gray-700 hover:text-pink-500 transition-colors">Beranda</a>
+                <a href="#produk" class="block text-gray-700 hover:text-pink-500 transition-colors">Produk</a>
+                <a href="#tentang" class="block text-gray-700 hover:text-pink-500 transition-colors">Tentang Kami</a>
+                <a href="#testimoni" class="block text-gray-700 hover:text-pink-500 transition-colors">Testimoni</a>
+                <a href="#galeri" class="block text-gray-700 hover:text-pink-500 transition-colors">Galeri</a>
+                <a href="#lokasi" class="block text-gray-700 hover:text-pink-500 transition-colors">Lokasi</a>
+                <a href="#kontak" class="block text-gray-700 hover:text-pink-500 transition-colors">Kontak</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="beranda" class="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-pink-100 via-peach-50 to-cream-100"></div>
+        <div class="absolute inset-0">
+            <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80" alt="Hero Cake" class="w-full h-full object-cover opacity-40">
+        </div>
+        <div class="relative container mx-auto px-4 text-center z-10">
+            <h1 class="text-5xl md:text-7xl font-playfair font-bold mb-6 animate-fade-in-up">
+                <span class="bg-gradient-to-r from-pink-600 to-peach-600 bg-clip-text text-transparent">Kue Terlezat</span>
+                <br>
+                <span class="text-gray-800">di Bekasi Raya</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-700 mb-8 animate-fade-in-up animation-delay-200">Nikmati Kelezatan Autentik dalam Setiap Gigitan</p>
+            <button onclick="scrollToSection('produk')" class="bg-gradient-to-r from-pink-500 to-peach-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-400">
+                Pesan Sekarang
+            </button>
+        </div>
+        <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <i data-feather="chevron-down" class="w-8 h-8 text-pink-500"></i>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="produk" class="py-20 bg-gradient-to-b from-cream-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-4">Produk Unggulan Kami</h2>
+                <p class="text-xl text-gray-600">Dibuat dengan cinta dan bahan-bahan pilihan terbaik</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Product 1 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 product-card">
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="data:image/webp;base64,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" alt="Black Forest" class="w-full h-full object-cover">
+                        <div class="absolute top-4 right-4 bg-yellow-400 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            <i data-feather="star" class="w-4 h-4 inline mr-1"></i>Bestseller
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-2">Black Forest</h3>
+                        <p class="text-gray-600 mb-4">Kue cokelat klasik dengan krim segar dan ceri merah yang lezat</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl font-bold text-pink-500">Rp 150.000</span>
+                            <div class="flex items-center text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <span class="ml-1 text-gray-600">4.9</span>
+                            </div>
+                        </div>
+                        <button onclick="addToCart('Black Forest', 150000)" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                            <i data-feather="shopping-bag" class="w-5 h-5 inline mr-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 product-card">
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Red Velvet" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-2">Red Velvet</h3>
+                        <p class="text-gray-600 mb-4">Kue lembut dengan cream cheese frosting yang sempurna</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl font-bold text-pink-500">Rp 175.000</span>
+                            <div class="flex items-center text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <span class="ml-1 text-gray-600">4.8</span>
+                            </div>
+                        </div>
+                        <button onclick="addToCart('Red Velvet', 175000)" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                            <i data-feather="shopping-bag" class="w-5 h-5 inline mr-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 product-card">
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Tiramisu" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-2">Tiramisu</h3>
+                        <p class="text-gray-600 mb-4">Dessert Italia klasik dengan rasa kopi dan mascarpone</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl font-bold text-pink-500">Rp 160.000</span>
+                            <div class="flex items-center text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <span class="ml-1 text-gray-600">4.9</span>
+                            </div>
+                        </div>
+                        <button onclick="addToCart('Tiramisu', 160000)" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                            <i data-feather="shopping-bag" class="w-5 h-5 inline mr-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product 4 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 product-card">
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1488900128323-21503983a07a?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Cheesecake" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-2">Cheesecake</h3>
+                        <p class="text-gray-600 mb-4">Kue keju New York style dengan topping buah segar</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl font-bold text-pink-500">Rp 145.000</span>
+                            <div class="flex items-center text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <span class="ml-1 text-gray-600">4.7</span>
+                            </div>
+                        </div>
+                        <button onclick="addToCart('Cheesecake', 145000)" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                            <i data-feather="shopping-bag" class="w-5 h-5 inline mr-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product 5 -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 product-card">
+                    <div class="relative h-64 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1506617420156-8e4536971650?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" alt="Chocolate Lava" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-2">Chocolate Lava</h3>
+                        <p class="text-gray-600 mb-4">Kue cokelat dengan lava cokelat yang meleleh di mulut</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl font-bold text-pink-500">Rp 135.000</span>
+                            <div class="flex items-center text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <span class="ml-1 text-gray-600">5.0</span>
+                            </div>
+                        </div>
+                        <button onclick="addToCart('Chocolate Lava', 135000)" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                            <i data-feather="shopping-bag" class="w-5 h-5 inline mr-2"></i>Tambah ke Keranjang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="tentang" class="py-20 bg-gradient-to-b from-white to-pink-50">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="About Us" class="rounded-2xl shadow-2xl">
+                    <div class="absolute -bottom-6 -right-6 bg-gradient-to-br from-pink-400 to-peach-400 text-white p-6 rounded-2xl shadow-xl">
+                        <div class="text-4xl font-bold">10+</div>
+                        <div class="text-lg">Tahun Pengalaman</div>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-6">Tentang Dcika Bakery</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Dcika Bakery didirikan pada tahun 2014 dengan tekad untuk menyajikan kue-kue berkualitas tinggi dengan cita rasa autentik. Kami berkomitmen untuk menggunakan bahan-bahan pilihan terbaik dan resep tradisional yang telah diwariskan selama generasi.
+                    </p>
+                    <div class="space-y-4 mb-8">
+                        <div class="flex items-start">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i data-feather="check" class="w-6 h-6 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800 mb-1">Bahan Berkualitas Premium</h3>
+                                <p class="text-gray-600">Kami hanya menggunakan bahan-bahan segar dan berkualitas tinggi</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i data-feather="heart" class="w-6 h-6 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800 mb-1">Dibuat dengan Cinta</h3>
+                                <p class="text-gray-600">Setiap kue dibuat dengan penuh kasih dan perhatian detail</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i data-feather="award" class="w-6 h-6 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-xl text-gray-800 mb-1">Terpercaya & Berpengalaman</h3>
+                                <p class="text-gray-600">Lebih dari 10 tahun melayani pelanggan dengan puas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimoni" class="py-20 bg-gradient-to-b from-pink-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-4">Apa Kata Pelanggan Kami</h2>
+                <p class="text-xl text-gray-600">Kepuasan Anda adalah prioritas utama kami</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/women/32.jpg" alt="Customer" class="w-16 h-16 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-800">Sarah Putri</h4>
+                            <div class="flex text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"Kue di Dcika Bakery benar-benar luar biasa! Rasa dan teksturnya sempurna. Selalu menjadi pilihan utama untuk acara keluarga."</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/men/45.jpg" alt="Customer" class="w-16 h-16 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-800">Budi Santoso</h4>
+                            <div class="flex text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"Pelayanan yang ramah dan kue yang enak. Black Forest-nya adalah yang terbaik yang pernah saya coba!"</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Customer" class="w-16 h-16 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-800">Maya Anggraini</h4>
+                            <div class="flex text-yellow-400">
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5 fill-current"></i>
+                                <i data-feather="star" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 italic">"Saya sudah pelanggan setia Dcika Bakery selama 3 tahun. Kualitas selalu konsisten dan rasa tidak pernah mengecewakan."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="galeri" class="py-20 bg-gradient-to-b from-white to-cream-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-4">Galeri Kami</h2>
+                <p class="text-xl text-gray-600">Lihat keindahan dan kelezatan kue-kue kami</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 1" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1549931319-a545dcf3bc73?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 2" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 3" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1578985545062-69928f1d9587?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 4" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 5" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 6" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1488900128323-21503983a07a?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 7" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="relative overflow-hidden rounded-lg group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1506617420156-8e4536971650?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80" alt="Gallery 8" class="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section id="lokasi" class="py-20 bg-gradient-to-b from-cream-50 to-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-4">Kunjungi Toko Kami</h2>
+                <p class="text-xl text-gray-600">Temukan kami di lokasi strategis di Bekasi Raya</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-12">
+                <div class="bg-white p-8 rounded-2xl shadow-lg">
+                    <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-6">Informasi Lokasi</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i data-feather="map-pin" class="w-6 h-6 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg text-gray-800 mb-1">Alamat</h4>
+                                <p class="text-gray-600">Jl. Ahmad Yani No. 123, RT. 04/RW. 08<br>Kelurahan Marga Jaya, Bekasi Selatan<br>Kota Bekasi, Jawa Barat 17141</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-pink-100 p-3 rounded-full mr-4">
+                                <i data-feather="clock" class="w-6 h-6 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg text-gray-800 mb-1">Jam Operasional</h4>
+                                <p class="text-gray-600">Senin - Sabtu: 08:00 - 20:00<br>Minggu: 09:00 - 19:00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-2xl overflow-hidden shadow-lg">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.521260322283!2d106.97572641476909!3d-6.238251395493371!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e698c8e3b8b8b8b%3A0x8b8b8b8b8b8b8b8b!2sBekasi%2C%20West%20Java!5e0!3m2!1sen!2sid!4v1234567890" width="100%" height="400" style="border:0;" allowfullscreen="" loading="lazy" class="w-full h-full"></iframe>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="kontak" class="py-20 bg-gradient-to-b from-white to-pink-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl md:text-5xl font-playfair font-bold text-gray-800 mb-4">Hubungi Kami</h2>
+                <p class="text-xl text-gray-600">Kami siap melayani Anda dengan sepenuh hati</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all duration-300">
+                    <div class="bg-gradient-to-br from-pink-400 to-peach-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-feather="phone" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Telepon</h3>
+                    <p class="text-gray-600">+62 21 8888 9999</p>
+                    <p class="text-gray-600">+62 812 3456 7890 (WhatsApp)</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all duration-300">
+                    <div class="bg-gradient-to-br from-pink-400 to-peach-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-feather="mail" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Email</h3>
+                    <p class="text-gray-600">info@dcikabakery.com</p>
+                    <p class="text-gray-600">order@dcikabakery.com</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition-all duration-300">
+                    <div class="bg-gradient-to-br from-pink-400 to-peach-400 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-feather="message-circle" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Media Sosial</h3>
+                    <div class="flex justify-center space-x-4">
+                        <a href="#" class="text-pink-500 hover:text-pink-600 transition-colors">
+                            <i data-feather="instagram" class="w-6 h-6"></i>
+                        </a>
+                        <a href="#" class="text-pink-500 hover:text-pink-600 transition-colors">
+                            <i data-feather="facebook" class="w-6 h-6"></i>
+                        </a>
+                        <a href="#" class="text-pink-500 hover:text-pink-600 transition-colors">
+                            <i data-feather="message-circle" class="w-6 h-6"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-br from-gray-800 to-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-pink-300 to-peach-300 rounded-full flex items-center justify-center">
+                            <i data-feather="coffee" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <span class="text-2xl font-playfair font-bold">PT Dcika Bakery</span>
+                    </div>
+                    <p class="text-gray-400">Menyajikan kue terlezat dengan cinta dan dedikasi sejak 2014.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Menu Cepat</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#produk" class="text-gray-400 hover:text-pink-400 transition-colors">Produk</a></li>
+                        <li><a href="#tentang" class="text-gray-400 hover:text-pink-400 transition-colors">Tentang Kami</a></li>
+                        <li><a href="#lokasi" class="text-gray-400 hover:text-pink-400 transition-colors">Lokasi</a></li>
+                        <li><a href="#kontak" class="text-gray-400 hover:text-pink-400 transition-colors">Kontak</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Metode Pembayaran</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">BCA</div>
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">Mandiri</div>
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">BNI</div>
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">Gopay</div>
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">OVO</div>
+                        <div class="bg-white text-gray-800 px-3 py-2 rounded text-sm font-semibold">Dana</div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Ikuti Kami</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="bg-pink-500 p-3 rounded-full hover:bg-pink-600 transition-colors">
+                            <i data-feather="instagram" class="w-5 h-5"></i>
+                        </a>
+                        <a href="#" class="bg-pink-500 p-3 rounded-full hover:bg-pink-600 transition-colors">
+                            <i data-feather="facebook" class="w-5 h-5"></i>
+                        </a>
+                        <a href="#" class="bg-green-500 p-3 rounded-full hover:bg-green-600 transition-colors">
+                            <i data-feather="message-circle" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 pt-8 text-center">
+                <p class="text-gray-400">&copy; 2024 PT Dcika Bakery. Hak Cipta Dilindungi.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full p-6 relative">
+                <button onclick="closeCart()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+                <h3 class="text-2xl font-playfair font-bold text-gray-800 mb-4">Keranjang Belanja</h3>
+                <div id="cart-items" class="space-y-3 mb-6">
+                    <!-- Cart items will be inserted here -->
+                </div>
+                <div class="border-t pt-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-lg font-semibold">Total:</span>
+                        <span id="cart-total" class="text-2xl font-bold text-pink-500">Rp 0</span>
+                    </div>
+                    <button onclick="checkout()" class="w-full bg-gradient-to-r from-pink-500 to-peach-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-300">
+                        Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// Shopping Cart
+let cart = [];
+let cartCount = 0;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize feather icons
+    feather.replace();
+    
+    // Smooth scroll for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                // Close mobile menu if open
+                document.getElementById('mobile-menu').classList.add('hidden');
+            }
+        });
+    });
+
+    // Mobile menu toggle
+    document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    // Cart modal
+    document.getElementById('cart-btn').addEventListener('click', function() {
+        document.getElementById('cart-modal').classList.remove('hidden');
+        updateCartDisplay();
+    });
+
+    // Close cart modal when clicking outside
+    document.getElementById('cart-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCart();
+        }
+    });
+
+    // Navbar scroll effect
+    window.addEventListener('scroll', function() {
+        const navbar = document.getElementById('navbar');
+        if (window.scrollY > 50) {
+            navbar.classList.add('shadow-lg');
+        } else {
+            navbar.classList.remove('shadow-lg');
+        }
+    });
+
+    // Scroll animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('show');
+            }
+        });
+    }, observerOptions);
+
+    // Observe all sections
+    document.querySelectorAll('section').forEach(section => {
+        section.classList.add('scroll-animate');
+        observer.observe(section);
+    });
+});
+
+// Add to cart function
+function addToCart(productName, price) {
+    const existingItem = cart.find(item => item.name === productName);
+    
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        cart.push({
+            name: productName,
+            price: price,
+            quantity: 1
+        });
+    }
+    
+    updateCartCount();
+    showNotification('Produk ditambahkan ke keranjang!');
+}
+
+// Update cart count
+function updateCartCount() {
+    cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+    document.getElementById('cart-count').textContent = cartCount;
+}
+
+// Update cart display
+function updateCartDisplay() {
+    const cartItems = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+    
+    if (cart.length === 0) {
+        cartItems.innerHTML = '<p class="text-gray-500 text-center">Keranjang belanja kosong</p>';
+        cartTotal.textContent = 'Rp 0';
+        return;
+    }
+    
+    let total = 0;
+    cartItems.innerHTML = cart.map((item, index) => {
+        total += item.price * item.quantity;
+        return `
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                <div>
+                    <h4 class="font-semibold">${item.name}</h4>
+                    <p class="text-gray-600">Rp ${item.price.toLocaleString('id-ID')} x ${item.quantity}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="updateQuantity(${index}, -1)" class="bg-pink-100 text-pink-600 w-8 h-8 rounded-full hover:bg-pink-200">
+                        <i data-feather="minus" class="w-4 h-4"></i>
+                    </button>
+                    <span class="w-8 text-center">${item.quantity}</span>
+                    <button onclick="updateQuantity(${index}, 1)" class="bg-pink-100 text-pink-600 w-8 h-8 rounded-full hover:bg-pink-200">
+                        <i data-feather="plus" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="removeFromCart(${index})" class="bg-red-100 text-red-600 w-8 h-8 rounded-full hover:bg-red-200 ml-2">
+                        <i data-feather="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    cartTotal.textContent = `Rp ${total.toLocaleString('id-ID')}`;
+    
+    // Re-initialize feather icons
+    feather.replace();
+}
+
+// Update quantity
+function updateQuantity(index, change) {
+    cart[index].quantity += change;
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+    }
+    updateCartCount();
+    updateCartDisplay();
+}
+
+// Remove from cart
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartCount();
+    updateCartDisplay();
+}
+
+// Close cart
+function closeCart() {
+    document.getElementById('cart-modal').classList.add('hidden');
+}
+
+// Checkout
+function checkout() {
+    if (cart.length === 0) {
+        showNotification('Keranjang belanja kosong!', 'error');
+        return;
+    }
+    
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const message = `Halo, saya ingin memesan:\n${cart.map(item => `${item.name} x ${item.quantity}`).join('\n')}\n\nTotal: Rp ${total.toLocaleString('id-ID')}`;
+    
+    // Open WhatsApp with pre-filled message
+    const whatsappUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Clear cart after checkout
+    cart = [];
+    updateCartCount();
+    closeCart();
+    showNotification('Pesanan Anda telah dikirim melalui WhatsApp!');
+}
+
+// Show notification
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-20 right-4 px-6 py-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Scroll to section
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
+
+// Lazy loading for images
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('img');
+    const imageOptions = {
+        threshold: 0,
+        rootMargin: '0px 0px 50px 0px'
+    };
+
+    const imageObserver = new IntersectionObserver(function(entries, observer) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.classList.add('fade-in');
+                imageObserver.unobserve(img);
+            }
+        });
+    }, imageOptions);
+
+    images.forEach(img => imageObserver.observe(img));
+});
+
+// Add fade-in animation for images
+const style = document.createElement('style');
+style.textContent = `
+    .fade-in {
+        animation: fadeIn 0.6s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+    <script>feather.replace();</script>
+</body>
+</html>

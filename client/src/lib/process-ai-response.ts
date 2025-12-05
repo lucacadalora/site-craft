@@ -215,9 +215,22 @@ export function processAiResponse(response: string): ParsedResponse {
   return result;
 }
 
+// Replace {{MEDIA_X}} placeholders with actual data URLs
+function replaceMediaPlaceholders(content: string, mediaFiles?: string[]): string {
+  if (!mediaFiles || mediaFiles.length === 0) return content;
+  
+  let result = content;
+  for (let i = 0; i < mediaFiles.length; i++) {
+    const placeholder = `{{MEDIA_${i + 1}}}`;
+    result = result.split(placeholder).join(mediaFiles[i]);
+  }
+  return result;
+}
+
 export function convertToProjectFiles(
   parsedFiles: ParsedFile[], 
-  existingFiles?: ProjectFile[]
+  existingFiles?: ProjectFile[],
+  mediaFiles?: string[]
 ): ProjectFile[] {
   const resultFiles: ProjectFile[] = [];
   
@@ -265,9 +278,11 @@ export function convertToProjectFiles(
           }
         }
         
+        // Replace media placeholders with actual data URLs
+        const finalContent = replaceMediaPlaceholders(content, mediaFiles);
         resultFiles.push({
           name: file.path,
-          content,
+          content: finalContent,
           language: getFileLanguage(file.path)
         });
       } else {
@@ -280,10 +295,11 @@ export function convertToProjectFiles(
         });
       }
     } else {
-      // Create or update file directly
+      // Create or update file directly - replace media placeholders
+      const finalContent = replaceMediaPlaceholders(file.content, mediaFiles);
       resultFiles.push({
         name: file.path,
-        content: file.content,
+        content: finalContent,
         language: getFileLanguage(file.path)
       });
     }

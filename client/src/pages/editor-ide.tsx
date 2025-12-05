@@ -2162,8 +2162,8 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                 // Get existing files for search/replace operations
                 const existingFilesArray = Array.from(currentFiles.values());
                 
-                // Convert parsed files to project files
-                const newFiles = convertToProjectFiles(eventData.files, existingFilesArray);
+                // Convert parsed files to project files (with media placeholder replacement)
+                const newFiles = convertToProjectFiles(eventData.files, existingFilesArray, selectedMediaFiles);
                 
                 // Clear current files and set new ones
                 currentFiles.clear();
@@ -2523,10 +2523,19 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                   }
                 }
                 
+                // Replace media placeholders with actual data URLs before updating
+                let finalContent = updatedContent;
+                if (selectedMediaFiles && selectedMediaFiles.length > 0) {
+                  for (let i = 0; i < selectedMediaFiles.length; i++) {
+                    const placeholder = `{{MEDIA_${i + 1}}}`;
+                    finalContent = finalContent.split(placeholder).join(selectedMediaFiles[i]);
+                  }
+                }
+                
                 // Update the file with modified content
                 currentFiles.set(fileName, {
                   ...existingFile,
-                  content: updatedContent
+                  content: finalContent
                 });
                 
                 console.log(`✏️ Updated file via SEARCH/REPLACE: ${fileName}`);
@@ -2560,6 +2569,14 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               const codeBlockMatch = rawFileContent.match(/```(?:html|css|javascript|js)?\s*\n?([\s\S]*?)(?:```|$)/);
               if (codeBlockMatch) {
                 fileContent = codeBlockMatch[1];
+              }
+              
+              // Replace media placeholders with actual data URLs
+              if (selectedMediaFiles && selectedMediaFiles.length > 0) {
+                for (let i = 0; i < selectedMediaFiles.length; i++) {
+                  const placeholder = `{{MEDIA_${i + 1}}}`;
+                  fileContent = fileContent.split(placeholder).join(selectedMediaFiles[i]);
+                }
               }
               
               // Determine language
