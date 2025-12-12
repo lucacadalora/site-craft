@@ -499,13 +499,13 @@ src="https://images.unsplash.com/photo-1558655146-d09347e92766" <!-- Museum ligh
 #### Restaurants (EXACT PATTERNS)
 \`\`\`html
 <!-- INGREDIENTS: Raw, artistic, macro -->
-src="https://images.unsplash.com/photo-[spices/herbs/raw-ingredients]"
+src="https://images.unsplash.com/photo-1506368249639-73a05d6f6488"
 
 <!-- ATMOSPHERE: Moody lighting, no people -->
-src="https://images.unsplash.com/photo-[kitchen-fire/chef-hands/steam]"
+src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0"
 
 <!-- PLATING: Artistic, minimal, high-end -->
-src="https://images.unsplash.com/photo-[fine-dining/artistic-plating]"
+src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327"
 \`\`\`
 
 ### Image Treatment Rules
@@ -544,7 +544,7 @@ src="https://images.unsplash.com/photo-[fine-dining/artistic-plating]"
     <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,...')"></div>
     
     <!-- Layer 3: Main image -->
-    <img class="absolute inset-0 w-120% h-120% object-cover" style="filter: contrast(1.2) grayscale(0.3)">
+    <img class="absolute inset-0 w-full h-full object-cover scale-110" style="filter: contrast(1.2) grayscale(0.3)">
     
     <!-- Layer 4: Gradient overlay -->
     <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
@@ -687,18 +687,15 @@ button:hover { border-radius: 0; }
 ## * FINAL CHECKLIST *
 
 Before delivery, verify:
-- [ ] Hero text fills 70%+ of viewport width?
-- [ ] At least 3 font families mixed?
-- [ ] Images have artistic filters/treatments?
-- [ ] Elements overlap and break boundaries?
-- [ ] Minimum 5 parallax layers in hero?
-- [ ] Custom cursor with 4+ states?
-- [ ] Scroll progress indicator?
-- [ ] Every section uniquely designed?
-- [ ] Loading sequence 3+ seconds?
-- [ ] Would win Awwwards Site of the Day?
+- [ ] Hero text is large and impactful?
+- [ ] Good typography hierarchy?
+- [ ] Images use valid Unsplash URLs with full photo IDs?
+- [ ] Layout has visual interest with layering?
+- [ ] Smooth entrance animations?
+- [ ] Every section has unique styling?
+- [ ] Code is clean and functional?
 
-**If any answer is NO, the output is INSUFFICIENT.**
+**CRITICAL**: All image src URLs MUST be complete and valid Unsplash URLs (e.g., https://images.unsplash.com/photo-1234567890123-abc123def456). Never use placeholder text in URLs.
 
 **The difference between good and exceptional is in the details. Every pixel must feel considered, every animation choreographed, every image curated.**
 
