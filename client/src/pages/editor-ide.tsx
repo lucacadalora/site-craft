@@ -2696,10 +2696,17 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
               incompleteFiles.add('index.html');
             }
             
+            // Strip markdown code block markers if present
+            let cleanContent = accumulatedContent;
+            // Remove opening code fence (```html or ``` at start)
+            cleanContent = cleanContent.replace(/^```(?:html)?\s*\n?/, '');
+            // Remove closing code fence (``` at end)
+            cleanContent = cleanContent.replace(/\n?```\s*$/, '');
+            
             const file = currentFiles.get('index.html')!;
             currentFiles.set('index.html', {
               ...file,
-              content: accumulatedContent
+              content: cleanContent
             });
             
             updateFilesRealtime();
