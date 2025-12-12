@@ -448,29 +448,23 @@ export default function Landing() {
               }
             `}</style>
             <div 
-              className="inline-block mb-10 relative h-10"
+              className="flex justify-center mb-10 relative h-10 w-full"
               style={{ animation: 'badgeEntry 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both' }}
             >
-              {/* GLM 4.6 Badge */}
-              <div 
-                className="badge-shimmer absolute left-1/2 -translate-x-1/2 overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-md whitespace-nowrap" 
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, animation: 'badgeCarousel1 6s ease-in-out infinite' }}
-              >
-                <span 
-                  className="text-base"
-                  style={{ animation: 'sparkleRotate 3s linear infinite' }}
-                >
-                  ⚡
-                </span>
-                <span>GLM 4.6 is faster and better than ever!</span>
-              </div>
-              {/* Gradient Badge */}
+              {/* Gradient Badge - Shows First */}
               <div 
                 className="badge-shimmer absolute left-1/2 -translate-x-1/2 overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-md whitespace-nowrap" 
-                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, animation: 'badgeCarousel2 6s ease-in-out infinite' }}
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, animation: 'badgeCarousel1 6s ease-in-out infinite' }}
               >
                 <span className="text-gray-600 dark:text-gray-400">Distributed intelligence by</span>
                 <span className="text-gray-900 dark:text-gray-100" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, letterSpacing: '-0.02em' }}>./ gradient</span>
+              </div>
+              {/* GLM 4.6 Badge - Shows Second */}
+              <div 
+                className="badge-shimmer absolute left-1/2 -translate-x-1/2 overflow-hidden inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 transition-all duration-300 hover:shadow-md whitespace-nowrap" 
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, animation: 'badgeCarousel2 6s ease-in-out infinite' }}
+              >
+                <span>GLM 4.6 is faster and better than ever!</span>
               </div>
             </div>
             
