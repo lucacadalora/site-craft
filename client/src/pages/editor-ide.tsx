@@ -240,7 +240,8 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   });
   const [selectedModel, setSelectedModel] = useState(
     urlParams.model === 'sambanova' ? 'sambanova-deepseek-v3' :
-    urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 'cerebras-glm-4.6'
+    urlParams.model === 'cerebras' ? 'cerebras-glm-4.6' : 
+    urlParams.model === 'gradient' ? 'gradient-qwen3-coder' : 'cerebras-glm-4.6'
   );
   
   // Media files state - for image/video/audio attachments
@@ -1929,6 +1930,8 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
       // Select API endpoint based on model
       const apiEndpoint = selectedModel === 'cerebras-glm-4.6' 
         ? `/api/cerebras/stream/${sessionId}`
+        : selectedModel === 'gradient-qwen3-coder'
+        ? `/api/gradient/stream/${sessionId}`
         : `/api/sambanova/stream/${sessionId}`;
       
       // Add token to query params if available
@@ -3118,6 +3121,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                           <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
                             glm-4.6
                           </SelectItem>
+                          <SelectItem value="gradient-qwen3-coder" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Gradient
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       
@@ -3235,6 +3241,9 @@ Create a complete multi-file project with index.html, style.css, and script.js. 
                           </SelectItem>
                           <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
                             glm-4.6
+                          </SelectItem>
+                          <SelectItem value="gradient-qwen3-coder" className="text-xs text-gray-300 focus:bg-gray-800 focus:text-gray-100">
+                            Gradient
                           </SelectItem>
                         </SelectContent>
                       </Select>
