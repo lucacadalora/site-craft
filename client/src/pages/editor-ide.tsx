@@ -251,11 +251,13 @@ export default function EditorIDE({ initialApiConfig, onApiConfigChange, isDispo
   
   // Style preference with localStorage persistence, prioritizing URL param
   const [stylePreference, setStylePreferenceInternal] = useState<'default' | 'v1' | 'v2'>(() => {
-    // If style is in URL params, use that (guest users from landing page)
+    // If style is explicitly set in URL params, use that (guest users from landing page)
+    // This ensures 'default' from URL overrides any localStorage value
+    if (urlParams.style === 'default') return 'default';
     if (urlParams.style === 'v1') return 'v1';
     if (urlParams.style === 'v2') return 'v2';
     
-    // Otherwise, check localStorage
+    // Only check localStorage if no style param in URL
     const savedStyle = localStorage.getItem('jatevo_style_preference');
     return (savedStyle === 'v1' || savedStyle === 'v2') ? savedStyle as 'v1' | 'v2' : 'default';
   });
