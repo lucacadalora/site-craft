@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 - **Database**: PostgreSQL (e.g., Neon serverless)
-- **AI Services**: Jatevo API, OpenAI API, SambaNova API, Jina AI Reader API
+- **AI Services**: Jatevo API, OpenAI API, SambaNova API, Gradient API (Qwen 3 Coder 480B), Jina AI Reader API
 - **Authentication**: JWT libraries
 - **UI Components**: Radix UI primitives (via Shadcn/UI)
 - **Development Tools**: TypeScript, Drizzle Kit, ESBuild, Tailwind CSS
