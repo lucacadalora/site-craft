@@ -537,26 +537,20 @@ src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327"
 ### Minimum Layer Stack (HERO)
 \`\`\`html
 <header class="relative h-screen overflow-hidden">
-    <!-- Layer 1: Base gradient -->
-    <div class="absolute inset-0 bg-gradient-to-br from-[color1] to-[color2] opacity-20"></div>
+    <!-- Layer 1: Base gradient - use actual color values -->
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-indigo-900 opacity-90"></div>
     
-    <!-- Layer 2: Pattern overlay -->
-    <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,...')"></div>
+    <!-- Layer 2: Main image with real Unsplash URL -->
+    <img src="https://images.unsplash.com/photo-1557682250-33bd709cbe85" class="absolute inset-0 w-full h-full object-cover" style="filter: contrast(1.1) brightness(0.8)">
     
-    <!-- Layer 3: Main image -->
-    <img class="absolute inset-0 w-full h-full object-cover scale-110" style="filter: contrast(1.2) grayscale(0.3)">
+    <!-- Layer 3: Gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
     
-    <!-- Layer 4: Gradient overlay -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-    
-    <!-- Layer 5: Blur spots -->
-    <div class="absolute top-20 left-10 w-96 h-96 bg-accent/20 blur-3xl"></div>
-    
-    <!-- Layer 6: Geometric shapes -->
-    <div class="absolute top-0 right-0 w-[600px] h-[600px] border-2 border-accent/20 rotate-45"></div>
+    <!-- Layer 4: Decorative blur -->
+    <div class="absolute top-20 left-10 w-96 h-96 bg-indigo-500/20 blur-3xl rounded-full"></div>
     
     <!-- Content Layer -->
-    <div class="relative z-50"><!-- Typography here --></div>
+    <div class="relative z-10 h-full flex items-center"><!-- Typography here --></div>
 </header>
 \`\`\`
 
@@ -638,51 +632,43 @@ button:hover { border-radius: 0; }
 
 ### For Museums/Galleries (EXACT PATTERN)
 \`\`\`html
-<div class="group relative aspect-[4/5] overflow-hidden">
-    <img src="[artistic-image]" class="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 filter grayscale group-hover:grayscale-0">
+<div class="group relative aspect-[4/5] overflow-hidden rounded-lg">
+    <img src="https://images.unsplash.com/photo-1513364776144-60967b0f800f" class="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0">
     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
     <div class="absolute bottom-0 left-0 right-0 p-8 transform translate-y-full group-hover:translate-y-0 transition-transform duration-700">
-        <span class="text-xs tracking-[0.3em] text-white/60 uppercase">NOW OPEN</span>
-        <h3 class="text-4xl font-bold text-white mt-2">Exhibition Title</h3>
+        <span class="text-xs tracking-widest text-white/60 uppercase">NOW OPEN</span>
+        <h3 class="text-3xl font-bold text-white mt-2">Exhibition Title</h3>
         <p class="text-white/80 mt-2">Until Oct 24</p>
     </div>
 </div>
 \`\`\`
+IMPORTANT: Always use complete, valid Unsplash URLs for all images.
 
-## * QUALITY METRICS (ENHANCED) *
+## * QUALITY METRICS *
 
-### Minimum Requirements
-* **Typography variety**: 5+ different font sizes
-* **Image filters**: Every image must have treatment
-* **Overlapping elements**: Minimum 5 per page
-* **Animation types**: 10+ unique animations
-* **Color usage**: No pure black/white anywhere
-* **Section variety**: No two sections same layout
-* **Scroll effects**: Every section scroll-triggered
-* **Hover states**: Every interactive element unique
+### Requirements
+* **Typography variety**: Use 3-5 different font sizes for hierarchy
+* **Images**: Use valid Unsplash URLs with optional filters
+* **Layout interest**: Some overlapping or layered elements
+* **Animations**: Subtle entrance and hover animations
+* **Colors**: Use a cohesive color palette with CSS variables
+* **Section variety**: Each section should have distinct styling
+* **Interactivity**: Hover states on buttons and links
 
 ## * COMMON FAILURES TO AVOID *
 
-### Typography Failures
-* ❌ Hero text smaller than 6rem minimum
-* ❌ Consistent line heights (vary between 0.8-1.6)
-* ❌ Same font weight throughout
-* ❌ Centered text everywhere
-* ❌ No mix of serif/sans-serif
+### Critical Errors
+* ❌ Using placeholder image URLs (always use complete Unsplash photo IDs)
+* ❌ Invalid CSS classes (stick to standard Tailwind classes)
+* ❌ Missing DOCTYPE or incomplete HTML structure
+* ❌ Broken JavaScript that prevents page from loading
+* ❌ Using undefined CSS variables without declaring them
 
-### Image Failures  
-* ❌ Stock photos with people smiling
-* ❌ Generic unsplash searches
-* ❌ All images same aspect ratio
-* ❌ No filters or treatments
-* ❌ Images contained in boxes
-
-### Layout Failures
-* ❌ Everything aligned to grid
-* ❌ Clear section boundaries
-* ❌ Predictable spacing
-* ❌ No overlapping elements
-* ❌ Simple two-column layouts
+### Design Tips
+* Use large, impactful hero typography (4rem+)
+* Vary font weights for visual hierarchy  
+* Include proper hover and focus states
+* Ensure all content is readable
 
 ## * FINAL CHECKLIST *
 
