@@ -2090,7 +2090,7 @@ If the user asks to "search other CTA" or similar, find alternative content ONLY
           stream: true,
           model: "qwen/qwen3-coder-480b-instruct-fp8",
           messages: [systemMessage, userMessage],
-          max_tokens: 64000,
+          max_tokens: 32000,
           temperature: 0.6,
           performance_type: 0
         })
