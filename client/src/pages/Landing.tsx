@@ -85,7 +85,7 @@ export default function Landing() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras'>('cerebras');
+  const [selectedModel, setSelectedModel] = useState<'sambanova' | 'cerebras' | 'gradient'>('cerebras');
   const [enhanceEnabled, setEnhanceEnabled] = useState(true);
   const [stylePreference, setStylePreference] = useState<'default' | 'v1' | 'v2'>('default');
   const [randomPromptLoading, setRandomPromptLoading] = useState(false);
@@ -587,7 +587,10 @@ export default function Landing() {
                       </div>
                       
                       {/* Model Selector */}
-                      <Select value={selectedModel === 'sambanova' ? 'deepseek-v3-0324' : 'cerebras-glm-4.6'} onValueChange={(value) => setSelectedModel(value === 'deepseek-v3-0324' ? 'sambanova' : 'cerebras')}>
+                      <Select 
+                        value={selectedModel === 'sambanova' ? 'deepseek-v3-0324' : selectedModel === 'gradient' ? 'gradient-qwen3-coder' : 'cerebras-glm-4.6'} 
+                        onValueChange={(value) => setSelectedModel(value === 'deepseek-v3-0324' ? 'sambanova' : value === 'gradient-qwen3-coder' ? 'gradient' : 'cerebras')}
+                      >
                         <SelectTrigger 
                           className="h-8 w-auto min-w-[140px] px-3 text-xs bg-transparent border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50"
                         >
@@ -602,6 +605,9 @@ export default function Landing() {
                           </SelectItem>
                           <SelectItem value="cerebras-glm-4.6" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
                             z.ai-GLM 4.6
+                          </SelectItem>
+                          <SelectItem value="gradient-qwen3-coder" className="text-xs text-gray-700 dark:text-gray-300 focus:bg-gray-100 dark:focus:bg-gray-800 focus:text-gray-900 dark:focus:text-gray-100">
+                            Gradient
                           </SelectItem>
                         </SelectContent>
                       </Select>
