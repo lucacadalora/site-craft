@@ -1915,6 +1915,341 @@ If the user asks to "search other CTA" or similar, find alternative content ONLY
       res.end();
     }
   });
+
+  // GET endpoint for Gradient (Qwen 3 Coder 480B) SSE streaming (EventSource API)
+  app.get("/api/gradient/stream/:sessionId", optionalAuth, anonymousRateLimiter, async (req: AuthRequest, res) => {
+    const sessionId = req.params.sessionId;
+    
+    // Try to get data from session storage first (for POST-created sessions)
+    let prompt: string;
+    let gradientExistingFilesParam: string | undefined;
+    let gradientPreviousPromptsParam: string | undefined;
+    let gradientSelectedElementHtml: string | undefined;
+    
+    let stylePreference = 'default';
+    let gradientMediaFiles: string[] | undefined;
+    if (sessionData.has(sessionId)) {
+      const data = sessionData.get(sessionId);
+      prompt = data.prompt;
+      gradientExistingFilesParam = data.existingFiles ? JSON.stringify(data.existingFiles) : undefined;
+      gradientPreviousPromptsParam = data.previousPrompts ? JSON.stringify(data.previousPrompts) : undefined;
+      stylePreference = data.stylePreference || 'default';
+      gradientSelectedElementHtml = data.selectedElementHtml || undefined;
+      gradientMediaFiles = data.mediaFiles || undefined;
+      sessionData.delete(sessionId);
+    } else {
+      const promptRaw = req.query.prompt as string;
+      if (!promptRaw) {
+        return res.status(400).json({ message: "Missing required parameter: prompt" });
+      }
+      prompt = decodeURIComponent(promptRaw);
+      gradientExistingFilesParam = req.query.existingFiles as string | undefined;
+      gradientPreviousPromptsParam = req.query.previousPrompts as string | undefined;
+    }
+
+    try {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no',
+        'Content-Encoding': 'none'
+      });
+      
+      if (res.socket) {
+        res.socket.setNoDelay(true);
+        res.socket.setTimeout(0);
+      }
+
+      const flushResponse = () => {
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
+        }
+      };
+      
+      res.write(':' + ' '.repeat(2048) + '\n\n');
+      flushResponse();
+      
+      res.write(`data: ${JSON.stringify({ 
+        type: 'connected',
+        sessionId,
+        timestamp: new Date().toISOString()
+      })}\n\n`);
+      flushResponse();
+
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
+        } catch (error) {
+          console.error('Error sending heartbeat:', error);
+          clearInterval(heartbeat);
+        }
+      }, 30000);
+
+      streamConnections.set(sessionId, { res, sessionId, heartbeat });
+
+      req.on('close', () => {
+        console.log(`Gradient SSE connection closed for session: ${sessionId}`);
+        clearInterval(heartbeat);
+        streamConnections.delete(sessionId);
+      });
+
+      const userId = req.user?.id || null;
+      const title = prompt.length > 30 ? prompt.slice(0, 30) + "..." : prompt;
+
+      res.write(`data: ${JSON.stringify({ 
+        type: 'start',
+        message: 'Generation started with Gradient Qwen 3 Coder 480B' 
+      })}\n\n`);
+      flushResponse();
+
+      const apiKey = process.env.GRADIENT_API_KEY;
+      if (!apiKey) {
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: 'Gradient API key not configured. Please set GRADIENT_API_KEY environment variable.'
+        })}\n\n`);
+        return res.end();
+      }
+
+      const gradientIsFollowUp = gradientExistingFilesParam && gradientPreviousPromptsParam;
+      
+      console.log(`Generating with Gradient Qwen 3 Coder 480B (${gradientIsFollowUp ? 'follow-up' : 'initial'}, style: ${stylePreference}) for prompt:`, prompt.substring(0, 50) + "...");
+
+      const systemMessage = {
+        role: "system",
+        content: stylePreference === 'v1' 
+          ? (gradientIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V1 : INITIAL_SYSTEM_PROMPT_V1)
+          : stylePreference === 'v2'
+          ? (gradientIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT_V2 : INITIAL_SYSTEM_PROMPT_V2)
+          : (gradientIsFollowUp ? FOLLOW_UP_SYSTEM_PROMPT : INITIAL_SYSTEM_PROMPT)
+      };
+
+      let gradientUserContent = `Create a landing page for: ${prompt}`;
+      if (gradientIsFollowUp) {
+        try {
+          const existingFiles = typeof gradientExistingFilesParam === 'string' ? JSON.parse(gradientExistingFilesParam) : gradientExistingFilesParam;
+          const previousPrompts = typeof gradientPreviousPromptsParam === 'string' ? JSON.parse(gradientPreviousPromptsParam) : gradientPreviousPromptsParam;
+          
+          console.log(`Gradient follow-up request with ${existingFiles.length} existing files and ${previousPrompts.length} previous prompts${gradientSelectedElementHtml ? ' (with selected element)' : ''}`);
+          
+          gradientUserContent = `Previous prompts: ${previousPrompts.join(', ')}\n\nExisting files:\n`;
+          for (const file of existingFiles) {
+            gradientUserContent += `\n${file.name}:\n${file.content}\n`;
+          }
+          gradientUserContent += `\n\nUser request: ${prompt}`;
+          
+          if (gradientMediaFiles && gradientMediaFiles.length > 0) {
+            gradientUserContent += `\n\n📎 UPLOADED MEDIA FILES (${gradientMediaFiles.length} file${gradientMediaFiles.length > 1 ? 's' : ''} available):
+The user has uploaded images to use. Use these EXACT placeholder strings as src attributes:
+
+${gradientMediaFiles.map((_, i) => `- For image ${i + 1}: use src="{{MEDIA_${i + 1}}}"`).join('\n')}
+
+Example: <img src="{{MEDIA_1}}" alt="User uploaded image" class="w-full h-48 object-cover" />
+
+The placeholders will be automatically replaced with the actual image data.
+IMPORTANT: Use EXACTLY {{MEDIA_1}}, {{MEDIA_2}}, etc. - do not modify or guess the format.`;
+          }
+          
+          if (gradientSelectedElementHtml) {
+            gradientUserContent += `\n\n⚠️ CRITICAL CONSTRAINT - ELEMENT ISOLATION MODE ACTIVE ⚠️
+You MUST update ONLY this specific element and NOTHING ELSE in the entire page:
+
+\`\`\`html
+${gradientSelectedElementHtml}
+\`\`\`
+
+STRICT RULES:
+1. Your SEARCH block must contain ONLY content from within this element
+2. Your REPLACE block must ONLY modify this element's content
+3. Do NOT touch any other elements, sections, or code outside this element
+4. Do NOT change the DOCTYPE, <head>, navigation, footer, or any other sections
+5. Focus ONLY on the element shown above
+${gradientMediaFiles && gradientMediaFiles.length > 0 ? `6. If adding an image, use the {{MEDIA_1}}, {{MEDIA_2}}, etc. placeholders provided above` : ''}
+
+If the user asks to "search other CTA" or similar, find alternative content ONLY for this specific element.`;
+          }
+        } catch (e) {
+          console.error('Error parsing Gradient follow-up context (falling back to initial):', e);
+        }
+      }
+
+      const userMessage = {
+        role: "user",
+        content: gradientUserContent
+      };
+
+      const apiResponse = await fetch("https://apis.gradient.network/api/v1/ai/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          stream: true,
+          model: "qwen/qwen3-coder-480b-instruct-fp8",
+          messages: [systemMessage, userMessage],
+          max_tokens: 64000,
+          temperature: 0.6,
+          performance_type: 0
+        })
+      });
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        console.error("Gradient API error:", apiResponse.status, errorText);
+        
+        res.write(`data: ${JSON.stringify({ 
+          type: 'error', 
+          message: `Gradient API error: ${apiResponse.status}`
+        })}\n\n`);
+        
+        const fallbackHtml = generateFallbackHtml(title, prompt);
+        res.write(`data: ${JSON.stringify({ 
+          type: 'complete', 
+          html: fallbackHtml,
+          source: 'fallback'
+        })}\n\n`);
+        
+        return res.end();
+      }
+
+      const reader = apiResponse.body?.getReader();
+      if (!reader) {
+        throw new Error("Response body is not readable");
+      }
+
+      let fullContent = "";
+      let htmlStarted = false;
+      let sseBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value, { stream: true });
+        sseBuffer += chunk;
+        
+        let boundary = sseBuffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const message = sseBuffer.substring(0, boundary);
+          sseBuffer = sseBuffer.substring(boundary + 2);
+          
+          const lines = message.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') continue;
+
+              try {
+                const jsonData = JSON.parse(jsonStr);
+                if (jsonData.choices?.[0]?.delta?.content) {
+                  const contentChunk = jsonData.choices[0].delta.content;
+                  fullContent += contentChunk;
+
+                  if (!htmlStarted && (
+                    contentChunk.includes("<!DOCTYPE") || 
+                    contentChunk.includes("<html") || 
+                    contentChunk.includes("<head") ||
+                    contentChunk.includes("<body")
+                  )) {
+                    htmlStarted = true;
+                  }
+
+                  res.write(`data: ${JSON.stringify({ 
+                    type: 'chunk', 
+                    content: contentChunk,
+                    isHtml: htmlStarted
+                  })}\n\n`);
+                  
+                  flushResponse();
+                  console.log(`[Gradient SSE] Sent chunk: ${contentChunk.length} chars to session ${sessionId}`);
+                }
+              } catch (e) {
+                console.error("Error parsing Gradient JSON chunk:", e, jsonStr.substring(0, 100));
+              }
+            }
+          }
+          
+          boundary = sseBuffer.indexOf('\n\n');
+        }
+      }
+
+      console.log('=== GRADIENT AI RESPONSE DEBUG ===');
+      console.log('First 500 chars:', fullContent.substring(0, 500));
+      console.log('Has PROJECT_NAME_START:', fullContent.includes('PROJECT_NAME_START'));
+      console.log('Has NEW_FILE_START:', fullContent.includes('NEW_FILE_START'));
+      console.log('========================');
+      
+      let parsedResult = null;
+      try {
+        parsedResult = processAiResponse(fullContent);
+        console.log(`Parsed Gradient response: projectName="${parsedResult.projectName}", files=${parsedResult.files.length}`);
+        if (parsedResult.files.length > 0) {
+          console.log('Files detected:', parsedResult.files.map(f => f.path).join(', '));
+        }
+      } catch (parseError) {
+        console.error("Error parsing Gradient AI response:", parseError);
+      }
+      
+      const tokensToUse = Math.ceil(fullContent.length / 4);
+      if (userId) {
+        try {
+          await pgStorage.updateUserTokenUsage(userId, tokensToUse, true);
+          const updatedUser = await pgStorage.getUser(userId);
+          
+          if (updatedUser) {
+            res.write(`data: ${JSON.stringify({ 
+              type: 'token-usage-updated',
+              tokenUsage: updatedUser.tokenUsage,
+              generationCount: updatedUser.generationCount
+            })}\n\n`);
+            flushResponse();
+          }
+        } catch (error) {
+          console.error(`Error updating token usage for user ${userId}:`, error);
+        }
+      }
+
+      res.write(`data: ${JSON.stringify({ 
+        type: 'complete', 
+        html: parsedResult ? null : fullContent,
+        files: parsedResult?.files || null,
+        projectName: parsedResult?.projectName || title,
+        source: 'gradient',
+        tokenCount: tokensToUse,
+        stats: {
+          tokens: tokensToUse,
+          characters: fullContent.length,
+          filesCount: parsedResult?.files.length || 0
+        }
+      })}\n\n`);
+      flushResponse();
+
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      res.end();
+      console.log(`Gradient SSE stream completed for session: ${sessionId}`);
+
+    } catch (error) {
+      console.error("Error in Gradient SSE stream:", error);
+      
+      const connection = streamConnections.get(sessionId);
+      if (connection) {
+        clearInterval(connection.heartbeat);
+        streamConnections.delete(sessionId);
+      }
+      
+      if (!res.headersSent) {
+        return res.status(500).json({ message: "Gradient stream error" });
+      }
+      res.end();
+    }
+  });
   
   // Rate limit check endpoint for anonymous users
   app.get("/api/check-rate-limit", (req, res) => {
