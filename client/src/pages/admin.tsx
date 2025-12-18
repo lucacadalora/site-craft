@@ -243,19 +243,26 @@ export default function AdminDashboard() {
     }
   }, [authLoading, isAuthenticated, user, navigate]);
 
-  const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
     queryFn: async () => {
       const response = await fetch('/api/admin/stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (response.status === 401) {
+        // Token expired - clear and redirect to login
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     },
     enabled: isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+    retry: false,
   });
 
-  const { data: usersData, isLoading: usersLoading } = useQuery<{ 
+  const { data: usersData, isLoading: usersLoading, error: usersError } = useQuery<{ 
     users: UserWithActivity[]; 
     total: number;
   }>({
@@ -264,11 +271,25 @@ export default function AdminDashboard() {
       const response = await fetch(`/api/admin/users-with-activity?limit=${limit}&offset=${page * limit}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (response.status === 401) {
+        // Token expired - clear and redirect to login
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
       if (!response.ok) throw new Error('Failed to fetch users');
       return response.json();
     },
     enabled: isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+    retry: false,
   });
+
+  // Handle session expiration
+  useEffect(() => {
+    if (statsError?.message === 'Session expired' || usersError?.message === 'Session expired') {
+      navigate('/login');
+    }
+  }, [statsError, usersError, navigate]);
 
   if (authLoading) {
     return (
